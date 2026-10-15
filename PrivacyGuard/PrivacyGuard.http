@@ -1,0 +1,6 @@
+@PrivacyGuard_HostAddress = http://localhost:5002
+
+GET {{PrivacyGuard_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
