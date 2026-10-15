@@ -67,6 +67,59 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("ConsentRecords");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
+                {
+                    b.Property<Guid>("DataInventoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DataCategory")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("DataSource")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("RetentionPeriodDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StorageLocation")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DataInventoryId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("DataInventories");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.Organization", b =>
                 {
                     b.Property<Guid>("OrganizationId")
@@ -200,6 +253,17 @@ namespace PrivacyGuard.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.PrivacyRequest", b =>
