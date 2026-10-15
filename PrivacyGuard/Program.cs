@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PrivacyGuard.Data;
+using PrivacyGuard.Interfaces;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Repositories;
@@ -35,6 +36,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ITenantService, TenantService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>(); 
 
 var app = builder.Build();
 
@@ -47,6 +50,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 
