@@ -12,12 +12,21 @@ namespace PrivacyGuard.Data
         public DbSet<ConsentRecord> ConsentRecords { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
 
+        public DbSet<DataInventory> DataInventories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            modelBuilder.Entity<DataInventory>()
+                .HasOne(d => d.Organization)
+                .WithMany()
+                .HasForeignKey(d => d.OrganizationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            foreach (var relationship in modelBuilder.Model
+                .GetEntityTypes()
+                .SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
