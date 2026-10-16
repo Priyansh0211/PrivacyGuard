@@ -39,7 +39,11 @@ namespace PrivacyGuard.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto request)
         {
-            var result = await _tenantService.LoginAsync(request);
+            var loginIp = HttpContext.Connection.RemoteIpAddress?
+                .MapToIPv4()
+                .ToString();
+
+            var result = await _tenantService.LoginAsync(request, loginIp);
 
             if (result.IsSuccess)
             {

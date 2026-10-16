@@ -28,8 +28,8 @@ namespace PrivacyGuard.Controllers
             return claim != null &&
                    Guid.TryParse(claim.Value, out organizationId);
         }
-
         [HttpGet]
+        [HttpGet("getall")]
         public async Task<IActionResult> GetAll()
         {
             if (!TryGetOrganizationId(out var organizationId))
@@ -41,6 +41,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("{id:guid}")]
+        [HttpGet("getbyid/{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
             if (!TryGetOrganizationId(out var organizationId))
@@ -53,8 +54,8 @@ namespace PrivacyGuard.Controllers
 
             return Ok(result);
         }
-
-        [HttpPost]
+        
+        [HttpPost("Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreateDataInventoryDto request)
         {
@@ -70,9 +71,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(
-            Guid id,
-            [FromBody] UpdateDataInventoryDto request)
+        public async Task<IActionResult> Update(Guid id,[FromBody] UpdateDataInventoryDto request)
         {
             if (!TryGetOrganizationId(out var organizationId))
                 return Forbid();
