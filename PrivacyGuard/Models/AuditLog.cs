@@ -10,6 +10,8 @@ namespace PrivacyGuard.Models
         public Guid? UserId { get; set; } // Kisne action liya
         public Guid? OrganizationId { get; set; } // Kis company ka data hai
 
+        public string? IpAddress { get; set; }
+
         public string TableName { get; set; } = string.Empty; // Konsi table modify hui
         public string ActionType { get; set; } = string.Empty; // Create, Update, Delete
         public string PrimaryKey { get; set; } = string.Empty; // Jis row me change hua uski ID
