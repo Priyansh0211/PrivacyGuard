@@ -6,8 +6,7 @@ namespace PrivacyGuard.Interfaces.Services
     {
         Task<(bool IsSuccess, Guid? OrganizationId, Guid? AdminId, string ErrorMessage)> RegisterTenantAsync(RegisterTenantDto request);
 
-        Task<(bool IsSuccess, string Token, string ErrorMessage)> LoginAsync(LoginDto request);
-
+        Task<(bool IsSuccess, string Token, string ErrorMessage)> LoginAsync(LoginDto request, string? loginIp);
     }
 
 }

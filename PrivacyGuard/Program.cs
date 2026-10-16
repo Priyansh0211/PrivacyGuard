@@ -11,39 +11,66 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. Register Controllers
 builder.Services.AddControllers();
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// 2. Configure JWT Authentication
+var jwtKey = builder.Configuration["JwtSettings:SecurityKey"]
+    ?? throw new InvalidOperationException(
+        "JWT SecurityKey is missing from configuration.");
+
+var jwtIssuer = builder.Configuration["JwtSettings:Issuer"]
+    ?? throw new InvalidOperationException(
+        "JWT Issuer is missing from configuration.");
+
+var jwtAudience = builder.Configuration["JwtSettings:Audience"]
+    ?? throw new InvalidOperationException(
+        "JWT Audience is missing from configuration.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+
             ValidateAudience = true,
+            ValidAudience = jwtAudience,
+
             ValidateLifetime = true,
+
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience = builder.Configuration["JwtSettings:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecurityKey"]))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
+// 3. Configure SQL Server Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IDataInventoryRepository, DataInventoryRepository>();
-builder.Services.AddScoped<IDataInventoryService, DataInventoryService>();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
+// 4. Register Repository and Service Dependencies
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ITenantService, TenantService>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IUserService, UserService>(); 
+builder.Services.AddScoped<IUserService, UserService>();
+
+// Data Inventory dependencies.
+// Add these if DataInventoryController and DataInventoryService
+// are still part of your project.
+builder.Services.AddScoped<IDataInventoryRepository, DataInventoryRepository>();
+builder.Services.AddScoped<IDataInventoryService, DataInventoryService>();
+
+// 5. Configure OpenAPI
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 6. Configure HTTP Request Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -51,9 +78,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+// Authentication must run before Authorization.
 app.UseAuthentication();
+app.UseAuthorization();
 
+// 7. Map API Controllers
 app.MapControllers();
 
 app.Run();

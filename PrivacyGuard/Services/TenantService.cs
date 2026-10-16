@@ -63,7 +63,7 @@ namespace PrivacyGuard.Services
         }
 
 
-        public async Task<(bool IsSuccess, string Token, string ErrorMessage)> LoginAsync(LoginDto request)
+        public async Task<(bool IsSuccess, string Token, string ErrorMessage)> LoginAsync( LoginDto request,string? loginIp)
         {
             
             var user = await _tenantRepository.GetUserByEmailAsync(request.Email);
@@ -101,8 +101,10 @@ namespace PrivacyGuard.Services
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-            
+
             user.LastLoginDate = DateTime.UtcNow;
+            user.LastLoginIP = loginIp;
+
             await _tenantRepository.UpdateUserAsync(user);
 
             return (true, tokenString, string.Empty);
