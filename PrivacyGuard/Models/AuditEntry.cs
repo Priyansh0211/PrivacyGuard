@@ -8,6 +8,7 @@ namespace PrivacyGuard.Models
         public EntityEntry Entry { get; }
         public Guid? UserId { get; set; }
         public Guid? OrganizationId { get; set; }
+        public string? IpAddress { get; set; }
         public string TableName { get; set; } = string.Empty;
         public Dictionary<string, object?> KeyValues { get; } = new();
         public Dictionary<string, object?> OldValues { get; } = new();
@@ -26,6 +27,7 @@ namespace PrivacyGuard.Models
             {
                 UserId = UserId,
                 OrganizationId = OrganizationId,
+                IpAddress = IpAddress,
                 TableName = TableName,
                 ActionType = ActionType,
                 PrimaryKey = JsonSerializer.Serialize(KeyValues),

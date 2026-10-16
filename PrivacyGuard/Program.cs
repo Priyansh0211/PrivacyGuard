@@ -11,8 +11,12 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpContextAccessor();
 // 1. Register Controllers
 builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // 2. Configure JWT Authentication
 var jwtKey = builder.Configuration["JwtSettings:SecurityKey"]
@@ -59,6 +63,9 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+
 // Data Inventory dependencies.
 // Add these if DataInventoryController and DataInventoryService
 // are still part of your project.
@@ -73,6 +80,8 @@ var app = builder.Build();
 // 6. Configure HTTP Request Pipeline
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
+    app.UseSwaggerUI();
     app.MapOpenApi();
 }
 
