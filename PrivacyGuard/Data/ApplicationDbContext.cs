@@ -23,6 +23,7 @@ namespace PrivacyGuard.Data
 
         public DbSet<DataInventory> DataInventories { get; set; }
 
+        public DbSet<DataBreachIncident> DataBreachIncidents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

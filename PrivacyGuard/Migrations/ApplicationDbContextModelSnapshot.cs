@@ -108,6 +108,64 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("ConsentRecords");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DiscoveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EstimatedAffectedRecords")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("IncidentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MitigationSteps")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ReportedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.ToTable("DataBreachIncidents");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
                 {
                     b.Property<Guid>("DataInventoryId")
@@ -294,6 +352,23 @@ namespace PrivacyGuard.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.User", "AssignedUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PrivacyGuard.Models.User", "ReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AssignedUser");
+
+                    b.Navigation("ReportedByUser");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
