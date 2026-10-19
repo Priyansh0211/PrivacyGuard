@@ -63,6 +63,97 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
+            {
+                b.Property<Guid>("CampaignId")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("CampaignType")
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasColumnType("nvarchar(30)");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<Guid?>("DataInventoryId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<string>("Description")
+                    .HasMaxLength(500)
+                    .HasColumnType("nvarchar(500)");
+
+                b.Property<DateTime>("EndDate")
+                    .HasColumnType("datetime2");
+
+                b.Property<Guid>("OrganizationId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<DateTime>("StartDate")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("Status")
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasColumnType("nvarchar(30)");
+
+                b.Property<string>("TargetRole")
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasColumnType("nvarchar(50)");
+
+                b.Property<string>("Title")
+                    .IsRequired()
+                    .HasMaxLength(150)
+                    .HasColumnType("nvarchar(150)");
+
+                b.Property<DateTime>("UpdatedAt")
+                    .HasColumnType("datetime2");
+
+                b.HasKey("CampaignId");
+
+                b.HasIndex("DataInventoryId");
+
+                b.HasIndex("OrganizationId");
+
+                b.ToTable("Campaigns");
+            });
+
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
+            {
+                b.Property<Guid>("ResponseId")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<Guid>("CampaignId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<DateTime?>("RespondedAt")
+                    .HasColumnType("datetime2");
+
+                b.Property<string>("ResponseStatus")
+                    .IsRequired()
+                    .HasMaxLength(30)
+                    .HasColumnType("nvarchar(30)");
+
+                b.Property<Guid>("UserId")
+                    .HasColumnType("uniqueidentifier");
+
+                b.HasKey("ResponseId");
+
+                b.HasIndex("CampaignId");
+
+                b.HasIndex("UserId");
+
+                b.ToTable("CampaignResponses");
+            });
+
+
+
             modelBuilder.Entity("PrivacyGuard.Models.ConsentRecords", b =>
                 {
                     b.Property<Guid>("ConsentRecordId")
@@ -347,6 +438,45 @@ namespace PrivacyGuard.Migrations
 
                     b.Navigation("DataInventory");
                 });
+
+            modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
+            {
+                b.HasOne("PrivacyGuard.Models.DataInventory", "DataInventory")
+                    .WithMany()
+                    .HasForeignKey("DataInventoryId")
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne("PrivacyGuard.Models.Organization", "Organization")
+                    .WithMany()
+                    .HasForeignKey("OrganizationId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.Navigation("DataInventory");
+
+                b.Navigation("Organization");
+            });
+
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
+            {
+                b.HasOne("PrivacyGuard.Models.Campaign", "Campaign")
+                    .WithMany()
+                    .HasForeignKey("CampaignId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.HasOne("PrivacyGuard.Models.User", "User")
+                    .WithMany()
+                    .HasForeignKey("UserId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.Navigation("Campaign");
+
+                b.Navigation("User");
+            });
+
+
 
             modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
                 {

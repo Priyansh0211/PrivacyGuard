@@ -80,6 +80,7 @@ namespace PrivacyGuard.Controllers
             if (!result.IsSuccess) return BadRequest(new { message = result.ErrorMessage });
 
             return Ok(new { message = $"Incident status updated to {dto.Status}." });
+
         }
     }
 }
