@@ -9,7 +9,8 @@ namespace PrivacyGuard.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize] // Bina valid JWT token ke API access nahi - 401 dega
+
     public class DataInventoryController : ControllerBase
     {
         private readonly IDataInventoryService _service;
@@ -18,6 +19,8 @@ namespace PrivacyGuard.Controllers
         {
             _service = service;
         }
+
+        // Custom helper - JWT token ke andar se (claims se) OrganizationId nikalta hai taaki user sirf apni company ka data dekh sake
 
         private bool TryGetOrganizationId(out Guid organizationId)
         {
@@ -29,19 +32,18 @@ namespace PrivacyGuard.Controllers
                    Guid.TryParse(claim.Value, out organizationId);
         }
         [HttpGet]
-        [HttpGet("getall")]
         public async Task<IActionResult> GetAll()
         {
+            // Agar token me organization id nahi mili (gadbad hai), to request ko reject kar dega (403 Forbidden)
             if (!TryGetOrganizationId(out var organizationId))
                 return Forbid();
 
-            var result = await _service.GetAllAsync(organizationId);
+           var result = await _service.GetAllAsync(organizationId);
 
             return Ok(result);
         }
 
         [HttpGet("{id:guid}")]
-        [HttpGet("getbyid/{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
             if (!TryGetOrganizationId(out var organizationId))

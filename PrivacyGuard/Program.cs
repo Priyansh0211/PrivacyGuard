@@ -97,8 +97,8 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IBreachRepository, BreachRepository>();
 builder.Services.AddScoped<IBreachService, BreachService>();
 
-
-// Data Inventory dependencies.
+builder.Services.AddScoped<IConsentRepository, ConsentRepository>();
+builder.Services.AddScoped<IConsentService, ConsentService>(); // Data Inventory dependencies.
 // Add these if DataInventoryController and DataInventoryService
 // are still part of your project.
 builder.Services.AddScoped<IDataInventoryRepository, DataInventoryRepository>();
