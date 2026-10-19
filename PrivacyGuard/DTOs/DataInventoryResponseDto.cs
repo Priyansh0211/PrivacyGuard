@@ -4,7 +4,10 @@
     {
         public Guid DataInventoryId { get; set; }
 
+        // Name: Data point ka naam - Jaise "Email Address" ya "Aadhar Number" - Create API ke form me admin yeh fill karega
         public string Name { get; set; } = string.Empty;
+
+        // DataCategory: Yeh kis type ka data hai - Jaise "Contact Info" ya "Sensitive Personal Data" - GetAll API list me filter lagane ke kaam aayega
 
         public string DataCategory { get; set; } = string.Empty;
 

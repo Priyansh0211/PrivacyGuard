@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PrivacyGuard.Models
 {
@@ -8,24 +7,33 @@ namespace PrivacyGuard.Models
         [Key]
         public Guid RequestId { get; set; } = Guid.NewGuid();
 
-        public Guid UserId { get; set; }
-        [ForeignKey("UserId")]
-        public User? User { get; set; }
+        [Required]
+        public Guid OrganizationId { get; set; } // Multi-tenant ID
 
-        [Required, MaxLength(50)]
-        public string RequestType { get; set; } = string.Empty; 
+        [Required]
+        public string DataPrincipalId { get; set; } = string.Empty; // User kisne request ki
 
-        [Required, MaxLength(50)]
-        public string Status { get; set; } = "Open";
+        // Request ka type: "Access", "Correction", "Erasure", ya "Grievance"
+        [Required]
+        [MaxLength(50)]
+        public string RequestType { get; set; } = string.Empty;
 
-        public string? RequestDetails { get; set; }
+        // User ne detail mein kya manga hai
+        [Required]
+        public string RequestDetails { get; set; } = string.Empty;
 
-        public Guid? AssignedAdminId { get; set; }
+        // Current status: "Pending", "In-Progress", "Resolved", "Rejected"
+        [Required]
+        [MaxLength(30)]
+        public string Status { get; set; } = "Pending";
 
-        public DateTime RaisedOn { get; set; } = DateTime.UtcNow;
-        public DateTime SlaDueDate { get; set; } = DateTime.UtcNow.AddDays(30);
-
+        // Admin/DPO ne kya action liya uska note
         public string? ResolutionRemarks { get; set; }
-        public DateTime? ResolvedOn { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? ResolvedAt { get; set; }
+
+        // DPDP kehta hai ki requests ek fix time mein resolve honi chahiye (SLA tracking)
+        public DateTime TargetResolutionDate => CreatedAt.AddDays(30);
     }
 }

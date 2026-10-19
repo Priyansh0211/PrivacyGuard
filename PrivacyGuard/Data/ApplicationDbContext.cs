@@ -16,7 +16,7 @@ namespace PrivacyGuard.Data
 
         public DbSet<Organization> Organizations { get; set; } 
         public DbSet<User> Users { get; set; }
-        public DbSet<ConsentRecord> ConsentRecords { get; set; }
+        public DbSet<ConsentRecords> ConsentRecords { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
 
         public DbSet<AuditLog> AuditLogs { get; set; }
