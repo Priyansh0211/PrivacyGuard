@@ -24,7 +24,7 @@ namespace PrivacyGuard.Models
         public string Email { get; set; } = string.Empty;
 
 
-
+                                                                                                                                                                                                                                    
         [MaxLength(20)]
         public string? PhoneNumber { get; set; }
 
