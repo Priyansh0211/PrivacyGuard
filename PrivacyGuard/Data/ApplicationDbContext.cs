@@ -25,6 +25,9 @@ namespace PrivacyGuard.Data
 
         public DbSet<DataBreachIncident> DataBreachIncidents { get; set; }
 
+        public DbSet<CampaignResponse> CampaignResponses { get; set; }
+        public DbSet<Campaign> Campaigns { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
