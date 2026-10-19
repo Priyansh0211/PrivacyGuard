@@ -63,47 +63,41 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("PrivacyGuard.Models.ConsentRecord", b =>
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentRecords", b =>
                 {
-                    b.Property<Guid>("ConsentId")
+                    b.Property<Guid>("ConsentRecordId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ConsentPurpose")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DeviceUserAgent")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("GrantedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("IPAddress")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsGranted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NoticeVersion")
+                    b.Property<string>("ConsentStatus")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid>("DataInventoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DataPrincipalId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NoticeVersion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("WithdrawnAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("ConsentId");
+                    b.HasKey("ConsentRecordId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("DataInventoryId");
 
                     b.ToTable("ConsentRecords");
                 });
@@ -343,15 +337,15 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("PrivacyGuard.Models.ConsentRecord", b =>
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentRecords", b =>
                 {
-                    b.HasOne("PrivacyGuard.Models.User", "User")
+                    b.HasOne("PrivacyGuard.Models.DataInventory", "DataInventory")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("DataInventoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("DataInventory");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
