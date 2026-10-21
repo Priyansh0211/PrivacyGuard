@@ -42,6 +42,7 @@ namespace PrivacyGuard.Repositories
         {
             _context.DataBreachIncidents.Update(incident);
             await _context.SaveChangesAsync();
+
         }
     }
 }

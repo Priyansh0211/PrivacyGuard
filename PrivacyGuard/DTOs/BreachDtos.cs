@@ -10,6 +10,7 @@
         public DateTime DiscoveryDate { get; set; }
     }
 
+
     // Admin jab ticket par action lega (Triage, Mitigation, Closure)
     public class UpdateBreachStatusDto
     {

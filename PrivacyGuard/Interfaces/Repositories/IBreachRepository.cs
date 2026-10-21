@@ -8,5 +8,6 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<List<DataBreachIncident>> GetAllIncidentsAsync(Guid organizationId);
         Task<DataBreachIncident?> GetIncidentByIdAsync(Guid incidentId, Guid organizationId);
         Task UpdateIncidentAsync(DataBreachIncident incident);
+
     }
 }
