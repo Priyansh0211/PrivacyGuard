@@ -116,6 +116,9 @@ builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IDataInventoryRepository, DataInventoryRepository>();
 builder.Services.AddScoped<IDataInventoryService, DataInventoryService>();
 
+builder.Services.AddScoped<IUserDashboardRepository, UserDashboardRepository>();
+builder.Services.AddScoped<IUserDashboardService, UserDashboardService>();
+
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 
