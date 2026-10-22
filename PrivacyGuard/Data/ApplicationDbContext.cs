@@ -27,6 +27,7 @@ namespace PrivacyGuard.Data
 
         public DbSet<CampaignResponse> CampaignResponses { get; set; }
         public DbSet<Campaign> Campaigns { get; set; }
+        public DbSet<DpiaRecord> DpiaRecords { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
