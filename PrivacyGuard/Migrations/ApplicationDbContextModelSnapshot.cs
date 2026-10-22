@@ -60,7 +60,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
@@ -117,7 +117,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Campaigns");
+                    b.ToTable("Campaigns", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
@@ -149,7 +149,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CampaignResponses");
+                    b.ToTable("CampaignResponses", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.ConsentRecords", b =>
@@ -188,7 +188,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("DataInventoryId");
 
-                    b.ToTable("ConsentRecords");
+                    b.ToTable("ConsentRecords", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
@@ -246,7 +246,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("ReportedByUserId");
 
-                    b.ToTable("DataBreachIncidents");
+                    b.ToTable("DataBreachIncidents", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
@@ -299,7 +299,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("DataInventories");
+                    b.ToTable("DataInventories", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Organization", b =>
@@ -324,7 +324,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("OrganizationId");
 
-                    b.ToTable("Organizations");
+                    b.ToTable("Organizations", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.PrivacyRequest", b =>
@@ -365,7 +365,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("RequestId");
 
-                    b.ToTable("PrivacyRequests");
+                    b.ToTable("PrivacyRequests", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.User", b =>
@@ -420,7 +420,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
