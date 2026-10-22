@@ -97,18 +97,17 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IBreachRepository, BreachRepository>();
 builder.Services.AddScoped<IBreachService, BreachService>();
 
-
-
 builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 
 builder.Services.AddScoped<IConsentRepository, ConsentRepository>();
 builder.Services.AddScoped<IConsentService, ConsentService>();
 
-
 builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 
+builder.Services.AddScoped<IPrivacyRequestRepository, PrivacyRequestRepository>();
+builder.Services.AddScoped<IPrivacyRequestService, PrivacyRequestService>();
 
 // Data Inventory dependencies.
 // Add these if DataInventoryController and DataInventoryService
