@@ -103,11 +103,21 @@ builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
 
 builder.Services.AddScoped<IConsentRepository, ConsentRepository>();
-builder.Services.AddScoped<IConsentService, ConsentService>(); // Data Inventory dependencies.
+builder.Services.AddScoped<IConsentService, ConsentService>();
+
+
+builder.Services.AddScoped<IAdminDashboardRepository, AdminDashboardRepository>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+
+
+// Data Inventory dependencies.
 // Add these if DataInventoryController and DataInventoryService
 // are still part of your project.
 builder.Services.AddScoped<IDataInventoryRepository, DataInventoryRepository>();
 builder.Services.AddScoped<IDataInventoryService, DataInventoryService>();
+
+builder.Services.AddScoped<IUserDashboardRepository, UserDashboardRepository>();
+builder.Services.AddScoped<IUserDashboardService, UserDashboardService>();
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
@@ -131,4 +141,21 @@ app.UseAuthorization();
 // 7. Map API Controllers
 app.MapControllers();
 
+
+// Seed Dummy Data for Demo
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<PrivacyGuard.Data.ApplicationDbContext>();
+        PrivacyGuard.Data.DataSeeder.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("An error occurred while seeding the database: " + ex.Message);
+    }
+}
+
+app.Run();
 app.Run();

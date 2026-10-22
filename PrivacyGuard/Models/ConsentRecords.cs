@@ -5,6 +5,8 @@ namespace PrivacyGuard.Models
 {
     public class ConsentRecords
     {
+
+
         [Key]
         public Guid ConsentRecordId { get; set; } = Guid.NewGuid();
 
@@ -30,5 +32,7 @@ namespace PrivacyGuard.Models
 
         public DateTime GrantedAt { get; set; } = DateTime.UtcNow;
         public DateTime? WithdrawnAt { get; set; }
+
+
     }
 }
