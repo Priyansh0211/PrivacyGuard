@@ -303,6 +303,7 @@ namespace PrivacyGuard.Migrations
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DpiaRecord", b =>
+            modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -321,6 +322,16 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<DateTime?>("NextReviewDate")
                         .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
@@ -328,7 +339,11 @@ namespace PrivacyGuard.Migrations
                     b.Property<int>("PurposesCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("ReferenceId")
+                    b.Property<string>("ReferenceId");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -360,7 +375,14 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DpiaRecords");
-                });
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("OrgUnits");
+                }));
 
             modelBuilder.Entity("PrivacyGuard.Models.Organization", b =>
                 {
@@ -557,6 +579,24 @@ namespace PrivacyGuard.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivacyGuard.Models.OrgUnit", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.User", b =>
