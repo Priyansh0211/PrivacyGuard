@@ -118,6 +118,12 @@ builder.Services.AddScoped<IDataInventoryService, DataInventoryService>();
 builder.Services.AddScoped<IUserDashboardRepository, UserDashboardRepository>();
 builder.Services.AddScoped<IUserDashboardService, UserDashboardService>();
 
+builder.Services.AddScoped<IOrgUnitRepository, OrgUnitRepository>();
+builder.Services.AddScoped<IOrgUnitService, OrgUnitService>();
+
+builder.Services.AddScoped<IDpiaRepository, DpiaRepository>();
+builder.Services.AddScoped<IDpiaService, DpiaService>();
+
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 

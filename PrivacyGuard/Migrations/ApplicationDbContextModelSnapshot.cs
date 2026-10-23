@@ -60,7 +60,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AuditLogs", (string)null);
+                    b.ToTable("AuditLogs");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
@@ -117,7 +117,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Campaigns", (string)null);
+                    b.ToTable("Campaigns");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
@@ -149,7 +149,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("CampaignResponses", (string)null);
+                    b.ToTable("CampaignResponses");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.ConsentRecords", b =>
@@ -188,7 +188,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("DataInventoryId");
 
-                    b.ToTable("ConsentRecords", (string)null);
+                    b.ToTable("ConsentRecords");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
@@ -246,7 +246,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("ReportedByUserId");
 
-                    b.ToTable("DataBreachIncidents", (string)null);
+                    b.ToTable("DataBreachIncidents");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
@@ -299,8 +299,90 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("DataInventories", (string)null);
+                    b.ToTable("DataInventories");
                 });
+
+            modelBuilder.Entity("PrivacyGuard.Models.DpiaRecord", b =>
+            modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AssessmentDetails")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("NextReviewDate")
+                        .HasColumnType("datetime2");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PurposesCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceId");
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResidualRisk")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DpiaRecords");
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("OrgUnits");
+                }));
 
             modelBuilder.Entity("PrivacyGuard.Models.Organization", b =>
                 {
@@ -324,7 +406,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("OrganizationId");
 
-                    b.ToTable("Organizations", (string)null);
+                    b.ToTable("Organizations");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.PrivacyRequest", b =>
@@ -365,7 +447,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("RequestId");
 
-                    b.ToTable("PrivacyRequests", (string)null);
+                    b.ToTable("PrivacyRequests");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.User", b =>
@@ -420,7 +502,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Campaign", b =>
@@ -497,6 +579,24 @@ namespace PrivacyGuard.Migrations
                         .IsRequired();
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivacyGuard.Models.OrgUnit", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Organization");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.User", b =>
