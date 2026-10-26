@@ -30,6 +30,12 @@ namespace PrivacyGuard.Data
         public DbSet<DpiaRecord> DpiaRecords { get; set; }
         public DbSet<OrgUnit> OrgUnits { get; set; }
 
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
+
+        public DbSet<Grievance> Grievances { get; set; }
+        public DbSet<GrievanceMessage> GrievanceMessages { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

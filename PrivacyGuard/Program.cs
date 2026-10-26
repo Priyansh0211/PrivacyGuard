@@ -124,6 +124,12 @@ builder.Services.AddScoped<IOrgUnitService, OrgUnitService>();
 builder.Services.AddScoped<IDpiaRepository, DpiaRepository>();
 builder.Services.AddScoped<IDpiaService, DpiaService>();
 
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+
+builder.Services.AddScoped<IGrievanceRepository, GrievanceRepository>();
+builder.Services.AddScoped<IGrievanceService, GrievanceService>();
+
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 

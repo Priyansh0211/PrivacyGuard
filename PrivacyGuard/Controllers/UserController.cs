@@ -1,13 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces;
 
 namespace PrivacyGuard.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // SECURITY: Sirf Admin hi is API ko call kar sakta hai!
+    [Authorize]
+    //[Authorize(Roles = "Admin")] 
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -18,6 +20,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("add-employee")]
+        [HasPermission("Users.Add")]
         public async Task<IActionResult> AddEmployee([FromBody] CreateUserDto request)
         {
             // JWT Token ke claims me se OrganizationId nikalna
@@ -40,6 +43,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("my-team")]
+        [HasPermission("Users.View")]
         public async Task<IActionResult> GetMyTeam()
         {
            
@@ -57,6 +61,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPatch("toggle-status/{userId}")]
+        [HasPermission("Users.Edit")]
         public async Task<IActionResult> ToggleEmployeeStatus(Guid userId)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;

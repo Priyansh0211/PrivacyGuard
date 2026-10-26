@@ -29,15 +29,17 @@ namespace PrivacyGuard.Repositories
 
         public async Task<List<User>> GetUsersByOrganizationIdAsync(Guid organizationId)
         {
-            
+
             return await _context.Users
-                .Where(u => u.OrganizationId == organizationId)
-                .ToListAsync();
+                 .Include(u => u.UserRole) 
+                 .Where(u => u.OrganizationId == organizationId)
+                 .ToListAsync();
         }
 
         public async Task<User?> GetUserByIdAndOrgAsync(Guid userId, Guid organizationId)
         {
             return await _context.Users
+                .Include(u => u.UserRole)
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.OrganizationId == organizationId);
         }
 
