@@ -1,15 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces;
 using PrivacyGuard.Interfaces.Services;
 using System.Security.Claims;
+
 
 namespace PrivacyGuard.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Is controller ki har API ke liye valid token chahiye
+    [Authorize] // Is controller ki har API ke liye token chahiye
     public class BreachController : ControllerBase
     {
         private readonly IBreachService _breachService;
@@ -20,7 +22,7 @@ namespace PrivacyGuard.Controllers
         }
 
         // 1. Employee Report API
-        // POST: api/breach/report
+        // Koi bhi logged-in employee breach report kar sakta hai (No specific permission needed)
         [HttpPost("report")]
         public async Task<IActionResult> ReportIncident([FromBody] ReportBreachDto dto)
         {
@@ -31,7 +33,7 @@ namespace PrivacyGuard.Controllers
                 return Unauthorized(new { message = "Invalid token claims." });
 
             var userId = Guid.Parse(userIdStr);
-            dto.OrganizationId = Guid.Parse(orgIdStr); // Security ke liye token se OrgId force karenge
+            dto.OrganizationId = Guid.Parse(orgIdStr);
 
             var result = await _breachService.ReportIncidentAsync(userId, dto);
             if (!result.IsSuccess) return BadRequest(new { message = result.ErrorMessage });
@@ -40,9 +42,8 @@ namespace PrivacyGuard.Controllers
         }
 
         // 2. Admin Dashboard API
-        // GET: api/breach/all
         [HttpGet("all")]
-        [Authorize(Roles = "Admin,SystemAdmin")] // Sirf Admins dekh sakte hain
+        [HasPermission("Breaches.View")] // Dynamic RBAC Applied
         public async Task<IActionResult> GetAllIncidents()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -53,9 +54,8 @@ namespace PrivacyGuard.Controllers
         }
 
         // 3. Admin Assign API (Smart Trigger)
-        // PATCH: api/breach/{id}/assign
         [HttpPatch("{id}/assign")]
-        [Authorize(Roles = "Admin,SystemAdmin")]
+        [HasPermission("Breaches.Manage")] // Dynamic RBAC Applied
         public async Task<IActionResult> AssignIncident(Guid id)
         {
             var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -68,9 +68,8 @@ namespace PrivacyGuard.Controllers
         }
 
         // 4. Admin Update/Close API
-        // PATCH: api/breach/{id}/update
         [HttpPatch("{id}/update")]
-        [Authorize(Roles = "Admin,SystemAdmin")]
+        [HasPermission("Breaches.Manage")] // Dynamic RBAC Applied
         public async Task<IActionResult> UpdateIncident(Guid id, [FromBody] UpdateBreachStatusDto dto)
         {
             var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -80,7 +79,6 @@ namespace PrivacyGuard.Controllers
             if (!result.IsSuccess) return BadRequest(new { message = result.ErrorMessage });
 
             return Ok(new { message = $"Incident status updated to {dto.Status}." });
-
         }
     }
 }

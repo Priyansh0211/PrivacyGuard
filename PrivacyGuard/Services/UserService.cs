@@ -1,4 +1,5 @@
 ﻿using PrivacyGuard.DTOs;
+using PrivacyGuard.Helpers;
 using PrivacyGuard.Interfaces;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
@@ -27,12 +28,15 @@ namespace PrivacyGuard.Services
             var currentTime = DateTime.UtcNow;
             var newUser = new User
             {
-                OrganizationId = organizationId, // Token se aayi hui ID yahan lag jayegi
+                OrganizationId = organizationId,
                 FullName = request.FullName,
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 PasswordHash = request.Password,
-                Role = "NormalUser", // Naye employee ka role by default NormalUser hoga
+                ReferenceId = PrivacyHelper.GenerateUserReferenceId(),
+
+                RoleId = request.RoleId,
+
                 IsActive = true,
                 CreatedAt = currentTime,
                 UpdatedAt = currentTime
@@ -53,7 +57,10 @@ namespace PrivacyGuard.Services
                 FullName = u.FullName,
                 Email = u.Email,
                 PhoneNumber = u.PhoneNumber,
-                Role = u.Role,
+
+                // 🚨 UPDATE: String Role ki jagah Role table se Name nikalenge
+                Role = u.UserRole != null ? u.UserRole.Name : "No Role Assigned",
+
                 IsActive = u.IsActive,
                 CreatedAt = u.CreatedAt
             }).ToList();
@@ -63,7 +70,6 @@ namespace PrivacyGuard.Services
 
         public async Task<(bool IsSuccess, string ErrorMessage)> ToggleUserStatusAsync(Guid userId, Guid organizationId)
         {
-           
             var user = await _userRepository.GetUserByIdAndOrgAsync(userId, organizationId);
 
             if (user == null)
@@ -71,17 +77,15 @@ namespace PrivacyGuard.Services
                 return (false, "User not found or you don't have permission to modify this user.");
             }
 
-         
-            if (user.Role == "Admin")
+            // 🚨 UPDATE: Navigation property (UserRole) ka use karke Name check karenge
+            if (user.UserRole != null && user.UserRole.Name == "Admin")
             {
                 return (false, "You cannot deactivate an Admin account.");
             }
 
-           
             user.IsActive = !user.IsActive; // True hai toh False, False hai toh True
             user.UpdatedAt = DateTime.UtcNow;
 
-          
             await _userRepository.UpdateUserAsync(user);
 
             return (true, string.Empty);

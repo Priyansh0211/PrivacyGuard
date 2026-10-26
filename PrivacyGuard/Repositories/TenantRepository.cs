@@ -41,7 +41,7 @@ namespace PrivacyGuard.Repositories
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users.Include(u=>u.UserRole).FirstOrDefaultAsync(u => u.Email == email);
         }
 
         // Login ke baad LastLoginDate save karna
@@ -49,6 +49,24 @@ namespace PrivacyGuard.Repositories
         {
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<string>> GetPermissionsByRoleIdAsync(Guid? roleId)
+        {
+            // Agar user ka role null hai, toh seedha khali list return karo
+            if (roleId == null || roleId == Guid.Empty)
+            {
+                return new List<string>();
+            }
+
+            // RolePermission table se us Role ki saari Permissions nikalna
+            var permissions = await _context.RolePermissions
+                .Include(rp => rp.Permission) // Permission table join
+                .Where(rp => rp.RoleId == roleId && rp.Permission != null)
+                .Select(rp => rp.Permission!.SystemName) // 🚨 Yahan humne tumhara 'SystemName' use kiya hai
+                .ToListAsync();
+
+            return permissions;
         }
     }
 }
