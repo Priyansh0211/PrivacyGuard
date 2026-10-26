@@ -10,5 +10,7 @@ namespace PrivacyGuard.Interfaces.Services
         Task<(bool IsSuccess, string ErrorMessage)> AssignIncidentAsync(Guid incidentId, Guid organizationId, Guid adminUserId);
         Task<(bool IsSuccess, string ErrorMessage)> UpdateIncidentStatusAsync(Guid incidentId, Guid organizationId, Guid adminUserId, UpdateBreachStatusDto dto);
 
+        Task<string> EscalateGrievanceToBreachAsync(Guid grievanceId, Guid adminId, Guid orgId, EscalateToBreachDto dto);
+
     }
 }

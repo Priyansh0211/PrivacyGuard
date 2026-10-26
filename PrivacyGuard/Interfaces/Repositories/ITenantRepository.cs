@@ -8,7 +8,9 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<(Organization org, User admin)> CreateTenantWithAdminAsync(Organization org, User admin);
 
         Task<User?> GetUserByEmailAsync(string email);
-        Task UpdateUserAsync(User user); 
+        Task UpdateUserAsync(User user);
+
+        Task<List<string>> GetPermissionsByRoleIdAsync(Guid? roleId);
 
     }
 }
