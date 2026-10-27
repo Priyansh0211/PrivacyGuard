@@ -2,70 +2,81 @@
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
 {
     public class ConsentService : IConsentService
     {
-        // Ab hum DbContext nahi, balki Repository use kar rahe hain
         private readonly IConsentRepository _repository;
 
-        // Constructor mein repository inject ki
         public ConsentService(IConsentRepository repository)
         {
             _repository = repository;
         }
 
-        // Consent dene ka logic
-        public async Task<ConsentRecords> GrantConsentAsync(GrantConsentDto request, Guid organizationId)
+        // NAYA LOGIC: Ek sath master record aur granular details (checkboxes) save karna
+        public async Task<ConsentRecord> SubmitGranularConsentAsync(SubmitConsentDto request, Guid organizationId)
         {
-            // Naya ConsentRecord model object banaya
-            var consent = new ConsentRecords                
+            // 1. Master Record (Parent) banaya jo form submission track karega
+            var consentMaster = new ConsentRecord
             {
-                DataPrincipalId = request.DataPrincipalId, // DTO se aayi User Id
-                DataInventoryId = request.DataInventoryId, // DTO se aayi Data Id
+                DataPrincipalId = request.DataPrincipalId.ToString(), // DTO se aayi User Id
                 OrganizationId = organizationId,           // Token se aayi Org Id
-                ConsentStatus = "Granted",                 // Default status 'Granted'
-                NoticeVersion = request.NoticeVersion,     // DTO se aaya Notice version
-                GrantedAt = DateTime.UtcNow                // Current date/time
+                NoticeVersion = "1.0",                     // Default notice version
+                SubmittedAt = DateTime.UtcNow              // Form kab submit hua
             };
 
-            // Repository ko bola data add karo
-            await _repository.AddAsync(consent);
-            // Repository ko bola SQL mein save karo
+            // 2. Har Checkbox (Child) ka loop lagakar master mein add kiya
+            foreach (var pref in request.Preferences)
+            {
+                consentMaster.ConsentDetails.Add(new ConsentDetail
+                {
+                    DataInventoryId = pref.DataInventoryId, // DTO se specific purpose ki ID
+                    ConsentStatus = pref.Status             // "Granted" ya "Denied"
+                });
+            }
+
+            // 3. Repository ko bola Master (with saari Details) DB mein save karo
+            await _repository.AddAsync(consentMaster);
             await _repository.SaveChangesAsync();
 
-            // Save hone ke baad data wapas bhej diya
-            return consent;
+            return consentMaster;
         }
 
-        // Consent wapas lene ka logic
-        public async Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId)
+        // NAYA LOGIC: Granular consent (kisi ek specific purpose) ko wapas lena
+        public async Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid dataInventoryId, Guid organizationId)
         {
-            // Repository ko bol kar purana record DB se mangwaya
-            var consent = await _repository.GetByIdAsync(consentRecordId, organizationId);
+            // Repository se master record mangwaya (Dhyan rahe, Repo mein .Include() laga hona chahiye)
+            var consentMaster = await _repository.GetByIdAsync(consentRecordId, organizationId);
 
-            // Agar record nahi mila toh false return karo
-            if (consent == null) return false;
+            if (consentMaster == null) return false;
 
-            // Agar mil gaya toh uska status change kar do
-            consent.ConsentStatus = "Withdrawn";
-            // Withdraw karne ka date/time daal diya
-            consent.WithdrawnAt = DateTime.UtcNow;
+            // Master ke andar se wo specific checkbox dhoondo jise withdraw karna hai
+            var detailToWithdraw = consentMaster.ConsentDetails
+                .FirstOrDefault(d => d.DataInventoryId == dataInventoryId);
 
-            // Repository ko bola is record ko update kar do
-            _repository.Update(consent);
-            // Repository ko bola SQL mein save karo
-            await _repository.SaveChangesAsync();
+            // Agar wo pehle se Granted tha, toh usko Withdrawn mark kar do
+            if (detailToWithdraw != null && detailToWithdraw.ConsentStatus == "Granted")
+            {
+                detailToWithdraw.ConsentStatus = "Withdrawn";
+                detailToWithdraw.WithdrawnAt = DateTime.UtcNow;
 
-            // Success return kar diya
-            return true;
+                _repository.Update(consentMaster);
+                await _repository.SaveChangesAsync();
+
+                return true;
+            }
+
+            return false; // Agar record nahi mila ya pehle se Denied tha
         }
 
-        // User ki history nikalne ka logic
-        public async Task<IEnumerable<ConsentRecords>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
+        // User ki history nikalne ka logic (Same rahega)
+        public async Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
         {
-            // Seedha repository se history maangi aur wapas kar di
             return await _repository.GetHistoryAsync(dataPrincipalId, organizationId);
         }
     }

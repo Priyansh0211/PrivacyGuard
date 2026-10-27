@@ -25,7 +25,6 @@ namespace PrivacyGuard.Services
         {
             var currentTime = DateTime.UtcNow;
 
-            // 1. Organization ke liye naya Guid generate karo taaki Role ko link kar sakein
             var orgId = Guid.NewGuid();
 
             var newOrg = new Organization
@@ -37,7 +36,6 @@ namespace PrivacyGuard.Services
                 UpdatedAt = currentTime
             };
 
-            // 2. Nayi company ban rahi hai, toh uska default 'Admin' Role bhi banana padega
             var adminRole = new Role
             {
                 Id = Guid.NewGuid(),
@@ -56,7 +54,6 @@ namespace PrivacyGuard.Services
                 PhoneNumber = request.AdminPhoneNumber,
                 PasswordHash = request.AdminPassword, // Future mein BCrypt se hash karna hoga
 
-
                 RoleId = adminRole.Id,
                 UserRole = adminRole,
 
@@ -65,7 +62,7 @@ namespace PrivacyGuard.Services
                 UpdatedAt = currentTime,
                 LastLoginDate = null,
                 LastLoginIP = null
-            }; 
+            };
 
             try
             {
@@ -94,28 +91,32 @@ namespace PrivacyGuard.Services
 
             var roleName = user.UserRole != null ? user.UserRole.Name : "NoRoleAssigned";
 
+            // 1. Ek hi baar claims list banayenge
             var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(ClaimTypes.Role, roleName),
-        new Claim("OrganizationId", user.OrganizationId.ToString())
-    };
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, roleName),
+                new Claim("OrganizationId", user.OrganizationId.ToString())
+            };
 
-
-           var userPermissions = await _tenantRepository.GetPermissionsByRoleIdAsync(user.RoleId);
-
+            // Teammate ka feature: Permissions add karna
+            var userPermissions = await _tenantRepository.GetPermissionsByRoleIdAsync(user.RoleId);
             if (userPermissions != null && userPermissions.Any())
             {
                 foreach (var systemName in userPermissions)
                 {
-                    
                     claims.Add(new Claim("Permission", systemName));
                 }
             }
 
+            // Teammate ka feature: OrgUnitId check
+            if (user.OrgUnitId.HasValue && user.OrgUnitId.Value != Guid.Empty)
+            {
+                claims.Add(new Claim("OrgUnitId", user.OrgUnitId.Value.ToString()));
+            }
 
-            // 🚨 FIX FOR CS8604 / CS1503: Security key ke null hone ka check lagaya
+            // 2. Ek hi baar Security Key banayenge null check ke sath
             var securityKey = _configuration["JwtSettings:SecurityKey"];
             if (string.IsNullOrEmpty(securityKey))
             {

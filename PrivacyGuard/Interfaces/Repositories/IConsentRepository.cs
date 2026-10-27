@@ -6,16 +6,16 @@ namespace PrivacyGuard.Interfaces.Repositories
     public interface IConsentRepository
     {
         // Naya consent record database me add karne ke liye
-        Task<ConsentRecords> AddAsync(ConsentRecords consent);
+        Task<ConsentRecord> AddAsync(ConsentRecord consent);
 
         // Kisi specific consent record ko uski ID aur OrganizationId se dhundhne ke liye
-        Task<ConsentRecords?> GetByIdAsync(Guid consentRecordId, Guid organizationId);
+        Task<ConsentRecord?> GetByIdAsync(Guid consentRecordId, Guid organizationId);
 
         // Kisi existing record ko update karne ke liye (jaise withdraw karte waqt)
-        void Update(ConsentRecords consent);
+        void Update(ConsentRecord consent);
 
         // Kisi ek user (Data Principal) ki saari consent history nikalne ke liye
-        Task<IEnumerable<ConsentRecords>> GetHistoryAsync(string dataPrincipalId, Guid organizationId);
+        Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId);
 
         // Database mein actual changes save karne ke liye
         Task<int> SaveChangesAsync();

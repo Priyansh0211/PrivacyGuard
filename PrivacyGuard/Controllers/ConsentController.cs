@@ -34,37 +34,27 @@ namespace PrivacyGuard.Controllers
         }
 
         // API Endpoint 1: Consent Dene Ke Liye (POST /api/consent/grant)
-        [HttpPost("grant")]
-        public async Task<IActionResult> GrantConsent([FromBody] GrantConsentDto request)
+        [HttpPost("submit")]
+        public async Task<IActionResult> SubmitConsent([FromBody] SubmitConsentDto request)
         {
-            // Token se ID nikalne ki koshish ki, fail hua toh 403 Forbid de diya
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized("Token mein OrganizationId missing hai.");
 
-            // Service ko request bhej di processing ke liye
-            var result = await _consentService.GrantConsentAsync(request, organizationId);
-
-            // 200 OK ke sath success message aur nayi Consent ID wapas ki
-            return Ok(new { Message = "Consent granted successfully", ConsentId = result.ConsentRecordId });
+            var orgId = Guid.Parse(orgIdClaim);
+            var result = await _consentService.SubmitGranularConsentAsync(request, orgId);
+            return Ok(result);
         }
 
-        // API Endpoint 2: Consent Withdraw (Wapas Lene) Ke Liye (PUT /api/consent/withdraw/{id})
-        [HttpPut("withdraw/{consentId:guid}")]
-        public async Task<IActionResult> WithdrawConsent(Guid consentId)
+        [HttpPost("withdraw/{recordId}/{inventoryId}")]
+        public async Task<IActionResult> WithdrawConsent(Guid recordId, Guid inventoryId)
         {
-            // Phir se token validation check kiya
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized("Token mein OrganizationId missing hai.");
 
-            // Service ko withdraw karne ka order diya, isme true/false aayega
-            var success = await _consentService.WithdrawConsentAsync(consentId, organizationId);
-
-            // Agar false aaya matlab record mila hi nahi, toh 404 Not Found bhej do
-            if (!success)
-                return NotFound(new { Message = "Consent record not found." });
-
-            // Sab theek raha toh 200 OK success message de diya
-            return Ok(new { Message = "Consent withdrawn successfully." });
+            var orgId = Guid.Parse(orgIdClaim);
+            var success = await _consentService.WithdrawConsentAsync(recordId, inventoryId, orgId);
+            if (!success) return BadRequest("Withdrawal failed or not found.");
+            return Ok(new { message = "Consent withdrawn successfully." });
         }
 
         // API Endpoint 3: User ki Consent History Dekhne Ke Liye (GET /api/consent/history/{userId})

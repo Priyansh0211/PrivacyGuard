@@ -16,7 +16,8 @@ namespace PrivacyGuard.Data
 
         public DbSet<Organization> Organizations { get; set; } 
         public DbSet<User> Users { get; set; }
-        public DbSet<ConsentRecords> ConsentRecords { get; set; }
+        public DbSet<ConsentRecord> ConsentRecords { get; set; }
+        public DbSet<ConsentDetail> ConsentDetails { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
 
         public DbSet<AuditLog> AuditLogs { get; set; }
@@ -40,12 +41,22 @@ namespace PrivacyGuard.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // 1. Aapka DataInventory wala mapping
             modelBuilder.Entity<DataInventory>()
                 .HasOne(d => d.Organization)
                 .WithMany()
                 .HasForeignKey(d => d.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 2. NAYA: OrgUnit ka Parent-Child (Self-referencing) mapping
+            modelBuilder.Entity<OrgUnit>()
+                .HasOne<OrgUnit>()
+                .WithMany()
+                .HasForeignKey(o => o.ParentId)
+                .IsRequired(false) // Yeh zaroori hai kyunki top-level (Zone) ka ParentId null hoga
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 3. Aapka Global Cascade Delete restrict logic (Yeh hamesha last mein hona chahiye)
             foreach (var relationship in modelBuilder.Model
                 .GetEntityTypes()
                 .SelectMany(e => e.GetForeignKeys()))

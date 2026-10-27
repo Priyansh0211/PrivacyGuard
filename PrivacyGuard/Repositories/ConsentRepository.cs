@@ -18,7 +18,7 @@ namespace PrivacyGuard.Repositories
         }
 
         // Naya consent record table me insert karega
-        public async Task<ConsentRecords> AddAsync(ConsentRecords consent)
+        public async Task<ConsentRecord> AddAsync(ConsentRecord consent)
         {
             // ConsentRecords ko table me add karne ke liye track me daala
             await _context.ConsentRecords.AddAsync(consent);
@@ -26,7 +26,7 @@ namespace PrivacyGuard.Repositories
         }
 
         // ID ke basis par ek single record nikalega
-        public async Task<ConsentRecords?> GetByIdAsync(Guid consentRecordId, Guid organizationId)
+        public async Task<ConsentRecord?> GetByIdAsync(Guid consentRecordId, Guid organizationId)
         {
             // FirstOrDefaultAsync se match karne wala pehla record layega
             return await _context.ConsentRecords
@@ -34,19 +34,19 @@ namespace PrivacyGuard.Repositories
         }
 
         // Record ko update karega
-        public void Update(ConsentRecords consent)
+        public void Update(ConsentRecord consent)
         {
             // Table mein record ko modify mode me set karega
             _context.ConsentRecords.Update(consent);
         }
 
         // User ki consent history database se uthayega
-        public async Task<IEnumerable<ConsentRecords>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
+        public async Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
         {
             // Where condition laga kar sirf us user aur uski organization ka data layega
             return await _context.ConsentRecords
                 .Where(c => c.DataPrincipalId == dataPrincipalId && c.OrganizationId == organizationId)
-                .OrderByDescending(c => c.GrantedAt) // Naya data sabse upar aayega
+                .OrderByDescending(c => c.SubmittedAt) // Naya data sabse upar aayega
                 .ToListAsync(); // List bana kar return karega
         }
 
