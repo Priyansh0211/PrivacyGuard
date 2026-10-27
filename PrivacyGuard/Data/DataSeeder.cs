@@ -130,15 +130,13 @@ namespace PrivacyGuard.Data
             });
 
             // 5. Create Consent Record (Active)
-            context.ConsentRecords.Add(new ConsentRecords
+            context.ConsentRecords.Add(new ConsentRecord
             {
                 ConsentRecordId = Guid.NewGuid(),
                 OrganizationId = orgId,
                 DataPrincipalId = userId.ToString(),
-                DataInventoryId = inventoryId,
-                ConsentStatus = "Granted",
                 NoticeVersion = "v1.0",
-                GrantedAt = DateTime.UtcNow
+                SubmittedAt = DateTime.UtcNow
             });
 
             // 6. Create Privacy Requests (Ek Pending, Ek SLA Risk wali)

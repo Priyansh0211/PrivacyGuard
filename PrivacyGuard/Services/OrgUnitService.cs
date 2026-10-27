@@ -20,8 +20,10 @@ namespace PrivacyGuard.Services
             {
                 OrganizationId = organizationId, // Controller se aayi hui ID save ho rahi hai
                 Name = dto.Name,
-                Type = dto.Type,
-                ParentId = dto.ParentId
+                UnitType = dto.UnitType,
+                UnitCode = dto.UnitCode, // <-- DATABASE MAPPING
+                ParentId = dto.ParentId,
+                IsActive = true
             };
 
             await _repository.AddAsync(orgUnit);
@@ -32,9 +34,11 @@ namespace PrivacyGuard.Services
                 Id = orgUnit.Id,
                 OrganizationId = orgUnit.OrganizationId,
                 Name = orgUnit.Name,
-                Type = orgUnit.Type,
+                UnitType = orgUnit.UnitType,
+                UnitCode = orgUnit.UnitCode, // <-- POST RESPONSE MAPPING
                 ParentId = orgUnit.ParentId,
-                IsActive = orgUnit.IsActive
+                IsActive = orgUnit.IsActive,
+                PrincipalsCount = 0
             };
         }
 
@@ -50,7 +54,7 @@ namespace PrivacyGuard.Services
             return true;
         }
 
-        public async Task<List<OrgUnitResponseDto>> GetHierarchyAsync(Guid organizationId)
+        public async Task<List<OrgUnitResponseDto>> GetHierarchyAsync(Guid organizationId, string role, Guid userOrgUnitId)
         {
             var allUnits = await _repository.GetAllByOrgIdAsync(organizationId);
 
@@ -59,7 +63,9 @@ namespace PrivacyGuard.Services
                 Id = u.Id,
                 OrganizationId = u.OrganizationId,
                 Name = u.Name,
-                Type = u.Type,
+                UnitType = u.UnitType,
+                UnitCode = u.UnitCode,      // <-- Yeh UI ke tags ke liye zaroori hai (e.g., "zone-amravati")
+                PrincipalsCount = 0,        // <-- Abhi ke liye 0, baad mein Users table se link karenge
                 ParentId = u.ParentId,
                 IsActive = u.IsActive
             }).ToDictionary(u => u.Id);
@@ -74,11 +80,22 @@ namespace PrivacyGuard.Services
                 }
                 else
                 {
-                    tree.Add(item);
+                    tree.Add(item); // Sirf Zone (Top Level) yahan add honge
                 }
             }
 
-            return tree;
+            // RBAC FILTER LOGIC:
+            if (role == "Admin" || role == "SuperAdmin")
+            {
+                return tree; 
+            }
+            else if (role == "BranchAdmin" && dict.ContainsKey(userOrgUnitId))
+            {
+                // BranchAdmin ko sirf uska branch aur uske sub-branches (children) do
+                return new List<OrgUnitResponseDto> { dict[userOrgUnitId] };
+            }
+
+            return new List<OrgUnitResponseDto>(); // Agar role match na ho toh empty
         }
     }
 }

@@ -5,30 +5,17 @@ namespace PrivacyGuard.Models
 {
     public class OrgUnit
     {
-        [Key]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
-        // 1. NAYI LINE: Kis main company ka branch hai yeh? (Multi-tenant link)
-        [Required]
+        public Guid Id { get; set; }
         public Guid OrganizationId { get; set; }
-
-        [ForeignKey("OrganizationId")]
-        public Organization? Organization { get; set; } // Navigation property
+        public Guid? ParentId { get; set; } // Null for "New top-level unit" (Zone), Guid for "Add child"
 
         [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty; // e.g., "Amravati"
 
-        [Required]
-        [MaxLength(50)]
-        public string Type { get; set; } = string.Empty; // Zone, Circle, Division
+        public string UnitType { get; set; } = string.Empty; // "Zone", "Circle", ya "Division"
+        public string UnitCode { get; set; } = string.Empty; // "zone-amravati" (Unique identifier)
 
-        public Guid? ParentId { get; set; }
-
-        [ForeignKey("ParentId")]
-        public OrgUnit? Parent { get; set; }
-
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; } = true; // "Deactivate" button ke liye
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
