@@ -1,70 +1,74 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using PrivacyGuard.Models;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace PrivacyGuard.Data
 {
-
     public class ApplicationDbContext : DbContext
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options , IHttpContextAccessor httpContextAccessor) : base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public DbSet<Organization> Organizations { get; set; } 
+        // ==========================================
+        // 1. DB SETS (All Tables)
+        // ==========================================
+        public DbSet<Organization> Organizations { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<ConsentRecord> ConsentRecords { get; set; }
         public DbSet<ConsentDetail> ConsentDetails { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
-
-        public DbSet<AuditLog> AuditLogs { get; set; }
-
+        public DbSet<AuditLog> AuditLogs { get; set; } // 🚨 Naya Hash Chaining Wala Audit Log
         public DbSet<DataInventory> DataInventories { get; set; }
-
         public DbSet<DataBreachIncident> DataBreachIncidents { get; set; }
-
         public DbSet<CampaignResponse> CampaignResponses { get; set; }
         public DbSet<Campaign> Campaigns { get; set; }
         public DbSet<DpiaRecord> DpiaRecords { get; set; }
         public DbSet<OrgUnit> OrgUnits { get; set; }
-
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
-
         public DbSet<Grievance> Grievances { get; set; }
         public DbSet<GrievanceMessage> GrievanceMessages { get; set; }
+
+        // ==========================================
+        // 2. MODEL CREATING & MAPPINGS
+        // ==========================================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // 1. Aapka DataInventory wala mapping
+            // DataInventory mapping
             modelBuilder.Entity<DataInventory>()
                 .HasOne(d => d.Organization)
                 .WithMany()
                 .HasForeignKey(d => d.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 2. NAYA: OrgUnit ka Parent-Child (Self-referencing) mapping
+            // OrgUnit ka Parent-Child (Self-referencing) mapping
             modelBuilder.Entity<OrgUnit>()
                 .HasOne<OrgUnit>()
                 .WithMany()
                 .HasForeignKey(o => o.ParentId)
-                .IsRequired(false) // Yeh zaroori hai kyunki top-level (Zone) ka ParentId null hoga
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 3. Aapka Global Cascade Delete restrict logic (Yeh hamesha last mein hona chahiye)
-            foreach (var relationship in modelBuilder.Model
-                .GetEntityTypes()
-                .SelectMany(e => e.GetForeignKeys()))
+            // Global Cascade Delete restrict logic (Hamesha last mein)
+            foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
         }
 
+        // ==========================================
+        // 3. AUDIT LOG & HASH CHAINING LOGIC
+        // ==========================================
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var auditEntries = OnBeforeSaveChanges();
@@ -78,10 +82,12 @@ namespace PrivacyGuard.Data
             ChangeTracker.DetectChanges();
             var auditEntries = new List<AuditEntry>();
 
-            // Token se user detail nikalna (Agar user logged in hai)
-            var userIdString = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var orgIdString = _httpContextAccessor.HttpContext?.User?.FindFirst("OrganizationId")?.Value;
-
+            // Token se User aur Actor details nikalna
+            var user = _httpContextAccessor.HttpContext?.User;
+            var userIdString = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var orgIdString = user?.FindFirst("OrganizationId")?.Value;
+            var actorEmail = user?.FindFirst(ClaimTypes.Email)?.Value;
+            var actorRole = user?.FindFirst(ClaimTypes.Role)?.Value;
             var clientIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
 
             Guid? currentUserId = !string.IsNullOrEmpty(userIdString) ? Guid.Parse(userIdString) : null;
@@ -89,6 +95,7 @@ namespace PrivacyGuard.Data
 
             foreach (var entry in ChangeTracker.Entries())
             {
+                // Audit table aur unchanged rows ko skip karo
                 if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
                     continue;
 
@@ -97,9 +104,12 @@ namespace PrivacyGuard.Data
                     TableName = entry.Metadata.GetTableName() ?? entry.Entity.GetType().Name,
                     UserId = currentUserId,
                     OrganizationId = currentOrgId,
+                    ActorEmail = actorEmail,
+                    ActorRole = actorRole,
                     IpAddress = clientIp,
                     ActionType = entry.State.ToString()
                 };
+
                 auditEntries.Add(auditEntry);
 
                 foreach (var property in entry.Properties)
@@ -136,10 +146,12 @@ namespace PrivacyGuard.Data
                 }
             }
 
-            // Jo records mein temporary properties nahi hain (matlab ID pehle se hai), unhe turant Audit table mein daal do
+            // Jinki IDs pehle se hain, unhe hash karke turant Audit table mein add karo
             foreach (var auditEntry in auditEntries.Where(_ => !_.TemporaryProperties.Any()))
             {
-                AuditLogs.Add(auditEntry.ToAudit());
+                var auditLog = auditEntry.ToAudit();
+                ApplyHashChaining(auditLog);
+                AuditLogs.Add(auditLog);
             }
 
             return auditEntries.Where(_ => _.TemporaryProperties.Any()).ToList();
@@ -150,7 +162,7 @@ namespace PrivacyGuard.Data
             if (auditEntries == null || auditEntries.Count == 0)
                 return Task.CompletedTask;
 
-            // Agar koi nayi row (Create) bani thi jiski ID DB ne generate ki, usko update karna
+            // Nayi (Create) rows jinki ID DB ne generate ki, unko update karke hash lagana
             foreach (var auditEntry in auditEntries)
             {
                 foreach (var prop in auditEntry.TemporaryProperties)
@@ -164,10 +176,34 @@ namespace PrivacyGuard.Data
                         auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
                     }
                 }
-                AuditLogs.Add(auditEntry.ToAudit());
+                var auditLog = auditEntry.ToAudit();
+                ApplyHashChaining(auditLog);
+                AuditLogs.Add(auditLog);
             }
 
-            return SaveChangesAsync();
+            return SaveChangesAsync(); // Audit logs save karne ke liye
+        }
+
+        private void ApplyHashChaining(AuditLog newLog)
+        {
+            // 1. Pichla record nikalna (Taki chain jud sake)
+            var lastLog = AuditLogs
+                .Where(a => a.OrganizationId == newLog.OrganizationId)
+                .OrderByDescending(a => a.SequenceNumber)
+                .FirstOrDefault();
+
+            newLog.SequenceNumber = (lastLog?.SequenceNumber ?? 0) + 1;
+            newLog.PreviousHash = lastLog?.EntryHash;
+
+            // 2. Naya Hash Banana: (Sequence + OrgId + Action + Entity + NewValues + PrevHash)
+            var rawData = $"{newLog.SequenceNumber}{newLog.OrganizationId}{newLog.ActionType}{newLog.TableName}{newLog.PrimaryKey}{newLog.NewValues}{newLog.PreviousHash}";
+
+            using (var sha256 = SHA256.Create())
+            {
+                var bytes = Encoding.UTF8.GetBytes(rawData);
+                var hashBytes = sha256.ComputeHash(bytes);
+                newLog.EntryHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+            }
         }
     }
 }

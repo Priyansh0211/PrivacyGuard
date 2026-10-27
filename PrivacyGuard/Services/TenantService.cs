@@ -26,7 +26,6 @@ namespace PrivacyGuard.Services
             var currentTime = DateTime.UtcNow;
 
             var orgId = Guid.NewGuid();
-
             var newOrg = new Organization
             {
                 OrganizationId = orgId,
@@ -36,12 +35,14 @@ namespace PrivacyGuard.Services
                 UpdatedAt = currentTime
             };
 
-            var adminRole = new Role
+            
+            // 🚨 Nayi company ban rahi hai, toh Default DPO Role set karo
+            var dpoRole = new Role
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = orgId,
-                Name = "Admin",
-                Description = "System Administrator (Maker)",
+                Name = "DPO", // Changed to DPO
+                Description = "Data Protection Officer (Full Access)",
                 CreatedAt = currentTime
             };
 
@@ -52,10 +53,13 @@ namespace PrivacyGuard.Services
                 ReferenceId = PrivacyHelper.GenerateUserReferenceId(),
                 Email = request.AdminEmail,
                 PhoneNumber = request.AdminPhoneNumber,
-                PasswordHash = request.AdminPassword, // Future mein BCrypt se hash karna hoga
+                PasswordHash = request.AdminPassword, 
 
-                RoleId = adminRole.Id,
-                UserRole = adminRole,
+
+                
+                RoleId = dpoRole.Id,
+                UserRole = dpoRole,
+
 
                 IsActive = true,
                 CreatedAt = currentTime,
@@ -75,19 +79,14 @@ namespace PrivacyGuard.Services
             }
         }
 
+      
+
         public async Task<(bool IsSuccess, string Token, string ErrorMessage)> LoginAsync(LoginDto request, string? loginIp)
         {
             var user = await _tenantRepository.GetUserByEmailAsync(request.Email);
 
-            if (user == null || user.PasswordHash != request.Password)
-            {
-                return (false, string.Empty, "Invalid email or password");
-            }
-
-            if (!user.IsActive)
-            {
-                return (false, string.Empty, "Account is disabled");
-            }
+            if (user == null || user.PasswordHash != request.Password) return (false, string.Empty, "Invalid email or password");
+            if (!user.IsActive) return (false, string.Empty, "Account is disabled");
 
             var roleName = user.UserRole != null ? user.UserRole.Name : "NoRoleAssigned";
 
@@ -99,6 +98,8 @@ namespace PrivacyGuard.Services
                 new Claim(ClaimTypes.Role, roleName),
                 new Claim("OrganizationId", user.OrganizationId.ToString())
             };
+
+            
 
             // Teammate ka feature: Permissions add karna
             var userPermissions = await _tenantRepository.GetPermissionsByRoleIdAsync(user.RoleId);
@@ -118,16 +119,12 @@ namespace PrivacyGuard.Services
 
             // 2. Ek hi baar Security Key banayenge null check ke sath
             var securityKey = _configuration["JwtSettings:SecurityKey"];
-            if (string.IsNullOrEmpty(securityKey))
-            {
-                return (false, string.Empty, "Server Configuration Error: JWT Key is missing.");
-            }
+            if (string.IsNullOrEmpty(securityKey)) return (false, string.Empty, "Server Configuration Error: JWT Key is missing.");
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Expiry handle ki gayi
-            double expiryMinutes = 60; // default value
+            double expiryMinutes = 60;
             if (double.TryParse(_configuration["JwtSettings:ExpiryInMinutes"], out double parsedExpiry))
             {
                 expiryMinutes = parsedExpiry;
@@ -146,10 +143,14 @@ namespace PrivacyGuard.Services
 
             user.LastLoginDate = DateTime.UtcNow;
             user.LastLoginIP = loginIp;
-
             await _tenantRepository.UpdateUserAsync(user);
 
             return (true, tokenString, string.Empty);
+        }
+
+        public async Task<List<RoleDropdownDto>> GetRolesForDropdownAsync(Guid organizationId)
+        {
+            return await _tenantRepository.GetRolesForDropdownAsync(organizationId);
         }
     }
 }

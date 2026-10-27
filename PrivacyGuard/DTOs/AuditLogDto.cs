@@ -2,14 +2,12 @@
 {
     public class AuditLogDto
     {
-        public Guid Id { get; set; }
-        public Guid? UserId { get; set; }
-        public string? IpAddress { get; set; }
-        public string TableName { get; set; } = string.Empty;
-        public string ActionType { get; set; } = string.Empty;
-        public string PrimaryKey { get; set; } = string.Empty;
-        public string? OldValues { get; set; }
-        public string? NewValues { get; set; }
-        public DateTime Timestamp { get; set; }
+        public long Seq { get; set; }
+        public DateTime When { get; set; }
+        public string Action { get; set; } = string.Empty;
+        public string Entity { get; set; } = string.Empty;
+        public string Actor { get; set; } = string.Empty;
+        public string Outcome { get; set; } = string.Empty;
+        public string EntryHash { get; set; } = string.Empty;
     }
 }
