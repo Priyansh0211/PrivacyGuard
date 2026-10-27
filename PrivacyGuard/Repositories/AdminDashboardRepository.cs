@@ -2,6 +2,10 @@
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Repositories
 {
@@ -21,8 +25,11 @@ namespace PrivacyGuard.Repositories
             // 1. Basic Counts
             var totalUsers = await _dbContext.Users.CountAsync(u => u.OrganizationId == organizationId);
 
-            // Assume kar rahe hain status "Granted" ya "Active" save hota hai
-            var activeConsents = await _dbContext.ConsentRecords.CountAsync(c => c.OrganizationId == organizationId && c.ConsentStatus == "Granted");
+            // PERMANENT FIX: Ab hum child table (ConsentDetails) mein check kar rahe hain 
+            // ki kisi bhi granular purpose ka status "Granted" hai ya nahi.
+            var activeConsents = await _dbContext.ConsentRecords.CountAsync(c =>
+                c.OrganizationId == organizationId &&
+                c.ConsentDetails.Any(d => d.ConsentStatus == "Granted"));
 
             // 2. SLA Risk Logic
             // DPDP rule: Request 30 din mein poori honi chahiye. Hum 25 din pe 'Risk' dikhayenge.
@@ -37,7 +44,7 @@ namespace PrivacyGuard.Repositories
 
             var totalBreaches = await _dbContext.DataBreachIncidents.CountAsync(b => b.OrganizationId == organizationId);
 
-            // 3. Campaign Performance (Tumhara Feature with old DTO)
+            // 3. Campaign Performance
             var activeCampaigns = await _dbContext.Campaigns
                 .Where(c => c.OrganizationId == organizationId && c.Status == "Active")
                 .ToListAsync();
@@ -68,15 +75,16 @@ namespace PrivacyGuard.Repositories
                 .Take(5)
                 .Select(b => new RecentBreachDto
                 {
-                    Title = "Data Breach Incident", // Ya b.IncidentName agar tumhari table mein hai
+                    Title = "Data Breach Incident",
                     Severity = b.Severity ?? "High",
                     IncidentDate = b.CreatedAt
                 })
                 .ToListAsync();
 
             // 5. Calculate Compliance Health Score (Smart Algorithm)
-            // Base 100%. Pending pe -1%, SLA Risk pe -5%, Breach pe -10%
+            // SYNTAX FIX: Yahan math operators gayab the, unhe add kar diya hai
             int healthScore = 100 - (pendingRequestsCount * 1) - (slaRiskRequestsCount * 5) - (totalBreaches * 10);
+
             if (healthScore < 0) healthScore = 0;
             if (healthScore > 100) healthScore = 100;
 

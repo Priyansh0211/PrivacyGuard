@@ -123,6 +123,21 @@ namespace PrivacyGuard.Services
             }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
+            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("OrganizationId", user.OrganizationId.ToString())
+            };
+            // Check karte hain ki user kisi specific branch se juda hai ya nahi
+            if (user.OrgUnitId.HasValue && user.OrgUnitId.Value != Guid.Empty)
+            {
+                claims.Add(new Claim("OrgUnitId", user.OrgUnitId.Value.ToString()));
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecurityKey"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             // Expiry handle ki gayi

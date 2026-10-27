@@ -1,18 +1,20 @@
 ﻿using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Interfaces.Services
 {
-    // Business logic ke method define kiye gaye hain
     public interface IConsentService
     {
-        // Consent grant karne ka method
-        Task<ConsentRecords> GrantConsentAsync(GrantConsentDto request, Guid organizationId);
+        // Naya Granular Submit method (Task<ConsentRecord> return karega)
+        Task<ConsentRecord> SubmitGranularConsentAsync(SubmitConsentDto request, Guid organizationId);
 
-        // Consent wapas lene (withdraw) ka method, true/false return karega
-        Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId);
+        // Naya Withdraw method jisme dataInventoryId bhi hai
+        Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid dataInventoryId, Guid organizationId);
 
-        // History nikalne ka method
-        Task<IEnumerable<ConsentRecords>> GetHistoryAsync(string dataPrincipalId, Guid organizationId);
+        // History wala method
+        Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId);
     }
 }
