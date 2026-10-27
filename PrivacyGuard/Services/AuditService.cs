@@ -13,22 +13,22 @@ namespace PrivacyGuard.Services
             _auditRepository = auditRepository;
         }
 
-        public async Task<List<AuditLogDto>> GetOrganizationLogsAsync(Guid organizationId)
+     
+           public async Task<List<AuditLogDto>> GetOrganizationLogsAsync(Guid organizationId)
         {
             var logs = await _auditRepository.GetLogsByOrganizationAsync(organizationId);
 
             return logs.Select(l => new AuditLogDto
             {
-                Id = l.Id,
-                UserId = l.UserId,
-                IpAddress = l.IpAddress,
-                TableName = l.TableName,
-                ActionType = l.ActionType,
-                PrimaryKey = l.PrimaryKey,
-                OldValues = l.OldValues,
-                NewValues = l.NewValues,
-                Timestamp = l.Timestamp
+                Seq = l.SequenceNumber,
+                When = l.Timestamp,
+                Action = l.ActionType,
+                Entity = $"{l.TableName} {l.PrimaryKey}", // Dikhane ke liye merge kiya
+                Actor = $"{l.ActorEmail}\n{l.ActorRole}", // UI ke hisaab se 2 lines
+                Outcome = l.Outcome,
+                EntryHash = l.EntryHash // 🚨 Screenshot ke hisaab se sabse important[cite: 2]
             }).ToList();
         }
     }
+    
 }

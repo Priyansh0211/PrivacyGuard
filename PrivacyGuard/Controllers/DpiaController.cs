@@ -2,13 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces;
+using PrivacyGuard.Filters; // 🚨 Naya Custom Filter Import Kiya
 using System.Security.Claims;
 
 namespace PrivacyGuard.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Requires login
+    [Authorize] // Requires login (Token validation)
     public class DpiaController : ControllerBase
     {
         private readonly IDpiaService _dpiaService;
@@ -32,7 +33,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("all")]
-        [Authorize(Roles = "Admin,DPO")] // Sirf Admin ya DPO dekh sakte hain
+        [HasPermission("DPIA.View")]
         public async Task<IActionResult> GetAllDpia()
         {
             var orgId = GetOrganizationId();
@@ -43,7 +44,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,DPO")]
+        [HasPermission("DPIA.View")]
         public async Task<IActionResult> GetDpiaDetails(Guid id)
         {
             var orgId = GetOrganizationId();
@@ -56,7 +57,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("create")]
-        [Authorize(Roles = "Admin")] // Sirf Maker (Admin) create kar sakta hai
+        [HasPermission("DPIA.Create")]
         public async Task<IActionResult> CreateDpia([FromBody] CreateDpiaDto dto)
         {
             var orgId = GetOrganizationId();
@@ -70,7 +71,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPut("{id}/review")]
-        [Authorize(Roles = "DPO")] // Sirf Checker (DPO - Data Protection Officer) review karega
+        [HasPermission("DPIA.Approve")]
         public async Task<IActionResult> ReviewDpia(Guid id, [FromBody] ReviewDpiaDto dto)
         {
             var orgId = GetOrganizationId();

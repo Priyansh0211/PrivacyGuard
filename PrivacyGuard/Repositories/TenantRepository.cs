@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PrivacyGuard.Data;
+using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
 
@@ -19,14 +20,32 @@ namespace PrivacyGuard.Repositories
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Organization ko add karo
+                
                 _context.Organizations.Add(org);
 
-                // 2. Nayi OrganizationId ko Admin user ke sath link karo
+               
+                if (admin.UserRole != null)
+                {
+                    _context.Roles.Add(admin.UserRole);
+
+                   
+                    var allPermissions = await _context.Permissions.ToListAsync();
+
+                   
+                    var rolePermissions = allPermissions.Select(p => new RolePermission
+                    {
+                        Id = Guid.NewGuid(),
+                        RoleId = admin.UserRole.Id,
+                        PermissionId = p.Id
+                    }).ToList();
+
+                    _context.RolePermissions.AddRange(rolePermissions);
+                }
+
                 admin.OrganizationId = org.OrganizationId;
                 _context.Users.Add(admin);
 
-                // 3. Database me save karo aur transaction commit karo
+                
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -39,12 +58,13 @@ namespace PrivacyGuard.Repositories
             }
         }
 
+      
+
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.Include(u=>u.UserRole).FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users.Include(u => u.UserRole).FirstOrDefaultAsync(u => u.Email == email);
         }
 
-        // Login ke baad LastLoginDate save karna
         public async Task UpdateUserAsync(User user)
         {
             _context.Users.Update(user);
@@ -53,20 +73,28 @@ namespace PrivacyGuard.Repositories
 
         public async Task<List<string>> GetPermissionsByRoleIdAsync(Guid? roleId)
         {
-            // Agar user ka role null hai, toh seedha khali list return karo
             if (roleId == null || roleId == Guid.Empty)
             {
                 return new List<string>();
             }
 
-            // RolePermission table se us Role ki saari Permissions nikalna
-            var permissions = await _context.RolePermissions
-                .Include(rp => rp.Permission) // Permission table join
+            return await _context.RolePermissions
+                .Include(rp => rp.Permission)
                 .Where(rp => rp.RoleId == roleId && rp.Permission != null)
-                .Select(rp => rp.Permission!.SystemName) // 🚨 Yahan humne tumhara 'SystemName' use kiya hai
+                .Select(rp => rp.Permission!.SystemName)
                 .ToListAsync();
+        }
 
-            return permissions;
+        public async Task<List<RoleDropdownDto>> GetRolesForDropdownAsync(Guid organizationId)
+        {
+            return await _context.Roles
+                .Where(r => r.OrganizationId == organizationId)
+                .Select(r => new RoleDropdownDto
+                {
+                    Id = r.Id,
+                    Name = r.Name
+                })
+                .ToListAsync();
         }
     }
 }
