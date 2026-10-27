@@ -1,38 +1,27 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.Models
 {
-    public class ConsentRecords
+    public class ConsentRecord
     {
-
-
         [Key]
         public Guid ConsentRecordId { get; set; } = Guid.NewGuid();
 
         [Required]
-        public Guid OrganizationId { get; set; }
+        public Guid OrganizationId { get; set; } // Tumhara existing tenant ID
 
         [Required]
-        public string DataPrincipalId { get; set; } = string.Empty; // User/Customer ki ID
-
-        [Required]
-        public Guid DataInventoryId { get; set; }
-
-        [ForeignKey("DataInventoryId")]
-        public DataInventory? DataInventory { get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string ConsentStatus { get; set; } = "Granted"; // "Granted" ya "Withdrawn"
+        public string DataPrincipalId { get; set; } = string.Empty; // Tumhara existing string type user ID
 
         [Required]
         [MaxLength(50)]
-        public string NoticeVersion { get; set; } = "1.0"; // DPDP notice proof
+        public string NoticeVersion { get; set; } = "1.0"; // Ek baar save hoga ki user ne kaunsa version padha tha
 
-        public DateTime GrantedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? WithdrawnAt { get; set; }
+        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow; // 'GrantedAt' ki jagah SubmittedAt, kyunki form mein deny bhi ho sakta hai
 
-
+        // Navigation Property: Ek form submission mein multiple checkbox (details) honge
+        public virtual ICollection<ConsentDetail> ConsentDetails { get; set; } = new List<ConsentDetail>();
     }
 }
