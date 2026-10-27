@@ -15,8 +15,7 @@ namespace PrivacyGuard.DTOs
         public string Password { get; set; } = string.Empty;
 
         [Required]
-        public string Role { get; set; } = string.Empty; // e.g., "BranchAdmin"
-
+        public Guid RoleId { get; set; }
         public Guid? OrgUnitId { get; set; } // Branch ID
     }
 
