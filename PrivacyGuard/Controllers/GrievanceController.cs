@@ -85,13 +85,13 @@ namespace PrivacyGuard.Controllers
 
 
         [HttpPost("{id}/escalate-to-breach")]
-        [HasPermission("Breaches.Manage")] // Sirf authorized admin hi breach bana sakta hai
+        [HasPermission("Breaches.Manage")]
         public async Task<IActionResult> EscalateToBreach(Guid id, [FromBody] EscalateToBreachDto dto)
         {
             var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var orgIdStr = User.FindFirstValue("OrganizationId");
 
-            // Yahan hum BreachService ko call karenge (Toh controller me IBreachService bhi inject kar lena)
+            
             var result = await _breachService.EscalateGrievanceToBreachAsync(
                 id,
                 Guid.Parse(adminIdStr!),

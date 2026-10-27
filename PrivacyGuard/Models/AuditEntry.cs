@@ -8,6 +8,8 @@ namespace PrivacyGuard.Models
         public EntityEntry Entry { get; }
         public Guid? UserId { get; set; }
         public Guid? OrganizationId { get; set; }
+        public string? ActorEmail { get; set; }
+        public string? ActorRole { get; set; }
         public string? IpAddress { get; set; }
         public string TableName { get; set; } = string.Empty;
         public Dictionary<string, object?> KeyValues { get; } = new();
@@ -23,19 +25,25 @@ namespace PrivacyGuard.Models
 
         public AuditLog ToAudit()
         {
-            var audit = new AuditLog
+            // Action format like UI: "user.added", "consent.modified"
+            var formattedAction = $"{TableName.ToLower()}.{ActionType.ToLower()}";
+
+            return new AuditLog
             {
+                Id = Guid.NewGuid(),
                 UserId = UserId,
                 OrganizationId = OrganizationId,
+                ActorEmail = ActorEmail ?? "System",
+                ActorRole = ActorRole ?? "System",
                 IpAddress = IpAddress,
                 TableName = TableName,
-                ActionType = ActionType,
+                ActionType = formattedAction,
                 PrimaryKey = JsonSerializer.Serialize(KeyValues),
                 OldValues = OldValues.Count == 0 ? null : JsonSerializer.Serialize(OldValues),
                 NewValues = NewValues.Count == 0 ? null : JsonSerializer.Serialize(NewValues),
+                Outcome = "Success",
                 Timestamp = DateTime.UtcNow
             };
-            return audit;
         }
     }
 }
