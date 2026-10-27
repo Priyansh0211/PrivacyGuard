@@ -44,5 +44,8 @@ namespace PrivacyGuard.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ClosedAt { get; set; }
 
+        public Guid? SourceGrievanceId { get; set; }
+        [ForeignKey("SourceGrievanceId")]
+        public Grievance? SourceGrievance { get; set; }
     }
 }
