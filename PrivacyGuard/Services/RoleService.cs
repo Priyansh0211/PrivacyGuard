@@ -3,6 +3,7 @@ using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
+using PrivacyGuard.Repositories;
 using static PrivacyGuard.DTOs.RolePermissionDto;
 
 namespace PrivacyGuard.Services
@@ -94,6 +95,29 @@ namespace PrivacyGuard.Services
         {
 
             return await _roleRepository.GetUserPermissionsAsync(userId);
+        }
+
+        public async Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId)
+        {
+            return await _roleRepository.GetRoleForEditAsync(roleId, organizationId);
+        }
+
+        public async Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, UpdateRoleDto dto)
+        {
+            
+            if (dto.Name.Trim().Equals("SystemAdmin", StringComparison.OrdinalIgnoreCase) ||
+                dto.Name.Trim().Equals("DPO", StringComparison.OrdinalIgnoreCase))
+            {
+                // Tum chaho toh is check ko hata bhi sakte ho agar tumhe Admin edit karna allow karna hai
+            }
+
+            return await _roleRepository.UpdateRoleAndPermissionsAsync(
+                roleId,
+                organizationId,
+                dto.Name,
+                dto.Description,
+                dto.PermissionIds
+            );
         }
     }
 }
