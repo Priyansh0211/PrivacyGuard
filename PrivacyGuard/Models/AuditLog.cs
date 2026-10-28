@@ -4,21 +4,23 @@ namespace PrivacyGuard.Models
 {
     public class AuditLog
     {
-        [Key]
         public Guid Id { get; set; }
-
-        public Guid? UserId { get; set; } // Kisne action liya
-        public Guid? OrganizationId { get; set; } // Kis company ka data hai
-
+        public long SequenceNumber { get; set; } // UI ka 'SEQ'
+        public Guid? OrganizationId { get; set; }
+        public Guid? UserId { get; set; }
+        public string? ActorEmail { get; set; } // UI ka 'ACTOR' email
+        public string? ActorRole { get; set; }  // UI ka 'ACTOR' role
         public string? IpAddress { get; set; }
+        public string TableName { get; set; } = string.Empty; // UI ka 'ENTITY'
+        public string ActionType { get; set; } = string.Empty; // UI ka 'ACTION'
+        public string PrimaryKey { get; set; } = string.Empty;
+        public string? OldValues { get; set; }
+        public string? NewValues { get; set; }
+        public string Outcome { get; set; } = "Success"; // UI ka 'OUTCOME'
+        public DateTime Timestamp { get; set; } // UI ka 'WHEN'
 
-        public string TableName { get; set; } = string.Empty; // Konsi table modify hui
-        public string ActionType { get; set; } = string.Empty; // Create, Update, Delete
-        public string PrimaryKey { get; set; } = string.Empty; // Jis row me change hua uski ID
-
-        public string? OldValues { get; set; } // JSON format (Purana data)
-        public string? NewValues { get; set; } // JSON format (Naya data)
-
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        // Hash Chaining Columns
+        public string? PreviousHash { get; set; }
+        public string EntryHash { get; set; } = string.Empty; // UI ka 'ENTRY HASH'
     }
 }

@@ -26,7 +26,7 @@ namespace PrivacyGuard.Models
         [Required, EmailAddress, MaxLength(150)]
         public string Email { get; set; } = string.Empty;
 
-        public Guid? OrgUnitId { get; set; } // Nullable rakha hai taaki admin ke liye khali reh sake
+        public Guid? OrgUnitId { get; set; } 
         public virtual OrgUnit? OrgUnit { get; set; } 
                                                                                                                                                                                                                                     
         [MaxLength(20)]

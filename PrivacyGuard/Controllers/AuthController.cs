@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces;
 using PrivacyGuard.Interfaces.Services;
+using System.Security.Claims;
 
 namespace PrivacyGuard.Controllers
 {
@@ -67,6 +68,21 @@ namespace PrivacyGuard.Controllers
                 IsSuccess = true,
                 Message = "Logged out successfully. Please remove the token from local storage or cookies on the client side."
             });
+        }
+
+        [HttpGet("dropdownRole")]
+        public async Task<IActionResult> GetRolesForDropdown()
+        {
+            // Token se OrganizationId nikal rahe hain taaki dusre org ke roles na dikhein
+            var orgIdStr = User.FindFirstValue("OrganizationId");
+            if (string.IsNullOrEmpty(orgIdStr))
+            {
+                return Unauthorized(new { message = "Organization ID missing in token." });
+            }
+
+            var roles = await _tenantService.GetRolesForDropdownAsync(Guid.Parse(orgIdStr));
+
+            return Ok(roles);
         }
     }
 }

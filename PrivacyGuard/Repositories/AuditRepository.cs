@@ -18,7 +18,7 @@ namespace PrivacyGuard.Repositories
         {
             return await _context.AuditLogs
                 .Where(log => log.OrganizationId == organizationId)
-                .OrderByDescending(log => log.Timestamp) // Latest logs top par aayenge
+                .OrderByDescending(log => log.SequenceNumber)
                 .ToListAsync();
         }
     }

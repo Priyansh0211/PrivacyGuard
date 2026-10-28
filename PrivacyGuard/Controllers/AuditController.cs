@@ -7,7 +7,7 @@ namespace PrivacyGuard.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles ="Admin")]
+    [Authorize(Roles ="AdminDpo")]
     public class AuditController : ControllerBase
     {
         private readonly IAuditService _auditService;
