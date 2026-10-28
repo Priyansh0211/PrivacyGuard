@@ -36,13 +36,13 @@ namespace PrivacyGuard.Services
             };
 
             
-            // 🚨 Nayi company ban rahi hai, toh Default DPO Role set karo
+            // 🚨 Nayi company ban rahi hai, toh Default SuperAdmin Role set karo
             var dpoRole = new Role
             {
                 Id = Guid.NewGuid(),
                 OrganizationId = orgId,
-                Name = "DPO", // Changed to DPO
-                Description = "Data Protection Officer (Full Access)",
+                Name = "SuperAdmin", 
+                Description = "(Full Access)",
                 CreatedAt = currentTime
             };
 
