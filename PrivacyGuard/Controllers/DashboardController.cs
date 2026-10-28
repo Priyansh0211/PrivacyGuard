@@ -33,10 +33,10 @@ namespace PrivacyGuard.Controllers
                     return Unauthorized(new { message = "Invalid token: OrganizationId missing." });
 
                
-               if (userRole != "Admin")
-               {
-                   return Forbid("Only Admins can access the dashboard.");
-               }
+               //if (userRole != "Admin")
+               //{
+               //    return Forbid("Only Admins can access the dashboard.");
+               //}
                
 
                var organizationId = Guid.Parse(orgIdStr);

@@ -1,4 +1,5 @@
 ﻿using PrivacyGuard.Models;
+using static PrivacyGuard.DTOs.RolePermissionDto;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
@@ -12,6 +13,10 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<List<Permission>> GetUserPermissionDetailsAsync(Guid userId);
 
         Task<List<string>> GetUserPermissionsAsync(Guid userId);
+
+        Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId);
+
+        Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, string name, string description, List<int> permissionIds);
     }
 
 }

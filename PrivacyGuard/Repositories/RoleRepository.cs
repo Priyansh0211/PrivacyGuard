@@ -2,6 +2,7 @@
 using PrivacyGuard.Data;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
+using static PrivacyGuard.DTOs.RolePermissionDto;
 
 namespace PrivacyGuard.Repositories
 {
@@ -71,6 +72,96 @@ namespace PrivacyGuard.Repositories
                                      select p.SystemName).Distinct().ToListAsync();
 
             return permissions;
+        }
+
+        public async Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId)
+        {
+            // 1. Check karo ki Role exist karta hai aur usi organization ka hai
+            var role = await _context.Roles
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.OrganizationId == organizationId);
+
+            if (role == null) return null;
+
+            // 2. System ki saari permissions nikal lo (1 se 18 tak)
+            var allPermissions = await _context.Permissions.ToListAsync();
+
+            // 3. Is specific role ko jo permissions mili hui hain, unki IDs nikal lo
+            var assignedPermissionIds = await _context.RolePermissions
+                .Where(rp => rp.RoleId == roleId)
+                .Select(rp => rp.PermissionId)
+                .ToListAsync();
+
+            // 4. Dono ko map kardo
+            var permissionCheckboxes = allPermissions.Select(p => new PermissionCheckboxDto
+            {
+                Id = p.Id,
+                ModuleName = p.ModuleName,
+                ActionName = p.ActionName,
+                
+                IsAssigned = assignedPermissionIds.Contains(p.Id)
+            }).ToList();
+
+            // 5. Final response bana kar bhej do
+            return new RolePermissionResponseDto
+            {
+                RoleId = role.Id,
+                Name = role.Name,
+                Description = role.Description,
+                Permissions = permissionCheckboxes
+            };
+        }
+
+        public async Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, string name, string description, List<int> permissionIds)
+        {
+            // Transaction shuru kar rahe hain, taaki agar error aaye toh aadha data save na ho
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // 1. Check karo ki Role exist karta hai aur current Organization ka hi hai
+                var role = await _context.Roles
+                    .FirstOrDefaultAsync(r => r.Id == roleId && r.OrganizationId == organizationId);
+
+                if (role == null) return false;
+
+                // 2. Role ka Name aur Description update karo
+                role.Name = name;
+                role.Description = description;
+                _context.Roles.Update(role);
+
+                // 3. Purani saari permissions ko DB se hata do (Taaki nayi fresh lag sakein)
+                var existingPermissions = await _context.RolePermissions
+                    .Where(rp => rp.RoleId == roleId)
+                    .ToListAsync();
+
+                if (existingPermissions.Any())
+                {
+                    _context.RolePermissions.RemoveRange(existingPermissions);
+                }
+
+                // 4. Nayi permissions insert karo (Jo DTO me aayi hain)
+                if (permissionIds != null && permissionIds.Any())
+                {
+                    var newRolePermissions = permissionIds.Select(pId => new RolePermission
+                    {
+                        Id = Guid.NewGuid(),
+                        RoleId = roleId,
+                        PermissionId = pId
+                    }).ToList();
+
+                    _context.RolePermissions.AddRange(newRolePermissions);
+                }
+
+                // 5. Sab kuch ek sath save karke transaction commit kar do
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync(); // Kuch bhi fail hua toh undo ho jayega
+                throw;
+            }
         }
     }
 }

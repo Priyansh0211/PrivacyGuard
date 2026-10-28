@@ -11,5 +11,10 @@ namespace PrivacyGuard.Interfaces.Services
         Task<List<ModulePermissionDto>> GetUserGroupedPermissionsAsync(Guid userId);
 
         Task<List<string>> GetUserPermissionsAsync(Guid userId);
+
+        Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId);
+
+        Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, UpdateRoleDto dto);
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using PrivacyGuard.Services;
@@ -78,5 +79,60 @@ namespace PrivacyGuard.Controllers
         return Ok(result);
     }
 
-}
+
+        [HttpGet("{id}/edit")]
+        [HasPermission("Roles.Manage")] // Sirf Role Manage karne wale dekh sakte hain
+        public async Task<IActionResult> GetRoleForEdit(Guid id)
+        {
+            try
+            {
+                var orgIdStr = User.FindFirstValue("OrganizationId");
+                if (string.IsNullOrEmpty(orgIdStr))
+                    return Unauthorized(new { message = "Organization ID missing in token." });
+
+                var organizationId = Guid.Parse(orgIdStr);
+
+                var roleDetails = await _roleService.GetRoleForEditAsync(id, organizationId);
+
+                if (roleDetails == null)
+                    return NotFound(new { message = "Role not found." });
+
+                return Ok(roleDetails);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/edit")]
+        [HasPermission("Roles.Manage")] // 🚨 Sirf permission wale log hi hit kar payenge
+        public async Task<IActionResult> EditRole(Guid id, [FromBody] UpdateRoleDto dto)
+        {
+            try
+            {
+                var orgIdStr = User.FindFirstValue("OrganizationId");
+                if (string.IsNullOrEmpty(orgIdStr))
+                {
+                    return Unauthorized(new { message = "Organization ID missing in token." });
+                }
+
+                var organizationId = Guid.Parse(orgIdStr);
+
+                var isSuccess = await _roleService.UpdateRoleAndPermissionsAsync(id, organizationId, dto);
+
+                if (!isSuccess)
+                {
+                    return NotFound(new { message = "Role not found or unauthorized access." });
+                }
+
+                return Ok(new { message = "Role and permissions updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+    }
 }
