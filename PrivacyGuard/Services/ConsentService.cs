@@ -210,5 +210,17 @@ namespace PrivacyGuard.Services
             await _repository.AddPurposeAsync(purpose);
             return purpose;
         }
+
+        public async Task<List<PurposeCheckboxItemDto>> GetPurposesForCheckboxesAsync(Guid orgId)
+        {
+            var purposes = await _repository.GetAllPurposesByOrgAsync(orgId);
+
+            
+            return purposes.Select(p => new PurposeCheckboxItemDto
+            {
+                Code = p.Code,
+                Name = p.ShortName
+            }).ToList();
+        }
     }
 }
