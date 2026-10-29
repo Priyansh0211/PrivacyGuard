@@ -75,15 +75,15 @@ namespace PrivacyGuard.Controllers
             var history = await _consentService.GetHistoryAsync(dataPrincipalId, Guid.Parse(orgIdClaim));
             return Ok(history);
         }
-        
+
         [HttpPost("add-purpose")]
-        public async Task<IActionResult> AddPurpose([FromBody] ConsentPurpose request)
+        public async Task<IActionResult> AddPurpose([FromBody] CreatePurposeDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var purpose = await _consentService.CreatePurposeAsync(request.Code, request.ShortName, request.IsMandatory, Guid.Parse(orgIdClaim));
-            return Ok(new { Message = "Purpose added successfully", Purpose = purpose });
+            var purpose = await _consentService.CreatePurposeAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
         }
     }
 }
