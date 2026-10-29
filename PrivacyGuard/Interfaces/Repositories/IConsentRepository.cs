@@ -1,12 +1,8 @@
-<<<<<<< Updated upstream
-﻿using PrivacyGuard.DTOs;
+using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
-=======
-﻿using PrivacyGuard.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
->>>>>>> Stashed changes
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
@@ -37,5 +33,12 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task AddPurposeAsync(ConsentPurpose purpose);
 
         Task<List<ConsentPurpose>> GetAllPurposesByOrgAsync(Guid organizationId);
+       
+        // MASTER DATA (Categories & Processors)
+        Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId);
+        Task<DataCategory> AddCategoryAsync(DataCategory category);
+
+        Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId);
+        Task<DataProcessor> AddProcessorAsync(DataProcessor processor);
     }
 }
