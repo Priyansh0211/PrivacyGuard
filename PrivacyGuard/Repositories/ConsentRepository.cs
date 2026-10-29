@@ -71,8 +71,21 @@ namespace PrivacyGuard.Repositories
         }
         public async Task AddPurposeAsync(ConsentPurpose purpose)
         {
+            // Purpose save karo
             await _context.ConsentPurposes.AddAsync(purpose);
+
+            // Mappings save karo (agar hain toh)
+            if (purpose.Categories != null && purpose.Categories.Any())
+            {
+                await _context.ConsentPurposeDataCategories.AddRangeAsync(purpose.Categories);
+            }
+            if (purpose.Processors != null && purpose.Processors.Any())
+            {
+                await _context.ConsentPurposeDataProcessors.AddRangeAsync(purpose.Processors);
+            }
+
             await _context.SaveChangesAsync();
         }
+
     }
 }
