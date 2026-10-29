@@ -48,6 +48,8 @@ namespace PrivacyGuard.Data
         public DbSet<ConsentPurposeDataCategory> ConsentPurposeDataCategories { get; set; }
         public DbSet<ConsentPurposeDataProcessor> ConsentPurposeDataProcessors { get; set; }
 
+        public DbSet<NoticeTemplate> NoticeTemplates { get; set; }
+
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
         // ==========================================

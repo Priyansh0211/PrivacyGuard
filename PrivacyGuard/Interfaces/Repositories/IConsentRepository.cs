@@ -1,4 +1,5 @@
-﻿using PrivacyGuard.Models;
+﻿using PrivacyGuard.DTOs;
+using PrivacyGuard.Models;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
@@ -23,5 +24,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<int> SaveChangesAsync();
 
         Task AddPurposeAsync(ConsentPurpose purpose);
+
+        Task<List<ConsentPurpose>> GetAllPurposesByOrgAsync(Guid organizationId);
     }
 }

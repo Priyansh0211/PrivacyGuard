@@ -87,5 +87,14 @@ namespace PrivacyGuard.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<ConsentPurpose>> GetAllPurposesByOrgAsync(Guid organizationId)
+        {
+            
+            return await _context.ConsentPurposes
+                .Where(p => p.OrganizationId == organizationId)
+                .OrderBy(p => p.ShortName)
+                .ToListAsync();
+        }
+
     }
 }
