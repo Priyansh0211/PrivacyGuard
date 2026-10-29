@@ -2,7 +2,7 @@
 
 namespace PrivacyGuard.DTOs
 {
-    public class ConsumerCsvRecord
+    public class DataPrincipalCsvRecord
     {
         [Name("mobile")]
         public string? Mobile { get; set; }

@@ -3,9 +3,9 @@ using PrivacyGuard.Models;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
-    public interface IConsumerRepository
+    public interface IDataPrincipalRepository
     {
-        Task<Consumer> AddConsumerAsync(Consumer consumer);
+        Task<DataPrincipal> AddDataPrincipalAsync(DataPrincipal dataPrincipal);
         Task SaveChangesAsync();
     }
 }

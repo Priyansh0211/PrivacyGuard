@@ -19,4 +19,6 @@ namespace PrivacyGuard.DTOs
         public Guid ConsentPurposeId { get; set; }
         public string Decision { get; set; } = string.Empty;
     }
+
+
 }
