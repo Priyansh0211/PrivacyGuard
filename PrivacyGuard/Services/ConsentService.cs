@@ -223,5 +223,48 @@ namespace PrivacyGuard.Services
                 Name = p.ShortName
             }).ToList();
         }
+        // ==========================================
+        // MASTER DATA (Categories & Processors)
+        // ==========================================
+        public async Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId)
+        {
+            return await _repository.GetCategoriesAsync(organizationId);
+        }
+
+        public async Task<DataCategory> AddCategoryAsync(CreateDataCategoryDto request, Guid organizationId)
+        {
+            var category = new DataCategory
+            {
+                DataCategoryId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = request.Code,
+                Name = request.Name,
+                Description = request.Description,
+                Sensitivity = request.Sensitivity
+            };
+
+            return await _repository.AddCategoryAsync(category);
+        }
+
+        public async Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId)
+        {
+            return await _repository.GetProcessorsAsync(organizationId);
+        }
+
+        public async Task<DataProcessor> AddProcessorAsync(CreateDataProcessorDto request, Guid organizationId)
+        {
+            var processor = new DataProcessor
+            {
+                DataProcessorId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = request.Code,
+                LegalName = request.LegalName,
+                Relationship = request.Relationship,
+                Country = request.Country,
+                DataLeavesIndia = request.DataLeavesIndia
+            };
+
+            return await _repository.AddProcessorAsync(processor);
+        }
     }
 }
