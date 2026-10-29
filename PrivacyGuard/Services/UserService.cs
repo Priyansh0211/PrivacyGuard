@@ -90,5 +90,36 @@ namespace PrivacyGuard.Services
 
             return (true, string.Empty);
         }
+
+        
+        public async Task<(bool IsSuccess, string ErrorMessage)> UpdateEmployeeAsync(Guid userId, UpdateUserDto request, Guid organizationId)
+        {
+            var user = await _userRepository.GetUserByIdAndOrgAsync(userId, organizationId);
+            if (user == null)
+            {
+                return (false, "User not found or you don't have permission to modify this user.");
+            }
+
+            if (user.Email.ToLower() != request.Email.ToLower())
+            {
+                bool emailExists = await _userRepository.CheckEmailExistsAsync(request.Email);
+                if (emailExists)
+                {
+                    return (false, "This email is already in use by another account.");
+                }
+            }
+
+            // 3. User details update karein
+            user.FullName = request.FullName;
+            user.Email = request.Email;
+            user.PhoneNumber = request.PhoneNumber;
+            user.RoleId = request.RoleId;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // 4. Database me save karein
+            await _userRepository.UpdateUserAsync(user);
+
+            return (true, string.Empty);
+        }
     }
 }
