@@ -29,12 +29,21 @@ namespace PrivacyGuard.Repositories
         }
 
         // DB se saare batches uthana
-        public async Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? status)
+        public async Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? kind, string? status)
         {
             var query = _context.BulkImportBatches.Where(b => b.OrganizationId == organizationId);
 
-            if (!string.IsNullOrEmpty(status))
+            // Kind (ImportType) ka filter add kiya, aur "Any" (case-insensitive) ko ignore kiya
+            if (!string.IsNullOrEmpty(kind) && kind.ToLower() != "any")
+            {
+                query = query.Where(b => b.ImportType == kind);
+            }
+
+            // Status ka filter update kiya taaki UI ka "Any" bhejne par code phate nahi
+            if (!string.IsNullOrEmpty(status) && status.ToLower() != "any")
+            {
                 query = query.Where(b => b.Status == status);
+            }
 
             return await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
         }
@@ -70,9 +79,9 @@ namespace PrivacyGuard.Repositories
                 .ToListAsync();
         }
 
-        public async Task AddConsumersAsync(IEnumerable<Consumer> consumers)
+        public async Task AddConsumersAsync(IEnumerable<DataPrincipal> consumers)
         {
-            await _context.Consumers.AddRangeAsync(consumers);
+            await _context.DataPrincipals.AddRangeAsync(consumers);
         }
 
         public async Task UpdateBatchAndRowsAsync(BulkImportBatch batch, List<BulkImportRow> rows)

@@ -1,13 +1,24 @@
+<<<<<<< Updated upstream
 ﻿using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
+=======
+﻿using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+>>>>>>> Stashed changes
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
     // Interface declare kar rahe hain repository ke liye
     public interface IConsentRepository
     {
+        // NAYA METHOD: UI Filters apply karne ke liye
+        Task<IEnumerable<ConsentRecord>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate);
+
         Task<IEnumerable<ConsentPurpose>> GetPurposesByOrgAsync(Guid organizationId);
         Task<ConsentRecord?> GetLatestConsentByPrincipalIdAsync(Guid dataPrincipalId, Guid organizationId);
+
         // Naya consent record database me add karne ke liye
         Task<ConsentRecord> AddAsync(ConsentRecord consent);
 

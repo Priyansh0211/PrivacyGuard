@@ -3,10 +3,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.Models
 {
-    public class Consumer
+    public class DataPrincipal
     {
         [Key]
-        public Guid ConsumerId { get; set; }
+        public Guid DataPrincipalId { get; set; }
 
         public Guid OrganizationId { get; set; }
 

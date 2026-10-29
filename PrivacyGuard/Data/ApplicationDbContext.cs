@@ -36,8 +36,7 @@ namespace PrivacyGuard.Data
         public DbSet<GrievanceMessage> GrievanceMessages { get; set; }
         public DbSet<BulkImportBatch> BulkImportBatches { get; set; }
         public DbSet<BulkImportRow> BulkImportRows { get; set; }
-        public DbSet<Consumer> Consumers { get; set; }
-
+        public DbSet<DataPrincipal> DataPrincipals { get; set; }
         public DbSet<ConsentPurpose> ConsentPurposes { get; set; }
         public DbSet<ConsentNoticeTemplate> ConsentNoticeTemplates { get; set; }
         public DbSet<ConsentRecord> ConsentRecords { get; set; }

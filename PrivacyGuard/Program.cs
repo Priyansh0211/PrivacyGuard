@@ -140,8 +140,8 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IBulkImportService, BulkImportService>();
 builder.Services.AddScoped<IBulkImportRepository, BulkImportRepository>();
 
-builder.Services.AddScoped<IConsumerRepository, ConsumerRepository>();
-builder.Services.AddScoped<IConsumerService, ConsumerService>();
+builder.Services.AddScoped<IDataPrincipalRepository, DataPrincipalRepository>();
+builder.Services.AddScoped<IDataPrincipalService, DataPrincipalService>();
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 

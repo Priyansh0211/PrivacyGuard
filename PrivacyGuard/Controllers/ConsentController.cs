@@ -20,6 +20,25 @@ namespace PrivacyGuard.Controllers
             _consentService = consentService;
         }
 
+        // NAYA ENDPOINT: UI Dashboard Grid aur Filters ke liye
+        [HttpGet("records")]
+        public async Task<IActionResult> GetConsentRecords(
+            [FromQuery] string? reference,
+            [FromQuery] string? status,
+            [FromQuery] string? purpose,
+            [FromQuery] string? channel,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var records = await _consentService.GetFilteredRecordsAsync(
+                Guid.Parse(orgIdClaim), reference, status, purpose, channel, fromDate, toDate);
+
+            return Ok(records);
+        }
+
         [HttpGet("purposes")]
         public async Task<IActionResult> GetPurposes()
         {

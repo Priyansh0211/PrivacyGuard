@@ -5,20 +5,19 @@ using PrivacyGuard.Models;
 
 namespace PrivacyGuard.Repositories
 {
-    public class ConsumerRepository : IConsumerRepository
+    public class DataPrincipalRepository : IDataPrincipalRepository
     {
         private readonly ApplicationDbContext _context;
 
-        // Constructor add kiya taaki _context setup ho sake
-        public ConsumerRepository(ApplicationDbContext context)
+        public DataPrincipalRepository(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public async Task<Consumer> AddConsumerAsync(Consumer consumer)
+        public async Task<DataPrincipal> AddDataPrincipalAsync(DataPrincipal dataPrincipal)
         {
-            await _context.Consumers.AddAsync(consumer);
-            return consumer;
+            await _context.DataPrincipals.AddAsync(dataPrincipal);
+            return dataPrincipal;
         }
 
         public async Task SaveChangesAsync()
