@@ -12,8 +12,8 @@ using PrivacyGuard.Data;
 namespace PrivacyGuard.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261029072559_initialcreate")]
-    partial class initialcreate
+    [Migration("20261029162012_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -320,6 +320,13 @@ namespace PrivacyGuard.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("DoesConsentLapse")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsMandatory")
                         .HasColumnType("bit");
 
@@ -330,6 +337,14 @@ namespace PrivacyGuard.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("RetentionPeriod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RiskLevel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ShortName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -337,6 +352,36 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("ConsentPurposeId");
 
                     b.ToTable("ConsentPurposes");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentPurposeDataCategory", b =>
+                {
+                    b.Property<Guid>("ConsentPurposeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DataCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ConsentPurposeId", "DataCategoryId");
+
+                    b.HasIndex("DataCategoryId");
+
+                    b.ToTable("ConsentPurposeDataCategories");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentPurposeDataProcessor", b =>
+                {
+                    b.Property<Guid>("ConsentPurposeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DataProcessorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ConsentPurposeId", "DataProcessorId");
+
+                    b.HasIndex("DataProcessorId");
+
+                    b.ToTable("ConsentPurposeDataProcessors");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.ConsentRecord", b =>
@@ -519,6 +564,32 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("DataBreachIncidents");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.DataCategory", b =>
+                {
+                    b.Property<Guid>("DataCategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Sensitivity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DataCategoryId");
+
+                    b.ToTable("DataCategories");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.DataInventory", b =>
                 {
                     b.Property<Guid>("DataInventoryId")
@@ -570,6 +641,36 @@ namespace PrivacyGuard.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("DataInventories");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.DataProcessor", b =>
+                {
+                    b.Property<Guid>("DataProcessorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Processor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Relationship")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DataProcessorId");
+
+                    b.ToTable("DataProcessors");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.DpiaRecord", b =>
@@ -719,6 +820,50 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("GrievanceMessages");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.NoticeTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PurposesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NoticeTemplates");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -743,7 +888,7 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<string>("UnitCode")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("UnitType")
                         .IsRequired()
@@ -752,6 +897,9 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("OrganizationId", "UnitCode")
+                        .IsUnique();
 
                     b.ToTable("OrgUnits");
                 });
@@ -1033,6 +1181,44 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("ConsentRecord");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentPurposeDataCategory", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.ConsentPurpose", "ConsentPurpose")
+                        .WithMany("Categories")
+                        .HasForeignKey("ConsentPurposeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivacyGuard.Models.DataCategory", "DataCategory")
+                        .WithMany()
+                        .HasForeignKey("DataCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ConsentPurpose");
+
+                    b.Navigation("DataCategory");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentPurposeDataProcessor", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.ConsentPurpose", "ConsentPurpose")
+                        .WithMany("Processors")
+                        .HasForeignKey("ConsentPurposeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PrivacyGuard.Models.DataProcessor", "DataProcessor")
+                        .WithMany()
+                        .HasForeignKey("DataProcessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ConsentPurpose");
+
+                    b.Navigation("DataProcessor");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.DataBreachIncident", b =>
                 {
                     b.HasOne("PrivacyGuard.Models.User", "AssignedUser")
@@ -1160,6 +1346,13 @@ namespace PrivacyGuard.Migrations
             modelBuilder.Entity("PrivacyGuard.Models.BulkImportBatch", b =>
                 {
                     b.Navigation("Rows");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.ConsentPurpose", b =>
+                {
+                    b.Navigation("Categories");
+
+                    b.Navigation("Processors");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.ConsentRecord", b =>

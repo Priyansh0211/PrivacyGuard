@@ -1,14 +1,31 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.Models
 {
-    // PDF Requirement: Implement Notice and Notice Template entities linking to consents[cite: 9]
     public class NoticeTemplate
     {
-        public Guid TemplateId { get; set; }
+        [Key]
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
         public Guid OrganizationId { get; set; }
-        public string Version { get; set; } = "1.0"; // Supports dynamic versions[cite: 9]
-        public string Content { get; set; } = string.Empty;
+
+        [Required, MaxLength(100)]
+        public string Code { get; set; } = string.Empty;
+
+        [Required, MaxLength(150)]
+        public string Name { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public string PurposesJson { get; set; } = "[]";
+
+        public string LogoUrl { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string PrimaryColor { get; set; } = "#0F62FE";
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
