@@ -3,11 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces.Services;
-using PrivacyGuard.Services;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-// using PrivacyGuard.Filters; // [HasPermission] yahan se aayega
 
 namespace PrivacyGuard.Controllers
 {
@@ -18,91 +16,132 @@ namespace PrivacyGuard.Controllers
     {
         private readonly IGrievanceService _grievanceService;
         private readonly IBreachService _breachService;
-        public GrievanceController(IGrievanceService grievanceService , IBreachService breachService)
+
+        public GrievanceController(IGrievanceService grievanceService, IBreachService breachService)
         {
-            _grievanceService = grievanceService; 
+            _grievanceService = grievanceService;
             _breachService = breachService;
         }
 
+        private (bool isValid, Guid userId, Guid orgId) GetUserClaims()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var orgIdStr = User.FindFirstValue("OrganizationId");
+
+            if (Guid.TryParse(userIdStr, out Guid userId) && Guid.TryParse(orgIdStr, out Guid orgId))
+            {
+                return (true, userId, orgId);
+            }
+            return (false, Guid.Empty, Guid.Empty);
+        }
+
+        private bool IsAdminUser() => User.HasClaim(c => c.Type == "Permission" && c.Value == "Grievances.Manage");
+
+        // 1. Get Details
         [HttpGet("{id}")]
         public async Task<IActionResult> GetGrievanceDetails(Guid id)
         {
-            var orgIdStr = User.FindFirstValue("OrganizationId");
-            if (string.IsNullOrEmpty(orgIdStr)) return Unauthorized();
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
 
-            // Agar permission based hai:
-            bool isAdmin = User.HasClaim(c => c.Type == "Permission" && c.Value == "Grievances.Manage");
-
-            var result = await _grievanceService.GetGrievanceDetailsAsync(id, Guid.Parse(orgIdStr), isAdmin);
+            var result = await _grievanceService.GetGrievanceDetailsAsync(id, claims.orgId, IsAdminUser());
             if (result == null) return NotFound(new { message = "Grievance not found." });
 
             return Ok(result);
         }
 
+        // 2. Raise Ticket (For Data Principal)
         [HttpPost("raise")]
         public async Task<IActionResult> RaiseGrievance([FromBody] CreateGrievanceDto dto)
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var orgIdStr = User.FindFirstValue("OrganizationId");
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
 
-            var ticketId = await _grievanceService.CreateGrievanceAsync(Guid.Parse(userIdStr!), Guid.Parse(orgIdStr!), dto);
+            var ticketId = await _grievanceService.CreateGrievanceAsync(claims.userId, claims.orgId, dto);
             return Ok(new { message = "Grievance submitted successfully.", ticketId = ticketId });
         }
 
+        // 3. Get ALL (For DPO/Admin)
         [HttpGet("all")]
-        [HasPermission("Grievances.View")] // Custom RBAC 
+        [HasPermission("Grievances.View")]
         public async Task<IActionResult> GetAllGrievances()
         {
-            var orgIdStr = User.FindFirstValue("OrganizationId");
-            var grievances = await _grievanceService.GetAllGrievancesAsync(Guid.Parse(orgIdStr!));
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
+
+            var grievances = await _grievanceService.GetAllGrievancesAsync(claims.orgId);
             return Ok(grievances);
         }
 
+        // 🚨 4. Get MY Tickets (For Data Principal)
+        [HttpGet("my-grievances")]
+        public async Task<IActionResult> GetMyGrievances()
+        {
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
+
+            var grievances = await _grievanceService.GetMyGrievancesAsync(claims.userId, claims.orgId);
+            return Ok(grievances);
+        }
+
+        // 5. Assign to Me (For DPO)
         [HttpPatch("{id}/assign")]
-        [HasPermission("Grievances.Manage")] // Custom RBAC
+        [HasPermission("Grievances.Manage")]
         public async Task<IActionResult> AssignToMe(Guid id)
         {
-            var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var orgIdStr = User.FindFirstValue("OrganizationId");
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
 
-            var success = await _grievanceService.AssignTicketAsync(id, Guid.Parse(orgIdStr!), Guid.Parse(adminIdStr!));
+            var success = await _grievanceService.AssignTicketAsync(id, claims.orgId, claims.userId);
             if (!success) return NotFound(new { message = "Grievance not found." });
             return Ok(new { message = "Ticket assigned successfully and is now In Progress." });
         }
 
+        // 🚨 6. Resolve Ticket (For DPO)
+        [HttpPatch("{id}/resolve")]
+        [HasPermission("Grievances.Manage")]
+        public async Task<IActionResult> ResolveGrievance(Guid id)
+        {
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
+
+            try
+            {
+                var success = await _grievanceService.ResolveGrievanceAsync(id, claims.orgId, claims.userId);
+                if (!success) return NotFound(new { message = "Grievance not found." });
+                return Ok(new { message = "Grievance has been marked as Resolved." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // 7. Add Reply/Internal Note
         [HttpPost("{id}/reply")]
         public async Task<IActionResult> AddReply(Guid id, [FromBody] AddGrievanceMessageDto dto)
         {
-            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var orgIdStr = User.FindFirstValue("OrganizationId");
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
 
-            bool isAdmin = User.HasClaim(c => c.Type == "Permission" && c.Value == "Grievances.Manage");
+            bool isAdmin = IsAdminUser();
+            var success = await _grievanceService.AddReplyAsync(id, claims.userId, claims.orgId, dto, isAdmin);
 
-            var success = await _grievanceService.AddReplyAsync(id, Guid.Parse(userIdStr!), Guid.Parse(orgIdStr!), dto, isAdmin);
             if (!success) return NotFound(new { message = "Grievance not found." });
             return Ok(new { message = dto.IsInternal && isAdmin ? "Internal note added." : "Reply sent successfully." });
         }
 
-
+        // 8. Escalate to Breach
         [HttpPost("{id}/escalate-to-breach")]
-        [HasPermission("Breaches.Manage")]
+        [HasPermission("Breaches.Manage")] // Strict check
         public async Task<IActionResult> EscalateToBreach(Guid id, [FromBody] EscalateToBreachDto dto)
         {
-            var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var orgIdStr = User.FindFirstValue("OrganizationId");
+            var claims = GetUserClaims();
+            if (!claims.isValid) return Unauthorized();
 
-            
-            var result = await _breachService.EscalateGrievanceToBreachAsync(
-                id,
-                Guid.Parse(adminIdStr!),
-                Guid.Parse(orgIdStr!),
-                dto
-            );
+            var result = await _breachService.EscalateGrievanceToBreachAsync(id, claims.userId, claims.orgId, dto);
 
-            if (result.StartsWith("Error"))
-            {
-                return BadRequest(new { message = result });
-            }
+            if (result.StartsWith("Error")) return BadRequest(new { message = result });
 
             return Ok(new { message = "Grievance successfully escalated to a Data Breach Incident." });
         }

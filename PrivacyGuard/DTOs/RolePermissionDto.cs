@@ -39,6 +39,8 @@ namespace PrivacyGuard.DTOs
             public int Id { get; set; }
             public string ModuleName { get; set; } = string.Empty;
             public string ActionName { get; set; } = string.Empty;
+
+            public string StstemName { get; set; } = string.Empty;
             public bool IsAssigned { get; set; } // True = Ticked, False = Unticked
         }
 

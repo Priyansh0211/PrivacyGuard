@@ -80,5 +80,32 @@ namespace PrivacyGuard.Controllers
 
             return BadRequest(new { Error = result.ErrorMessage });
         }
+
+       
+        [HttpPut("edit/{userId}")]
+        [HasPermission("Users.Edit")]
+        public async Task<IActionResult> EditEmployee(Guid userId, [FromBody] UpdateUserDto request)
+        {
+           
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+
+            if (string.IsNullOrEmpty(orgIdClaim) || !Guid.TryParse(orgIdClaim, out Guid organizationId))
+            {
+                return Unauthorized(new { Error = "Invalid token or organization data." });
+            }
+
+            // Service call karna
+            var result = await _userService.UpdateEmployeeAsync(userId, request, organizationId);
+
+            if (result.IsSuccess)
+            {
+                return Ok(new { Message = "User details updated successfully!" });
+            }
+
+            return BadRequest(new { Error = result.ErrorMessage });
+        }
+
+
+
     }
 }

@@ -21,11 +21,22 @@ namespace PrivacyGuard.Repositories
             return grievance;
         }
 
+        // Admin ke liye (Saari tickets)
         public async Task<List<Grievance>> GetAllGrievancesAsync(Guid organizationId)
         {
             return await _context.Grievances
                 .Include(g => g.DataPrincipal)
                 .Where(g => g.OrganizationId == organizationId)
+                .OrderByDescending(g => g.CreatedAt)
+                .ToListAsync();
+        }
+
+ 
+        public async Task<List<Grievance>> GetMyGrievancesAsync(Guid userId, Guid organizationId)
+        {
+            return await _context.Grievances
+                .Include(g => g.DataPrincipal)
+                .Where(g => g.OrganizationId == organizationId && g.DataPrincipalId == userId)
                 .OrderByDescending(g => g.CreatedAt)
                 .ToListAsync();
         }
@@ -51,4 +62,3 @@ namespace PrivacyGuard.Repositories
         }
     }
 }
-
