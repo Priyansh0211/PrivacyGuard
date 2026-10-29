@@ -1,17 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.DTOs
 {
     public class CreateGrievanceDto
     {
+        [Required]
         public string Subject { get; set; } = string.Empty;
+
+        [Required]
         public string Description { get; set; } = string.Empty;
+
+        [Required]
         public string Category { get; set; } = "Other";
     }
 
     public class AddGrievanceMessageDto
     {
+        [Required]
         public string MessageText { get; set; } = string.Empty;
         public bool IsInternal { get; set; } = false;
     }
@@ -26,6 +33,7 @@ namespace PrivacyGuard.DTOs
 
     public class GrievanceDetailDto
     {
+        public Guid Id { get; set; }
         public string ReferenceId { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
@@ -38,7 +46,9 @@ namespace PrivacyGuard.DTOs
 
     public class EscalateToBreachDto
     {
+        [Required]
         public string Title { get; set; } = string.Empty;
+        [Required]
         public string BreachDescription { get; set; } = string.Empty;
         public string Severity { get; set; } = "High";
     }

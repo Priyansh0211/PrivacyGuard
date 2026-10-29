@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces.Services;
 
 namespace PrivacyGuard.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles ="AdminDpo")]
+    [Authorize]
     public class AuditController : ControllerBase
     {
         private readonly IAuditService _auditService;
@@ -18,6 +19,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("logs")]
+        [HasPermission("Audit.View")]
         public async Task<IActionResult> GetAuditLogs()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;

@@ -97,6 +97,7 @@ namespace PrivacyGuard.Repositories
                 Id = p.Id,
                 ModuleName = p.ModuleName,
                 ActionName = p.ActionName,
+                StstemName = p.SystemName,
                 
                 IsAssigned = assignedPermissionIds.Contains(p.Id)
             }).ToList();
