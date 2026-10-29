@@ -11,7 +11,7 @@ namespace PrivacyGuard.Interfaces.Services
         Task<(bool IsSuccess, Guid? BatchId, string ErrorMessage)> StageImportBatchAsync(BulkImportRequestDto request, Guid organizationId, Guid userId);
 
         // NAYE GET METHODS (Business format ke liye)
-        Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? status);
+        Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? kind, string? status);
 
         // Return type object hai kyunki hum anomymous formatted object bhejenge UI ke liye
         Task<object?> GetBatchDetailsAsync(Guid batchId, Guid organizationId, string? rowStatus, int page, int pageSize);

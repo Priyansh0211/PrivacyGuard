@@ -20,7 +20,7 @@ namespace PrivacyGuard.Controllers
             _bulkImportService = bulkImportService;
         }
 
-        // POST API: CSV upload/paste karne ke liye
+        // POST API: CSV upload ya paste karne ke liye
         [HttpPost("stage")]
         public async Task<IActionResult> StageImport([FromForm] BulkImportRequestDto request)
         {
@@ -30,6 +30,11 @@ namespace PrivacyGuard.Controllers
             if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(orgIdClaim))
             {
                 return Unauthorized("User or Organization details missing in token.");
+            }
+
+            if (!request.IsValid())
+            {
+                return BadRequest(new { Error = "Please provide either a CSV file or paste raw CSV text." });
             }
 
             var userId = Guid.Parse(userIdClaim);
@@ -49,14 +54,15 @@ namespace PrivacyGuard.Controllers
             });
         }
 
-        // GET API: Saare uploaded batches ki list dekhne ke liye
+        // GET API: UI ke dual filters (Kind aur Status) ke sath
         [HttpGet("batches")]
-        public async Task<IActionResult> GetBatches([FromQuery] string? status)
+        public async Task<IActionResult> GetBatches([FromQuery] string? kind, [FromQuery] string? status)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var batches = await _bulkImportService.GetBatchesAsync(Guid.Parse(orgIdClaim), status);
+            // Service method mein bhi 'kind' pass karna hoga
+            var batches = await _bulkImportService.GetBatchesAsync(Guid.Parse(orgIdClaim), kind, status);
             return Ok(batches);
         }
 
@@ -73,6 +79,7 @@ namespace PrivacyGuard.Controllers
 
             return Ok(details);
         }
+
         // POST API: Staged batch ko final execute karke database mein save karna
         [HttpPost("batches/{id}/execute")]
         public async Task<IActionResult> ExecuteBatch(Guid id)
