@@ -21,8 +21,6 @@ namespace PrivacyGuard.Data
         // ==========================================
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<User> Users { get; set; }
-        public DbSet<ConsentRecord> ConsentRecords { get; set; }
-        public DbSet<ConsentDetail> ConsentDetails { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; } // 🚨 Naya Hash Chaining Wala Audit Log
         public DbSet<DataInventory> DataInventories { get; set; }
@@ -36,6 +34,14 @@ namespace PrivacyGuard.Data
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Grievance> Grievances { get; set; }
         public DbSet<GrievanceMessage> GrievanceMessages { get; set; }
+        public DbSet<BulkImportBatch> BulkImportBatches { get; set; }
+        public DbSet<BulkImportRow> BulkImportRows { get; set; }
+        public DbSet<Consumer> Consumers { get; set; }
+
+        public DbSet<ConsentPurpose> ConsentPurposes { get; set; }
+        public DbSet<ConsentNoticeTemplate> ConsentNoticeTemplates { get; set; }
+        public DbSet<ConsentRecord> ConsentRecords { get; set; }
+        public DbSet<ConsentDetail> ConsentDetails { get; set; }
 
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS

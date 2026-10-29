@@ -38,8 +38,8 @@ namespace PrivacyGuard.Repositories
 
             // 2. Active Consents
             var activeConsentsCount = await _dbContext.ConsentRecords.CountAsync(c => c.OrganizationId == organizationId
-                  && c.DataPrincipalId == userIdStr
-                  && c.ConsentDetails.Any(d => d.ConsentStatus == "Granted"));            
+                  && c.DataPrincipalId == Guid.Parse(userIdStr)
+                  && c.ConsentDetails.Any(d => d.Status == "Granted"));            
             
             // 3. Privacy Health Score Calculation
             int healthScore = 100 - (pendingActionsCount * 15);

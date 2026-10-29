@@ -29,7 +29,7 @@ namespace PrivacyGuard.Repositories
             // ki kisi bhi granular purpose ka status "Granted" hai ya nahi.
             var activeConsents = await _dbContext.ConsentRecords.CountAsync(c =>
                 c.OrganizationId == organizationId &&
-                c.ConsentDetails.Any(d => d.ConsentStatus == "Granted"));
+                c.ConsentDetails.Any(d => d.Status == "Granted"));
 
             // 2. SLA Risk Logic
             // DPDP rule: Request 30 din mein poori honi chahiye. Hum 25 din pe 'Risk' dikhayenge.
