@@ -46,7 +46,9 @@ namespace PrivacyGuard.Data
 
                     // 🚨 Module 8: Campaign Management
                     new Permission { ModuleName = "Campaign Management", ActionName = "View Campaigns", SystemName = "Campaigns.View" },
-                    new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" }
+                    new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" },
+
+                    new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" }
                 };
 
                 context.Permissions.AddRange(permissions);

@@ -13,5 +13,7 @@ namespace PrivacyGuard.Interfaces
 
         
         Task<(bool IsSuccess, string ErrorMessage)> ToggleUserStatusAsync(Guid userId, Guid organizationId);
+
+        Task<(bool IsSuccess, string ErrorMessage)> UpdateEmployeeAsync(Guid userId, UpdateUserDto request, Guid organizationId);
     }
 }

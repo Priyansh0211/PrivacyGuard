@@ -9,6 +9,7 @@ namespace PrivacyGuard.Interfaces.Repositories
     {
         Task<Grievance> CreateGrievanceAsync(Grievance grievance);
         Task<List<Grievance>> GetAllGrievancesAsync(Guid organizationId);
+        Task<List<Grievance>> GetMyGrievancesAsync(Guid userId, Guid organizationId); // 🚨 Naya
         Task<Grievance?> GetGrievanceByIdAsync(Guid id, Guid organizationId);
         Task AddMessageAsync(GrievanceMessage message);
         Task UpdateGrievanceAsync(Grievance grievance);
