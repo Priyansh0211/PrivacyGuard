@@ -43,6 +43,11 @@ namespace PrivacyGuard.Data
         public DbSet<ConsentRecord> ConsentRecords { get; set; }
         public DbSet<ConsentDetail> ConsentDetails { get; set; }
 
+        public DbSet<DataCategory> DataCategories { get; set; }
+        public DbSet<DataProcessor> DataProcessors { get; set; }
+        public DbSet<ConsentPurposeDataCategory> ConsentPurposeDataCategories { get; set; }
+        public DbSet<ConsentPurposeDataProcessor> ConsentPurposeDataProcessors { get; set; }
+
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
         // ==========================================
@@ -70,6 +75,17 @@ namespace PrivacyGuard.Data
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
+            // Unique database index on OrganizationId + UnitCode
+            modelBuilder.Entity<PrivacyGuard.Models.OrgUnit>()
+                .HasIndex(o => new { o.OrganizationId, o.UnitCode })
+                .IsUnique();
+
+            // Many-to-Many Keys
+            modelBuilder.Entity<ConsentPurposeDataCategory>()
+                .HasKey(pc => new { pc.ConsentPurposeId, pc.DataCategoryId });
+
+            modelBuilder.Entity<ConsentPurposeDataProcessor>()
+                .HasKey(pp => new { pp.ConsentPurposeId, pp.DataProcessorId });
         }
 
         // ==========================================

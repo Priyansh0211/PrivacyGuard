@@ -169,17 +169,44 @@ namespace PrivacyGuard.Services
                 Decisions = c.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
             });
         }
-        public async Task<ConsentPurpose> CreatePurposeAsync(string code, string shortName, bool isMandatory, Guid organizationId)
+        public async Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId)
         {
             var purpose = new ConsentPurpose
             {
                 ConsentPurposeId = Guid.NewGuid(),
                 OrganizationId = organizationId,
-                Code = code,
-                ShortName = shortName,
-                IsMandatory = isMandatory,
-                LegalBasis = isMandatory ? "Legitimate Use" : "Consent"
+                Code = dto.Code,
+                ShortName = dto.ShortName,
+                Description = dto.Description,
+                IsMandatory = dto.IsMandatory,
+                LegalBasis = dto.LegalBasis,
+                RetentionPeriod = dto.RetentionPeriod,
+                RiskLevel = dto.RiskLevel,
+                DoesConsentLapse = dto.DoesConsentLapse,
+                Categories = new List<ConsentPurposeDataCategory>(),
+                Processors = new List<ConsentPurposeDataProcessor>()
             };
+
+            // Category IDs ko mapping table object mein convert karna
+            foreach (var catId in dto.CategoryIds)
+            {
+                purpose.Categories.Add(new ConsentPurposeDataCategory
+                {
+                    ConsentPurposeId = purpose.ConsentPurposeId,
+                    DataCategoryId = catId
+                });
+            }
+
+            // Processor IDs ko mapping table object mein convert karna
+            foreach (var procId in dto.ProcessorIds)
+            {
+                purpose.Processors.Add(new ConsentPurposeDataProcessor
+                {
+                    ConsentPurposeId = purpose.ConsentPurposeId,
+                    DataProcessorId = procId
+                });
+            }
+
             await _repository.AddPurposeAsync(purpose);
             return purpose;
         }
