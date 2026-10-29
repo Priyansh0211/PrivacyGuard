@@ -136,6 +136,12 @@ builder.Services.AddScoped<IGrievanceService, GrievanceService>();
 
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+
+builder.Services.AddScoped<IBulkImportService, BulkImportService>();
+builder.Services.AddScoped<IBulkImportRepository, BulkImportRepository>();
+
+builder.Services.AddScoped<IConsumerRepository, ConsumerRepository>();
+builder.Services.AddScoped<IConsumerService, ConsumerService>();
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 
