@@ -10,6 +10,8 @@ namespace PrivacyGuard.Models
         public string Category { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public string Sensitivity { get; set; } = "Low";
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
     }
 
     // Screenshot 104: Data Processors (Third Party)
@@ -21,6 +23,9 @@ namespace PrivacyGuard.Models
         public string Code { get; set; } = string.Empty;
         public string Relationship { get; set; } = "Processor";
         public string Location { get; set; } = "IN";
+        public string LegalName { get; set; } = string.Empty;
+        public string Country { get; set; } = "IN";
+        public bool DataLeavesIndia { get; set; }
     }
 
     // Mapping Tables (Many-to-Many join tables)

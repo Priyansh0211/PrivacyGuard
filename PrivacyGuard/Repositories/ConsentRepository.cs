@@ -75,10 +75,13 @@ namespace PrivacyGuard.Repositories
         public async Task<IEnumerable<ConsentPurpose>> GetPurposesByOrgAsync(Guid organizationId)
         {
             return await _context.ConsentPurposes
-                .Where(p => p.OrganizationId == organizationId && p.IsMandatory == false || p.IsMandatory == true)
+                .Include(p => p.Categories)
+                    .ThenInclude(c => c.DataCategory) // UI par Category details dikhane ke liye
+                .Include(p => p.Processors)
+                    .ThenInclude(pr => pr.DataProcessor) // UI par Processor details dikhane ke liye
+                .Where(p => p.OrganizationId == organizationId)
                 .ToListAsync();
         }
-
         public async Task<ConsentRecord> AddAsync(ConsentRecord consent)
         {
             await _context.ConsentRecords.AddAsync(consent);
@@ -137,7 +140,6 @@ namespace PrivacyGuard.Repositories
 
             await _context.SaveChangesAsync();
         }
-<<<<<<< Updated upstream
 
         public async Task<List<ConsentPurpose>> GetAllPurposesByOrgAsync(Guid organizationId)
         {
@@ -147,8 +149,38 @@ namespace PrivacyGuard.Repositories
                 .OrderBy(p => p.ShortName)
                 .ToListAsync();
         }
+        // ==========================================
+        // MASTER DATA (Categories & Processors)
+        // ==========================================
+        public async Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId)
+        {
+            return await _context.DataCategories
+                .Where(c => c.OrganizationId == organizationId)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+        }
 
-=======
->>>>>>> Stashed changes
+        public async Task<DataCategory> AddCategoryAsync(DataCategory category)
+        {
+            await _context.DataCategories.AddAsync(category);
+            await _context.SaveChangesAsync();
+            return category;
+        }
+
+        public async Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId)
+        {
+            return await _context.DataProcessors
+                .Where(p => p.OrganizationId == organizationId)
+                .OrderBy(p => p.LegalName)
+                .ToListAsync();
+        }
+
+        public async Task<DataProcessor> AddProcessorAsync(DataProcessor processor)
+        {
+            await _context.DataProcessors.AddAsync(processor);
+            await _context.SaveChangesAsync();
+            return processor;
+        }
+
     }
 }

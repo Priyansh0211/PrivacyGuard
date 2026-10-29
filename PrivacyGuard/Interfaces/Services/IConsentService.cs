@@ -22,5 +22,13 @@ namespace PrivacyGuard.Interfaces.Services
         Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId);
 
         Task<List<PurposeCheckboxItemDto>> GetPurposesForCheckboxesAsync(Guid orgId);
+        // ==========================================
+        // MASTER DATA (Categories & Processors)
+        // ==========================================
+        Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId);
+        Task<DataCategory> AddCategoryAsync(CreateDataCategoryDto request, Guid organizationId);
+
+        Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId);
+        Task<DataProcessor> AddProcessorAsync(CreateDataProcessorDto request, Guid organizationId);
     }
 }

@@ -104,5 +104,52 @@ namespace PrivacyGuard.Controllers
             var purpose = await _consentService.CreatePurposeAsync(request, Guid.Parse(orgIdClaim));
             return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
         }
+
+        // ==========================================
+        // DATA CATEGORIES APIs
+        // ==========================================
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            // Service method call karna (Service aur Repo me method add kar lena)
+            var categories = await _consentService.GetCategoriesAsync(Guid.Parse(orgIdClaim));
+            return Ok(categories);
+        }
+
+        [HttpPost("categories")]
+        public async Task<IActionResult> AddCategory([FromBody] CreateDataCategoryDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var category = await _consentService.AddCategoryAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Data Category added successfully", CategoryId = category.DataCategoryId });
+        }
+
+        // ==========================================
+        // DATA PROCESSORS APIs
+        // ==========================================
+        [HttpGet("processors")]
+        public async Task<IActionResult> GetProcessors()
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var processors = await _consentService.GetProcessorsAsync(Guid.Parse(orgIdClaim));
+            return Ok(processors);
+        }
+
+        [HttpPost("processors")]
+        public async Task<IActionResult> AddProcessor([FromBody] CreateDataProcessorDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var processor = await _consentService.AddProcessorAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Data Processor added successfully", ProcessorId = processor.DataProcessorId });
+        }
     }
 }
