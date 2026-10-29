@@ -8,13 +8,14 @@ namespace PrivacyGuard.Interfaces.Services
 {
     public interface IConsentService
     {
-        // Naya Granular Submit method (Task<ConsentRecord> return karega)
-        Task<ConsentRecord> SubmitGranularConsentAsync(SubmitConsentDto request, Guid organizationId);
+        Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId);
+        Task<(bool IsSuccess, string Message, string ReceiptId)> RecordConsentAsync(CreateConsentRequestDto request, Guid organizationId);
+        
+        // Note: Withdraw mein ab sirf consentRecordId chahiye, kyunki DataInventory hata kar humne Purpose entity bana di hai.
+        Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId);
+        Task<object?> GetLatestConsentAsync(Guid dataPrincipalId, Guid organizationId);
+        Task<IEnumerable<object>> GetHistoryAsync(Guid dataPrincipalId, Guid organizationId);
 
-        // Naya Withdraw method jisme dataInventoryId bhi hai
-        Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid dataInventoryId, Guid organizationId);
-
-        // History wala method
-        Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId);
+        Task<ConsentPurpose> CreatePurposeAsync(string code, string shortName, bool isMandatory, Guid organizationId);
     }
 }

@@ -2,74 +2,88 @@
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Services;
-using System.Security.Claims;
+using PrivacyGuard.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Controllers
 {
-    // Yeh attribute is class ko API controller banata hai
-    [ApiController]
-    // Route set kiya, ye API '/api/consent' par chalegi
     [Route("api/[controller]")]
-    // Bina JWT token ke koi isme enter nahi kar sakta
-    [Authorize]
+    [ApiController]
+    [Authorize] // JWT token required hoga
     public class ConsentController : ControllerBase
     {
-        // Service ka variable banaya (Controller DB/Repo se direct baat nahi karega)
         private readonly IConsentService _consentService;
 
-        // Constructor mein service ko inject kiya
         public ConsentController(IConsentService consentService)
         {
             _consentService = consentService;
         }
 
-        // JWT token se OrganizationId nikalne ka helper function
-        private bool TryGetOrganizationId(out Guid organizationId)
-        {
-            organizationId = Guid.Empty; // Default empty
-            // Token ke andar 'OrganizationId' naam ka data (claim) dhundo
-            var claim = User.FindFirst("OrganizationId");
-            // Agar mil gaya aur valid Guid hai, toh true return karo
-            return claim != null && Guid.TryParse(claim.Value, out organizationId);
-        }
-
-        // API Endpoint 1: Consent Dene Ke Liye (POST /api/consent/grant)
-        [HttpPost("submit")]
-        public async Task<IActionResult> SubmitConsent([FromBody] SubmitConsentDto request)
+        [HttpGet("purposes")]
+        public async Task<IActionResult> GetPurposes()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized("Token mein OrganizationId missing hai.");
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var orgId = Guid.Parse(orgIdClaim);
-            var result = await _consentService.SubmitGranularConsentAsync(request, orgId);
-            return Ok(result);
+            var purposes = await _consentService.GetPurposesAsync(Guid.Parse(orgIdClaim));
+            return Ok(purposes);
         }
 
-        [HttpPost("withdraw/{recordId}/{inventoryId}")]
-        public async Task<IActionResult> WithdrawConsent(Guid recordId, Guid inventoryId)
+        [HttpPost("record")]
+        public async Task<IActionResult> RecordConsent([FromBody] CreateConsentRequestDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized("Token mein OrganizationId missing hai.");
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var orgId = Guid.Parse(orgIdClaim);
-            var success = await _consentService.WithdrawConsentAsync(recordId, inventoryId, orgId);
-            if (!success) return BadRequest("Withdrawal failed or not found.");
-            return Ok(new { message = "Consent withdrawn successfully." });
+            var result = await _consentService.RecordConsentAsync(request, Guid.Parse(orgIdClaim));
+            if (!result.IsSuccess) return BadRequest(new { Error = result.Message });
+
+            return Ok(new { Message = result.Message, ReceiptId = result.ReceiptId });
         }
 
-        // API Endpoint 3: User ki Consent History Dekhne Ke Liye (GET /api/consent/history/{userId})
+        [HttpPost("withdraw/{consentRecordId}")]
+        public async Task<IActionResult> WithdrawConsent(Guid consentRecordId)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var success = await _consentService.WithdrawConsentAsync(consentRecordId, Guid.Parse(orgIdClaim));
+            if (!success) return NotFound("Consent record not found.");
+
+            return Ok(new { Message = "Consent withdrawn successfully. New version generated." });
+        }
+
+        [HttpGet("latest/{dataPrincipalId}")]
+        public async Task<IActionResult> GetLatestConsent(Guid dataPrincipalId)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var consent = await _consentService.GetLatestConsentAsync(dataPrincipalId, Guid.Parse(orgIdClaim));
+            if (consent == null) return NotFound("No records found.");
+
+            return Ok(consent);
+        }
+
         [HttpGet("history/{dataPrincipalId}")]
-        public async Task<IActionResult> GetConsentHistory(string dataPrincipalId)
+        public async Task<IActionResult> GetHistory(Guid dataPrincipalId)
         {
-            // Token validation
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            // Service ko bola history lao
-            var history = await _consentService.GetHistoryAsync(dataPrincipalId, organizationId);
-
-            // Jo bhi list aayi, usko 200 OK ke sath frontend ko bhej diya
+            var history = await _consentService.GetHistoryAsync(dataPrincipalId, Guid.Parse(orgIdClaim));
             return Ok(history);
+        }
+        
+        [HttpPost("add-purpose")]
+        public async Task<IActionResult> AddPurpose([FromBody] ConsentPurpose request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var purpose = await _consentService.CreatePurposeAsync(request.Code, request.ShortName, request.IsMandatory, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Purpose added successfully", Purpose = purpose });
         }
     }
 }

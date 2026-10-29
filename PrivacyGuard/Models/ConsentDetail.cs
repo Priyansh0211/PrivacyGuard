@@ -1,34 +1,22 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PrivacyGuard.Models
 {
     public class ConsentDetail
     {
-        [Key]
-        public Guid ConsentDetailId { get; set; } = Guid.NewGuid();
-
-        // Master table se link karne ke liye Foreign Key
-        [Required]
+        public Guid ConsentDetailId { get; set; }
         public Guid ConsentRecordId { get; set; }
 
-        [ForeignKey("ConsentRecordId")]
-        public ConsentRecord? ConsentRecord { get; set; }
+        // Link to new ConsentPurpose entity[cite: 9]
+        public Guid ConsentPurposeId { get; set; }
+        public ConsentPurpose ConsentPurpose { get; set; } = null!;
 
-        // Yeh tumhara existing field hai (e.g., "WhatsApp Alert" ya "Marketing Email" inventory ID)
-        [Required]
-        public Guid DataInventoryId { get; set; }
+        public string Decision { get; set; } = "No";
 
-        [ForeignKey("DataInventoryId")]
-        public DataInventory? DataInventory { get; set; }
+        // Granular per-purpose status & expiry[cite: 10]
+        public string Status { get; set; } = "Active";
+        public DateTime? ExpiryDate { get; set; }
 
-        // Yahan aayega tumhara granular status: "Granted", "Denied", ya "Withdrawn"
-        [Required]
-        [MaxLength(20)]
-        public string ConsentStatus { get; set; } = string.Empty;
-
-        // Agar user pehle Granted kare aur baad mein withdraw kare, toh yeh update hoga
-        public DateTime? WithdrawnAt { get; set; }
+        public ConsentRecord ConsentRecord { get; set; } = null!;
     }
 }
