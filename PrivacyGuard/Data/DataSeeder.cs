@@ -154,7 +154,7 @@ namespace PrivacyGuard.Data
             context.Campaigns.Add(new Campaign { CampaignId = Guid.NewGuid(), OrganizationId = orgId, Title = "New Health Data Policy 2026", CampaignType = "Awareness", TargetRole = "All", Status = "Active", StartDate = DateTime.UtcNow.AddDays(-5), EndDate = DateTime.UtcNow.AddDays(15), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, DataInventoryId = inventoryId });
 
             // 7.3 Consent Record (userId fix karke user1Id kar diya hai)
-            context.ConsentRecords.Add(new ConsentRecord{ ConsentRecordId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id.ToString(),SubmittedAt=DateTime.UtcNow });
+            context.ConsentRecords.Add(new ConsentRecord{ ConsentRecordId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = Guid.NewGuid(), CreatedAt = DateTime.UtcNow });
 
             // 7.4 Privacy Requests (Tumhara naya code, id fix kar di gayi hai)
             context.PrivacyRequests.AddRange(

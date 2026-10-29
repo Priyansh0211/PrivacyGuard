@@ -2,59 +2,77 @@
 using PrivacyGuard.Data;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Repositories
 {
-    // IConsentRepository interface ko implement kar rahe hain
     public class ConsentRepository : IConsentRepository
     {
-        // Database context ka private variable banaya
         private readonly ApplicationDbContext _context;
 
-        // Constructor mein DbContext inject kiya (Dependency Injection)
         public ConsentRepository(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // Naya consent record table me insert karega
-        public async Task<ConsentRecord> AddAsync(ConsentRecord consent)
+        public async Task<IEnumerable<ConsentPurpose>> GetPurposesByOrgAsync(Guid organizationId)
         {
-            // ConsentRecords ko table me add karne ke liye track me daala
-            await _context.ConsentRecords.AddAsync(consent);
-            return consent; // Wapas bhej diya
+            return await _context.ConsentPurposes
+                .Where(p => p.OrganizationId == organizationId && p.IsMandatory == false || p.IsMandatory == true) // Sabhi purposes
+                .ToListAsync();
         }
 
-        // ID ke basis par ek single record nikalega
+        public async Task<ConsentRecord> AddAsync(ConsentRecord consent)
+        {
+            await _context.ConsentRecords.AddAsync(consent);
+            return consent;
+        }
+
         public async Task<ConsentRecord?> GetByIdAsync(Guid consentRecordId, Guid organizationId)
         {
-            // FirstOrDefaultAsync se match karne wala pehla record layega
+            // Update/Withdraw ke liye eager loading chahiye
             return await _context.ConsentRecords
+                .Include(c => c.ConsentDetails)
                 .FirstOrDefaultAsync(c => c.ConsentRecordId == consentRecordId && c.OrganizationId == organizationId);
         }
 
-        // Record ko update karega
         public void Update(ConsentRecord consent)
         {
-            // Table mein record ko modify mode me set karega
             _context.ConsentRecords.Update(consent);
         }
 
-        // User ki consent history database se uthayega
-        public async Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
+        public async Task<IEnumerable<ConsentRecord>> GetHistoryAsync(Guid dataPrincipalId, Guid organizationId)
         {
-            // Where condition laga kar sirf us user aur uski organization ka data layega
+            // PDF Fix: Missing Include in History Endpoint[cite: 4]
             return await _context.ConsentRecords
+                .Include(c => c.ConsentDetails)
+                .ThenInclude(d => d.ConsentPurpose)
                 .Where(c => c.DataPrincipalId == dataPrincipalId && c.OrganizationId == organizationId)
-                .OrderByDescending(c => c.SubmittedAt) // Naya data sabse upar aayega
-                .ToListAsync(); // List bana kar return karega
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
         }
 
-        // Jo bhi Add ya Update kiya hai, usko actually Database me save karega
+        public async Task<ConsentRecord?> GetLatestConsentByPrincipalIdAsync(Guid dataPrincipalId, Guid organizationId)
+        {
+            return await _context.ConsentRecords
+                .Include(c => c.ConsentDetails)
+                .ThenInclude(d => d.ConsentPurpose)
+                .Where(c => c.DataPrincipalId == dataPrincipalId && c.OrganizationId == organizationId)
+                .OrderByDescending(c => c.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<int> SaveChangesAsync()
         {
-            // SaveChangesAsync EF Core ka in-built function hai SQL query run karne ke liye
             return await _context.SaveChangesAsync();
+        }
+        public async Task AddPurposeAsync(ConsentPurpose purpose)
+        {
+            await _context.ConsentPurposes.AddAsync(purpose);
+            await _context.SaveChangesAsync();
         }
     }
 }

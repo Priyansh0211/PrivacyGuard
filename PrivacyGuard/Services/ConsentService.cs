@@ -5,6 +5,9 @@ using PrivacyGuard.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
@@ -18,66 +21,167 @@ namespace PrivacyGuard.Services
             _repository = repository;
         }
 
-        // NAYA LOGIC: Ek sath master record aur granular details (checkboxes) save karna
-        public async Task<ConsentRecord> SubmitGranularConsentAsync(SubmitConsentDto request, Guid organizationId)
+        public async Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId)
         {
-            // 1. Master Record (Parent) banaya jo form submission track karega
-            var consentMaster = new ConsentRecord
+            return await _repository.GetPurposesByOrgAsync(organizationId);
+        }
+
+        // Helper Method: SHA-256 Hash generate karne ke liye (PDF Req)[cite: 3]
+        private string GenerateHash(object payload)
+        {
+            string jsonPayload = JsonSerializer.Serialize(payload);
+            using (var sha256 = SHA256.Create())
             {
-                DataPrincipalId = request.DataPrincipalId.ToString(), // DTO se aayi User Id
-                OrganizationId = organizationId,           // Token se aayi Org Id
-                NoticeVersion = "1.0",                     // Default notice version
-                SubmittedAt = DateTime.UtcNow              // Form kab submit hua
+                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(jsonPayload));
+                var builder = new StringBuilder();
+                foreach (var b in bytes) builder.Append(b.ToString("x2"));
+                return builder.ToString();
+            }
+        }
+
+        public async Task<(bool IsSuccess, string Message, string ReceiptId)> RecordConsentAsync(CreateConsentRequestDto request, Guid organizationId)
+        {
+            var activePurposes = await _repository.GetPurposesByOrgAsync(organizationId);
+            if (!activePurposes.Any()) return (false, "No purposes found.", string.Empty);
+
+            var record = new ConsentRecord
+            {
+                ConsentRecordId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                DataPrincipalId = request.DataPrincipalId,
+                Channel = request.Channel,
+                Language = request.Language,
+                ReferenceNumber = $"CNS-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}", // CNS Generator[cite: 2]
+                ReceiptId = $"RCP-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",     // RCP Generator[cite: 3]
+                Version = 1,
+                CreatedAt = DateTime.UtcNow
             };
 
-            // 2. Har Checkbox (Child) ka loop lagakar master mein add kiya
-            foreach (var pref in request.Preferences)
+            bool hasYes = false, hasNo = false;
+
+            foreach (var purpose in activePurposes)
             {
-                consentMaster.ConsentDetails.Add(new ConsentDetail
+                var userDecision = request.Decisions.FirstOrDefault(d => d.ConsentPurposeId == purpose.ConsentPurposeId);
+                string decision = userDecision?.Decision ?? "No";
+
+                if (purpose.IsMandatory) decision = "Yes"; // Mandatory Force[cite: 4]
+
+                if (decision == "Yes") hasYes = true;
+                if (decision == "No") hasNo = true;
+
+                record.ConsentDetails.Add(new ConsentDetail
                 {
-                    DataInventoryId = pref.DataInventoryId, // DTO se specific purpose ki ID
-                    ConsentStatus = pref.Status             // "Granted" ya "Denied"
+                    ConsentDetailId = Guid.NewGuid(),
+                    ConsentRecordId = record.ConsentRecordId,
+                    ConsentPurposeId = purpose.ConsentPurposeId,
+                    Decision = decision,
+                    Status = "Active",
+                    ExpiryDate = DateTime.UtcNow.AddYears(1)
                 });
             }
 
-            // 3. Repository ko bola Master (with saari Details) DB mein save karo
-            await _repository.AddAsync(consentMaster);
+            // PDF Fix: Overall Status Logic[cite: 2]
+            if (hasYes && hasNo) record.OverallStatus = ConsentStatus.PartiallyGranted;
+            else if (hasYes) record.OverallStatus = ConsentStatus.Granted;
+            else record.OverallStatus = ConsentStatus.Withdrawn;
+
+            // PDF Fix: Hash Generation[cite: 3]
+            var payload = new { record.ReceiptId, record.DataPrincipalId, Timestamp = record.CreatedAt };
+            record.ArtifactHash = GenerateHash(payload);
+            record.KeyId = "ED25519-KEY-001";
+            record.DigitalSignature = "SIGNED_DEMO";
+
+            await _repository.AddAsync(record);
             await _repository.SaveChangesAsync();
 
-            return consentMaster;
+            return (true, "Success", record.ReceiptId);
         }
 
-        // NAYA LOGIC: Granular consent (kisi ek specific purpose) ko wapas lena
-        public async Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid dataInventoryId, Guid organizationId)
+        // PDF Fix: Versioned Withdrawal[cite: 4]
+        public async Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId)
         {
-            // Repository se master record mangwaya (Dhyan rahe, Repo mein .Include() laga hona chahiye)
-            var consentMaster = await _repository.GetByIdAsync(consentRecordId, organizationId);
+            var oldRecord = await _repository.GetByIdAsync(consentRecordId, organizationId);
+            if (oldRecord == null) return false;
 
-            if (consentMaster == null) return false;
-
-            // Master ke andar se wo specific checkbox dhoondo jise withdraw karna hai
-            var detailToWithdraw = consentMaster.ConsentDetails
-                .FirstOrDefault(d => d.DataInventoryId == dataInventoryId);
-
-            // Agar wo pehle se Granted tha, toh usko Withdrawn mark kar do
-            if (detailToWithdraw != null && detailToWithdraw.ConsentStatus == "Granted")
+            // Withdrawal pe naya record ban raha hai (Versioning)
+            var newRecord = new ConsentRecord
             {
-                detailToWithdraw.ConsentStatus = "Withdrawn";
-                detailToWithdraw.WithdrawnAt = DateTime.UtcNow;
+                ConsentRecordId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                DataPrincipalId = oldRecord.DataPrincipalId,
+                Channel = oldRecord.Channel,
+                Language = oldRecord.Language,
+                ReferenceNumber = oldRecord.ReferenceNumber,
+                ReceiptId = $"RCP-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",
+                PreviousRecordId = oldRecord.ConsentRecordId, // Chain link[cite: 3]
+                Version = oldRecord.Version + 1, // Version++[cite: 4]
+                OverallStatus = ConsentStatus.Withdrawn,
+                CreatedAt = DateTime.UtcNow
+            };
 
-                _repository.Update(consentMaster);
-                await _repository.SaveChangesAsync();
-
-                return true;
+            foreach (var detail in oldRecord.ConsentDetails)
+            {
+                newRecord.ConsentDetails.Add(new ConsentDetail
+                {
+                    ConsentDetailId = Guid.NewGuid(),
+                    ConsentRecordId = newRecord.ConsentRecordId,
+                    ConsentPurposeId = detail.ConsentPurposeId,
+                    Decision = "No",
+                    Status = "Withdrawn"
+                });
             }
 
-            return false; // Agar record nahi mila ya pehle se Denied tha
+            var payload = new { newRecord.ReceiptId, newRecord.DataPrincipalId, Action = "Withdrawal" };
+            newRecord.ArtifactHash = GenerateHash(payload);
+
+            await _repository.AddAsync(newRecord);
+            await _repository.SaveChangesAsync();
+            return true;
         }
 
-        // User ki history nikalne ka logic (Same rahega)
-        public async Task<IEnumerable<ConsentRecord>> GetHistoryAsync(string dataPrincipalId, Guid organizationId)
+        public async Task<object?> GetLatestConsentAsync(Guid dataPrincipalId, Guid organizationId)
         {
-            return await _repository.GetHistoryAsync(dataPrincipalId, organizationId);
+            var consent = await _repository.GetLatestConsentByPrincipalIdAsync(dataPrincipalId, organizationId);
+            if (consent == null) return null;
+
+            return new
+            {
+                consent.ConsentRecordId,
+                consent.ReceiptId,
+                consent.ReferenceNumber,
+                Status = consent.OverallStatus.ToString(),
+                consent.ArtifactHash,
+                consent.Version,
+                Decisions = consent.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
+            };
+        }
+
+        public async Task<IEnumerable<object>> GetHistoryAsync(Guid dataPrincipalId, Guid organizationId)
+        {
+            var history = await _repository.GetHistoryAsync(dataPrincipalId, organizationId);
+            return history.Select(c => new
+            {
+                c.Version,
+                c.CreatedAt,
+                Status = c.OverallStatus.ToString(),
+                c.ArtifactHash,
+                c.ReceiptId,
+                Decisions = c.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
+            });
+        }
+        public async Task<ConsentPurpose> CreatePurposeAsync(string code, string shortName, bool isMandatory, Guid organizationId)
+        {
+            var purpose = new ConsentPurpose
+            {
+                ConsentPurposeId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = code,
+                ShortName = shortName,
+                IsMandatory = isMandatory,
+                LegalBasis = isMandatory ? "Legitimate Use" : "Consent"
+            };
+            await _repository.AddPurposeAsync(purpose);
+            return purpose;
         }
     }
 }

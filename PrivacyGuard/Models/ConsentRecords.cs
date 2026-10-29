@@ -1,27 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.Models
 {
+    // Enums ko yahin file mein define kar diya taaki CS0246 error kabhi na aaye
+    public enum ConsentStatus
+    {
+        Granted,
+        PartiallyGranted,
+        Withdrawn,
+        Expired
+    }
+
+    public enum ConsentChannel
+    {
+        Web,
+        MobileApp,
+        CallCentre
+    }
+
     public class ConsentRecord
     {
-        [Key]
-        public Guid ConsentRecordId { get; set; } = Guid.NewGuid();
+        public Guid ConsentRecordId { get; set; }
+        public Guid OrganizationId { get; set; }
 
-        [Required]
-        public Guid OrganizationId { get; set; } // Tumhara existing tenant ID
+        public Guid DataPrincipalId { get; set; }
 
-        [Required]
-        public string DataPrincipalId { get; set; } = string.Empty; // Tumhara existing string type user ID
+        public string ReferenceNumber { get; set; } = string.Empty;
+        public string ReceiptId { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(50)]
-        public string NoticeVersion { get; set; } = "1.0"; // Ek baar save hoga ki user ne kaunsa version padha tha
+        public ConsentChannel Channel { get; set; } = ConsentChannel.Web;
+        public string Language { get; set; } = "en-IN";
+        public ConsentStatus OverallStatus { get; set; }
 
-        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow; // 'GrantedAt' ki jagah SubmittedAt, kyunki form mein deny bhi ho sakta hai
+        public string ArtifactHash { get; set; } = string.Empty;
+        public string DigitalSignature { get; set; } = string.Empty;
+        public string KeyId { get; set; } = string.Empty;
 
-        // Navigation Property: Ek form submission mein multiple checkbox (details) honge
-        public virtual ICollection<ConsentDetail> ConsentDetails { get; set; } = new List<ConsentDetail>();
+        public Guid? PreviousRecordId { get; set; }
+        public int Version { get; set; } = 1;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public ICollection<ConsentDetail> ConsentDetails { get; set; } = new List<ConsentDetail>();
     }
 }
