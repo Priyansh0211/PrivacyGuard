@@ -324,7 +324,13 @@ namespace PrivacyGuard.Migrations
                     b.Property<bool>("DoesConsentLapse")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsMandatory")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsProhibitedForChildren")
                         .HasColumnType("bit");
 
                     b.Property<string>("LegalBasis")
@@ -514,6 +520,13 @@ namespace PrivacyGuard.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -647,6 +660,17 @@ namespace PrivacyGuard.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("DataLeavesIndia")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LegalName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

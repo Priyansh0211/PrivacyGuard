@@ -175,6 +175,7 @@ namespace PrivacyGuard.Services
                 RetentionPeriod = dto.RetentionPeriod,
                 RiskLevel = dto.RiskLevel,
                 DoesConsentLapse = dto.DoesConsentLapse,
+                IsActive = dto.IsActive, 
                 Categories = new List<ConsentPurposeDataCategory>(),
                 Processors = new List<ConsentPurposeDataProcessor>()
             };
