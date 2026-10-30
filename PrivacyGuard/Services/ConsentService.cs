@@ -164,14 +164,20 @@ namespace PrivacyGuard.Services
             return history.Select(c => new
             {
                 c.Version,
-                c.CreatedAt,
+                Given = c.CreatedAt, // UI 'Given' date column expect kar raha hai
                 Status = c.OverallStatus.ToString(),
                 c.ArtifactHash,
                 c.ReceiptId,
-                Decisions = c.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
+                Reference = c.ReferenceNumber,
+
+                Channel = c.Channel.ToString(),
+                Language = c.Language,
+                Notice = "general_service_notice v2", // Agar Notice table mapped hai toh uski value daal dena
+                Expires = c.ConsentDetails.Max(d => (DateTime?)d.ExpiryDate),
+
+                Decisions = c.ConsentDetails.Select(d => new { Purpose = d.ConsentPurpose.ShortName, d.Decision })
             });
         }
-
         public async Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId)
         {
             var purpose = new ConsentPurpose
