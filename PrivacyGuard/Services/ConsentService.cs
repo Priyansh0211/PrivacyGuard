@@ -21,10 +21,13 @@ namespace PrivacyGuard.Services
             _repository = repository;
         }
 
-        // NAYA METHOD: UI Filters ke request ko Repository tak pahunchane ke liye
-        public async Task<IEnumerable<ConsentRecord>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate)
+        // ==========================================
+        // UI Filters aur Grid Data
+        // ==========================================
+        public async Task<IEnumerable<object>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate)
         {
-            return await _repository.GetFilteredRecordsAsync(organizationId, reference, status, purpose, channel, fromDate, toDate);
+            var records = await _repository.GetFilteredRecordsAsync(organizationId, reference, status, purpose, channel, fromDate, toDate);
+            return records.Select(c => MapToConsentArtifact(c));
         }
 
         public async Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId)
@@ -141,43 +144,23 @@ namespace PrivacyGuard.Services
             return true;
         }
 
+        // ==========================================
+        // LATEST & HISTORY MAPS
+        // ==========================================
         public async Task<object?> GetLatestConsentAsync(Guid dataPrincipalId, Guid organizationId)
         {
             var consent = await _repository.GetLatestConsentByPrincipalIdAsync(dataPrincipalId, organizationId);
             if (consent == null) return null;
 
-            return new
-            {
-                consent.ConsentRecordId,
-                consent.ReceiptId,
-                consent.ReferenceNumber,
-                Status = consent.OverallStatus.ToString(),
-                consent.ArtifactHash,
-                consent.Version,
-                Decisions = consent.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
-            };
+            return MapToConsentArtifact(consent);
         }
 
         public async Task<IEnumerable<object>> GetHistoryAsync(Guid dataPrincipalId, Guid organizationId)
         {
             var history = await _repository.GetHistoryAsync(dataPrincipalId, organizationId);
-            return history.Select(c => new
-            {
-                c.Version,
-                Given = c.CreatedAt, // UI 'Given' date column expect kar raha hai
-                Status = c.OverallStatus.ToString(),
-                c.ArtifactHash,
-                c.ReceiptId,
-                Reference = c.ReferenceNumber,
-
-                Channel = c.Channel.ToString(),
-                Language = c.Language,
-                Notice = "general_service_notice v2", // Agar Notice table mapped hai toh uski value daal dena
-                Expires = c.ConsentDetails.Max(d => (DateTime?)d.ExpiryDate),
-
-                Decisions = c.ConsentDetails.Select(d => new { Purpose = d.ConsentPurpose.ShortName, d.Decision })
-            });
+            return history.Select(c => MapToConsentArtifact(c));
         }
+
         public async Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId)
         {
             var purpose = new ConsentPurpose
@@ -222,13 +205,13 @@ namespace PrivacyGuard.Services
         {
             var purposes = await _repository.GetAllPurposesByOrgAsync(orgId);
 
-            
             return purposes.Select(p => new PurposeCheckboxItemDto
             {
                 Code = p.Code,
                 Name = p.ShortName
             }).ToList();
         }
+
         // ==========================================
         // MASTER DATA (Categories & Processors)
         // ==========================================
@@ -271,6 +254,55 @@ namespace PrivacyGuard.Services
             };
 
             return await _repository.AddProcessorAsync(processor);
+        }
+
+        public async Task<object?> GetConsentRecordByIdAsync(Guid consentRecordId, Guid organizationId)
+        {
+            var consent = await _repository.GetByIdAsync(consentRecordId, organizationId);
+            if (consent == null) return null;
+
+            // Wahi same formatter use hoga jo history/latest ke liye hai
+            return MapToConsentArtifact(consent);
+        }
+
+        // ==========================================
+        // HELPER METHOD: Modal aur Grid ki fields map karne ke liye
+        // ==========================================
+        private object MapToConsentArtifact(ConsentRecord c)
+        {
+            return new
+            {
+                c.ConsentRecordId,
+                Reference = c.ReferenceNumber,
+                Receipt = c.ReceiptId, // UI Modal uses 'Receipt'
+                ReceiptId = c.ReceiptId,
+                c.Version,
+                Status = c.OverallStatus.ToString(),
+                DataPrincipal = c.DataPrincipalId,
+
+                Notice = "general_service_notice_v1",
+                Channel = c.Channel.ToString(),
+                Language = c.Language ?? "en-IN",
+                Given = c.CreatedAt,
+                Expires = c.ConsentDetails.Any() ? c.ConsentDetails.Max(d => (DateTime?)d.ExpiryDate) : null,
+                Hash = c.ArtifactHash,
+                ArtifactHash = c.ArtifactHash,
+                Signature = c.DigitalSignature ?? "Not recorded",
+
+                Purposes = c.ConsentDetails.Select(d => new
+                {
+                    Purpose = d.ConsentPurpose?.ShortName ?? "Unknown",
+                    Decision = d.Decision,
+                    Status = d.Status
+                }),
+
+                Decisions = c.ConsentDetails.Select(d => new
+                {
+                    Purpose = d.ConsentPurpose?.ShortName ?? "Unknown",
+                    Decision = d.Decision,
+                    Status = d.Status
+                })
+            };
         }
     }
 }
