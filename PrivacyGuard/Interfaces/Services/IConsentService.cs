@@ -9,8 +9,9 @@ namespace PrivacyGuard.Interfaces.Services
     public interface IConsentService
     {
         // NAYA METHOD: UI Filters ke liye Controller ko support karne ke liye
-        Task<IEnumerable<ConsentRecord>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate);
+        Task<IEnumerable<object>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate);
 
+        Task<object?> GetConsentRecordByIdAsync(Guid consentRecordId, Guid organizationId);
         Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId);
 
         Task<(bool IsSuccess, string Message, string ReceiptId)> RecordConsentAsync(CreateConsentRequestDto request, Guid organizationId);
