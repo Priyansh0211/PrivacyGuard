@@ -20,7 +20,7 @@ namespace PrivacyGuard.Controllers
             _consentService = consentService;
         }
 
-        // NAYA ENDPOINT: UI Dashboard Grid aur Filters ke liye
+        // UI Dashboard Grid aur Filters ke liye
         [HttpGet("records")]
         public async Task<IActionResult> GetConsentRecords(
             [FromQuery] string? reference,
@@ -39,7 +39,7 @@ namespace PrivacyGuard.Controllers
             return Ok(records);
         }
 
-        // NAYA ENDPOINT: Modal UI par click karne pe single detail lane ke liye
+        // NAYA ENDPOINT: Modal UI par click karne pe single detail lane ke liye (Consent Artifact modal fix)
         [HttpGet("record/{id}")]
         public async Task<IActionResult> GetConsentRecordById(Guid id)
         {
@@ -128,7 +128,6 @@ namespace PrivacyGuard.Controllers
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            // Service method call karna (Service aur Repo me method add kar lena)
             var categories = await _consentService.GetCategoriesAsync(Guid.Parse(orgIdClaim));
             return Ok(categories);
         }
