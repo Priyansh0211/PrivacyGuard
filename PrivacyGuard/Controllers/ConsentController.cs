@@ -39,6 +39,20 @@ namespace PrivacyGuard.Controllers
             return Ok(records);
         }
 
+        // NAYA ENDPOINT: Modal UI par click karne pe single detail lane ke liye
+        [HttpGet("record/{id}")]
+        public async Task<IActionResult> GetConsentRecordById(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var consentRecord = await _consentService.GetConsentRecordByIdAsync(id, Guid.Parse(orgIdClaim));
+
+            if (consentRecord == null) return NotFound("Consent record not found.");
+
+            return Ok(consentRecord);
+        }
+
         [HttpGet("purposes")]
         public async Task<IActionResult> GetPurposes()
         {
