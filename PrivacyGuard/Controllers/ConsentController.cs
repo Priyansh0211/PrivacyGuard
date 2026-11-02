@@ -119,9 +119,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
         }
 
-        // ==========================================
         // DATA CATEGORIES APIs
-        // ==========================================
+
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()
         {
@@ -142,9 +141,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { Message = "Data Category added successfully", CategoryId = category.DataCategoryId });
         }
 
-        // ==========================================
         // DATA PROCESSORS APIs
-        // ==========================================
+
         [HttpGet("processors")]
         public async Task<IActionResult> GetProcessors()
         {
@@ -163,6 +161,55 @@ namespace PrivacyGuard.Controllers
 
             var processor = await _consentService.AddProcessorAsync(request, Guid.Parse(orgIdClaim));
             return Ok(new { Message = "Data Processor added successfully", ProcessorId = processor.DataProcessorId });
+        }
+
+        // NAYE ENDPOINTS 
+        // ==========================================
+
+        [HttpPut("purposes/{id}")]
+        public async Task<IActionResult> EditPurpose(Guid id, [FromBody] CreatePurposeDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var updatedPurpose = await _consentService.EditPurposeAsync(id, request, Guid.Parse(orgIdClaim));
+            if (updatedPurpose == null) return NotFound("Purpose not found.");
+
+            return Ok(new { Message = "Purpose updated successfully (new version created)", PurposeId = updatedPurpose.ConsentPurposeId });
+        }
+
+        [HttpGet("purposes/{id}/history")]
+        public async Task<IActionResult> GetPurposeHistory(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var history = await _consentService.GetPurposeHistoryAsync(id, Guid.Parse(orgIdClaim));
+            return Ok(history);
+        }
+
+        [HttpPut("categories/{id}")]
+        public async Task<IActionResult> EditCategory(Guid id, [FromBody] CreateDataCategoryDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var category = await _consentService.EditCategoryAsync(id, request, Guid.Parse(orgIdClaim));
+            if (category == null) return NotFound("Category not found.");
+
+            return Ok(category);
+        }
+
+        [HttpPut("processors/{id}")]
+        public async Task<IActionResult> EditProcessor(Guid id, [FromBody] CreateDataProcessorDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var processor = await _consentService.EditProcessorAsync(id, request, Guid.Parse(orgIdClaim));
+            if (processor == null) return NotFound("Processor not found.");
+
+            return Ok(processor);
         }
     }
 }

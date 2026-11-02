@@ -41,14 +41,21 @@ namespace PrivacyGuard.Repositories
             _context.OrgUnits.Update(orgUnit);
         }
 
+        // NAYA METHOD: Interface ko satisfy karne aur Controller se Delete call karne ke liye
+        public void Delete(OrgUnit orgUnit)
+        {
+            _context.OrgUnits.Remove(orgUnit);
+        }
+
         public async Task<int> SaveChangesAsync()
         {
             return await _context.SaveChangesAsync();
         }
-        // Users/Principals count dynamically nikalne ke liye[cite: 11]
+
+        // Users/Principals count dynamically nikalne ke liye
         public async Task<int> GetPrincipalsCountAsync(Guid orgUnitId)
         {
-            // As per PDF: group Users by OrgUnitId and calculate the count[cite: 11]
+            // As per PDF: group Users by OrgUnitId and calculate the count
             return await _context.Users.CountAsync(u => u.OrgUnitId == orgUnitId);
         }
 
@@ -59,7 +66,7 @@ namespace PrivacyGuard.Repositories
             return !await query.AnyAsync();
         }
 
-        // Deletion check ke liye[cite: 12]
+        // Deletion check ke liye
         public async Task<bool> HasChildrenAsync(Guid orgUnitId)
         {
             return await _context.OrgUnits.AnyAsync(o => o.ParentId == orgUnitId);

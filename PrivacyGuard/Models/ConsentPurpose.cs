@@ -13,13 +13,17 @@ namespace PrivacyGuard.Models
         public bool IsMandatory { get; set; } = false;
 
         public string Description { get; set; } = string.Empty;
-        public string LegalBasis { get; set; } = string.Empty; // e.g., Legitimate use (Sec 7)
-        public string RetentionPeriod { get; set; } = string.Empty; // e.g., 8 years
+        public string LegalBasis { get; set; } = string.Empty;
+        public string RetentionPeriod { get; set; } = string.Empty;
         public bool DoesConsentLapse { get; set; } = false;
         public string RiskLevel { get; set; } = "Low risk";
 
         public bool IsActive { get; set; } = true;
         public bool IsProhibitedForChildren { get; set; } = false;
+
+        public int Version { get; set; } = 1;
+        public Guid? PreviousPurposeId { get; set; } // Agar edit hua hai toh purane record ki ID
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // --- MAPPINGS (Data Categories aur Processors ke liye) ---
         public ICollection<ConsentPurposeDataCategory> Categories { get; set; } = new List<ConsentPurposeDataCategory>();

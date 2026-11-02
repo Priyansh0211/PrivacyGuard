@@ -181,6 +181,38 @@ namespace PrivacyGuard.Repositories
             await _context.SaveChangesAsync();
             return processor;
         }
+        // ==========================================
+        // NAYE METHODS (Edit & History Support)
+        // ==========================================
+
+        public async Task<ConsentPurpose?> GetPurposeByIdAsync(Guid purposeId, Guid organizationId)
+        {
+            return await _context.ConsentPurposes
+                .Include(p => p.Categories)
+                .Include(p => p.Processors)
+                .FirstOrDefaultAsync(p => p.ConsentPurposeId == purposeId && p.OrganizationId == organizationId);
+        }
+
+        public async Task<IEnumerable<ConsentPurpose>> GetPurposeHistoryAsync(string code, Guid organizationId)
+        {
+            // History nikalne ke liye hum ek hi 'Code' ke saare versions dhoondhte hain (e.g., v1, v2)
+            return await _context.ConsentPurposes
+                .Where(p => p.Code == code && p.OrganizationId == organizationId)
+                .OrderByDescending(p => p.Version)
+                .ToListAsync();
+        }
+
+        public async Task<DataCategory?> GetCategoryByIdAsync(Guid id, Guid organizationId)
+        {
+            return await _context.DataCategories
+                .FirstOrDefaultAsync(c => c.DataCategoryId == id && c.OrganizationId == organizationId);
+        }
+
+        public async Task<DataProcessor?> GetProcessorByIdAsync(Guid id, Guid organizationId)
+        {
+            return await _context.DataProcessors
+                .FirstOrDefaultAsync(p => p.DataProcessorId == id && p.OrganizationId == organizationId);
+        }
 
     }
 }
