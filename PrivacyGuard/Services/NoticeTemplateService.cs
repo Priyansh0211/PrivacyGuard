@@ -29,7 +29,8 @@ namespace PrivacyGuard.Services
                 Description = dto.Description,
                 PurposesJson = JsonSerializer.Serialize(dto.Purposes),
                 LogoUrl = dto.LogoUrl,
-                PrimaryColor = dto.PrimaryColor
+                PrimaryColor = dto.PrimaryColor,
+                Layout = dto.Layout // 🚨 Layout save
             };
 
             var createdTemplate = await _templateRepo.CreateTemplateAsync(template);
@@ -49,6 +50,7 @@ namespace PrivacyGuard.Services
                 Purposes = string.IsNullOrEmpty(t.PurposesJson)
                             ? new List<string>()
                             : JsonSerializer.Deserialize<List<string>>(t.PurposesJson) ?? new List<string>(),
+                Layout = t.Layout, // 🚨 Layout map
                 CreatedAt = t.CreatedAt
             }).ToList();
         }
@@ -67,23 +69,23 @@ namespace PrivacyGuard.Services
                 Purposes = string.IsNullOrEmpty(t.PurposesJson)
                             ? new List<string>()
                             : JsonSerializer.Deserialize<List<string>>(t.PurposesJson) ?? new List<string>(),
+                Layout = t.Layout, // 🚨 Layout map
                 CreatedAt = t.CreatedAt
             };
         }
 
- 
         public async Task<bool> UpdateTemplateAsync(Guid id, Guid orgId, UpdateTemplateDto dto)
         {
             var existingTemplate = await _templateRepo.GetTemplateByIdAsync(id, orgId);
             if (existingTemplate == null) return false;
 
-            // Naye values assign karo
             existingTemplate.Code = dto.Code;
             existingTemplate.Name = dto.Name;
             existingTemplate.Description = dto.Description;
             existingTemplate.PurposesJson = JsonSerializer.Serialize(dto.Purposes);
             existingTemplate.LogoUrl = dto.LogoUrl;
             existingTemplate.PrimaryColor = dto.PrimaryColor;
+            existingTemplate.Layout = dto.Layout; // 🚨 Layout update
 
             await _templateRepo.UpdateTemplateAsync(existingTemplate);
             return true;

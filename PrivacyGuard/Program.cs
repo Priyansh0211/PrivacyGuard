@@ -142,6 +142,11 @@ builder.Services.AddScoped<IBulkImportRepository, BulkImportRepository>();
 
 builder.Services.AddScoped<IDataPrincipalRepository, DataPrincipalRepository>();
 builder.Services.AddScoped<IDataPrincipalService, DataPrincipalService>();
+
+builder.Services.AddScoped<INoticeTemplateRepository, NoticeTemplateRepository>();
+builder.Services.AddScoped<INoticeTemplateService, NoticeTemplateService>();
+
+
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
 
