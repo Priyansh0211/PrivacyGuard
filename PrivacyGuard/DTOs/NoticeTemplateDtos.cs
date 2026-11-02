@@ -12,6 +12,7 @@ namespace PrivacyGuard.DTOs
         public List<string> Purposes { get; set; } = new List<string>();
         public string LogoUrl { get; set; } = string.Empty;
         public string PrimaryColor { get; set; } = "#0F62FE";
+        public string Layout { get; set; } = "Standard"; 
     }
 
     public class UpdateTemplateDto
@@ -22,6 +23,7 @@ namespace PrivacyGuard.DTOs
         public List<string> Purposes { get; set; } = new List<string>();
         public string LogoUrl { get; set; } = string.Empty;
         public string PrimaryColor { get; set; } = "#0F62FE";
+        public string Layout { get; set; } = "Standard"; 
     }
 
     public class TemplateListDto
@@ -31,6 +33,7 @@ namespace PrivacyGuard.DTOs
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public List<string> Purposes { get; set; } = new List<string>();
+        public string Layout { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
 

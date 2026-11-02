@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Services;
+using PrivacyGuard.Filters; // 🚨 Permission filter
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace PrivacyGuard.Controllers
         private readonly INoticeTemplateService _templateService;
         private readonly IConsentService _purposeService;
 
-        public NoticeTemplateController(INoticeTemplateService templateService , IConsentService purposeService)
+        public NoticeTemplateController(INoticeTemplateService templateService, IConsentService purposeService)
         {
             _templateService = templateService;
             _purposeService = purposeService;
@@ -29,9 +30,8 @@ namespace PrivacyGuard.Controllers
             return (false, Guid.Empty);
         }
 
-        
-
         [HttpGet("all")]
+        [HasPermission("NoticeTemplates.View")] // 🚨 Security Restored
         public async Task<IActionResult> GetAllTemplates()
         {
             var claim = GetOrgIdClaim();
@@ -40,6 +40,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("{id}")]
+        [HasPermission("NoticeTemplates.View")]
         public async Task<IActionResult> GetTemplateDetails(Guid id)
         {
             var claim = GetOrgIdClaim();
@@ -52,6 +53,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("create")]
+        [HasPermission("NoticeTemplates.Manage")]
         public async Task<IActionResult> CreateTemplate([FromBody] CreateTemplateDto dto)
         {
             var claim = GetOrgIdClaim();
@@ -61,8 +63,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { message = "Notice Template created successfully.", templateId = templateId });
         }
 
-        
         [HttpPut("{id}")]
+        [HasPermission("NoticeTemplates.Manage")]
         public async Task<IActionResult> UpdateTemplate(Guid id, [FromBody] UpdateTemplateDto dto)
         {
             var claim = GetOrgIdClaim();
@@ -74,8 +76,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { message = "Notice Template updated successfully." });
         }
 
-       
         [HttpDelete("{id}")]
+        [HasPermission("NoticeTemplates.Manage")]
         public async Task<IActionResult> DeleteTemplate(Guid id)
         {
             var claim = GetOrgIdClaim();
@@ -88,6 +90,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("checkbox-list")]
+       
         public async Task<IActionResult> GetPurposesForCheckboxes()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -97,5 +100,4 @@ namespace PrivacyGuard.Controllers
             return Ok(purposes);
         }
     }
-
 }

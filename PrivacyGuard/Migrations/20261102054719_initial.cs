@@ -46,7 +46,7 @@ namespace PrivacyGuard.Migrations
                     UploadedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     ImportType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     TotalRows = table.Column<int>(type: "int", nullable: false),
                     ProcessedRows = table.Column<int>(type: "int", nullable: false),
                     FailedRows = table.Column<int>(type: "int", nullable: false),
@@ -86,7 +86,9 @@ namespace PrivacyGuard.Migrations
                     LegalBasis = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RetentionPeriod = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DoesConsentLapse = table.Column<bool>(type: "bit", nullable: false),
-                    RiskLevel = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    RiskLevel = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    IsProhibitedForChildren = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -118,10 +120,27 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Consumers",
+                name: "DataCategories",
                 columns: table => new
                 {
-                    ConsumerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DataCategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Sensitivity = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DataCategories", x => x.DataCategoryId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DataPrincipals",
+                columns: table => new
+                {
+                    DataPrincipalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ReferenceId = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Mobile = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
@@ -138,22 +157,7 @@ namespace PrivacyGuard.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Consumers", x => x.ConsumerId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DataCategories",
-                columns: table => new
-                {
-                    DataCategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Sensitivity = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DataCategories", x => x.DataCategoryId);
+                    table.PrimaryKey("PK_DataPrincipals", x => x.DataPrincipalId);
                 });
 
             migrationBuilder.CreateTable(
@@ -165,7 +169,10 @@ namespace PrivacyGuard.Migrations
                     Processor = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Relationship = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Location = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Location = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LegalName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Country = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DataLeavesIndia = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -208,6 +215,7 @@ namespace PrivacyGuard.Migrations
                     PurposesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LogoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PrimaryColor = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Layout = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -810,10 +818,10 @@ namespace PrivacyGuard.Migrations
                 name: "ConsentPurposeDataProcessors");
 
             migrationBuilder.DropTable(
-                name: "Consumers");
+                name: "DataBreachIncidents");
 
             migrationBuilder.DropTable(
-                name: "DataBreachIncidents");
+                name: "DataPrincipals");
 
             migrationBuilder.DropTable(
                 name: "DpiaRecords");
