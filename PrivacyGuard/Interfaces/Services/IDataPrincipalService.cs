@@ -5,8 +5,8 @@ using PrivacyGuard.Models;
 
 namespace PrivacyGuard.Interfaces.Services
 {
-    public interface IConsumerService
+    public interface IDataPrincipalService
     {
-        Task<Consumer> CreateSingleConsumerAsync(CreateConsumerDto dto, Guid organizationId);
+        Task<DataPrincipal> CreateSingleDataPrincipalAsync(DataPrincipalDto dto, Guid organizationId);
     }
 }

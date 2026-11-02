@@ -29,7 +29,7 @@ namespace PrivacyGuard.Services
         {
             // Check if actual file is uploaded
             bool hasFile = request.CsvFile != null && request.CsvFile.Length > 0;
-            string rawData = request.RawCsvData ?? string.Empty;
+            string rawData = request.RawCsvText ?? string.Empty;
 
             if (!hasFile && string.IsNullOrWhiteSpace(rawData))
             {
@@ -61,7 +61,7 @@ namespace PrivacyGuard.Services
             };
 
             using var csv = new CsvReader(reader, csvConfig);
-            var records = csv.GetRecords<ConsumerCsvRecord>().ToList();
+            var records = csv.GetRecords<DataPrincipalCsvRecord>().ToList();
 
             int rowNumber = 1;
 
@@ -127,9 +127,9 @@ namespace PrivacyGuard.Services
         }
 
         // METHOD 2: Saare Batches uthana (GET List)
-        public async Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? status)
+        public async Task<IEnumerable<BulkImportBatch>> GetBatchesAsync(Guid organizationId, string? kind, string? status)
         {
-            return await _repository.GetBatchesAsync(organizationId, status);
+            return await _repository.GetBatchesAsync(organizationId, kind, status);
         }
 
         // METHOD 3: Ek Batch aur uski rows uthana (GET Details)
@@ -185,7 +185,7 @@ namespace PrivacyGuard.Services
                 return (false, "No valid rows found to execute.");
             }
 
-            var consumersToInsert = new List<Consumer>();
+            var consumersToInsert = new List<DataPrincipal>();
 
             // Random ID generate karne ke liye
             var random = new Random();
@@ -195,14 +195,14 @@ namespace PrivacyGuard.Services
                 try
                 {
                     // JSON se wapas ConsumerCsvRecord mein convert kar rahe hain
-                    var record = System.Text.Json.JsonSerializer.Deserialize<ConsumerCsvRecord>(row.RawData);
+                    var record = System.Text.Json.JsonSerializer.Deserialize<DataPrincipalCsvRecord>(row.RawData);
 
                     // DPDP Act Compliance Rule: Child ya Disabled ke liye consent true
                     bool requiresGuardian = record!.Class?.ToLower() == "child" || record.Class?.ToLower() == "person_with_disability";
 
-                    var consumer = new Consumer
+                    var consumer = new DataPrincipal
                     {
-                        ConsumerId = Guid.NewGuid(),
+                        DataPrincipalId = Guid.NewGuid(),
                         OrganizationId = organizationId,
                         // Reference format: PSD-XXXXXXXX[cite: 3]
                         ReferenceId = $"PSD-{random.Next(10000000, 99999999)}",

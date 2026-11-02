@@ -20,6 +20,39 @@ namespace PrivacyGuard.Controllers
             _consentService = consentService;
         }
 
+        // UI Dashboard Grid aur Filters ke liye
+        [HttpGet("records")]
+        public async Task<IActionResult> GetConsentRecords(
+            [FromQuery] string? reference,
+            [FromQuery] string? status,
+            [FromQuery] string? purpose,
+            [FromQuery] string? channel,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var records = await _consentService.GetFilteredRecordsAsync(
+                Guid.Parse(orgIdClaim), reference, status, purpose, channel, fromDate, toDate);
+
+            return Ok(records);
+        }
+
+        // NAYA ENDPOINT: Modal UI par click karne pe single detail lane ke liye (Consent Artifact modal fix)
+        [HttpGet("record/{id}")]
+        public async Task<IActionResult> GetConsentRecordById(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var consentRecord = await _consentService.GetConsentRecordByIdAsync(id, Guid.Parse(orgIdClaim));
+
+            if (consentRecord == null) return NotFound("Consent record not found.");
+
+            return Ok(consentRecord);
+        }
+
         [HttpGet("purposes")]
         public async Task<IActionResult> GetPurposes()
         {
@@ -84,6 +117,52 @@ namespace PrivacyGuard.Controllers
 
             var purpose = await _consentService.CreatePurposeAsync(request, Guid.Parse(orgIdClaim));
             return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
+        }
+
+        // ==========================================
+        // DATA CATEGORIES APIs
+        // ==========================================
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var categories = await _consentService.GetCategoriesAsync(Guid.Parse(orgIdClaim));
+            return Ok(categories);
+        }
+
+        [HttpPost("categories")]
+        public async Task<IActionResult> AddCategory([FromBody] CreateDataCategoryDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var category = await _consentService.AddCategoryAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Data Category added successfully", CategoryId = category.DataCategoryId });
+        }
+
+        // ==========================================
+        // DATA PROCESSORS APIs
+        // ==========================================
+        [HttpGet("processors")]
+        public async Task<IActionResult> GetProcessors()
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var processors = await _consentService.GetProcessorsAsync(Guid.Parse(orgIdClaim));
+            return Ok(processors);
+        }
+
+        [HttpPost("processors")]
+        public async Task<IActionResult> AddProcessor([FromBody] CreateDataProcessorDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var processor = await _consentService.AddProcessorAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Data Processor added successfully", ProcessorId = processor.DataProcessorId });
         }
     }
 }

@@ -8,9 +8,12 @@ namespace PrivacyGuard.Interfaces.Services
 {
     public interface IConsentService
     {
+        // NAYA METHOD: UI Filters ke liye Controller ko support karne ke liye
+        Task<IEnumerable<object>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate);
+
+        Task<object?> GetConsentRecordByIdAsync(Guid consentRecordId, Guid organizationId);
         Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId);
 
-        // Yeh line galti se do baar thi, ab maine ek hi baar rakhi hai
         Task<(bool IsSuccess, string Message, string ReceiptId)> RecordConsentAsync(CreateConsentRequestDto request, Guid organizationId);
 
         Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId);
@@ -20,5 +23,13 @@ namespace PrivacyGuard.Interfaces.Services
         Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId);
 
         Task<List<PurposeCheckboxItemDto>> GetPurposesForCheckboxesAsync(Guid orgId);
+        // ==========================================
+        // MASTER DATA (Categories & Processors)
+        // ==========================================
+        Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId);
+        Task<DataCategory> AddCategoryAsync(CreateDataCategoryDto request, Guid organizationId);
+
+        Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId);
+        Task<DataProcessor> AddProcessorAsync(CreateDataProcessorDto request, Guid organizationId);
     }
 }

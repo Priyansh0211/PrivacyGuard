@@ -18,6 +18,9 @@ namespace PrivacyGuard.Models
         public bool DoesConsentLapse { get; set; } = false;
         public string RiskLevel { get; set; } = "Low risk";
 
+        public bool IsActive { get; set; } = true;
+        public bool IsProhibitedForChildren { get; set; } = false;
+
         // --- MAPPINGS (Data Categories aur Processors ke liye) ---
         public ICollection<ConsentPurposeDataCategory> Categories { get; set; } = new List<ConsentPurposeDataCategory>();
         public ICollection<ConsentPurposeDataProcessor> Processors { get; set; } = new List<ConsentPurposeDataProcessor>();

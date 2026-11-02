@@ -1,13 +1,20 @@
-﻿using PrivacyGuard.DTOs;
+using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
     // Interface declare kar rahe hain repository ke liye
     public interface IConsentRepository
     {
+        // NAYA METHOD: UI Filters apply karne ke liye
+        Task<IEnumerable<ConsentRecord>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate);
+
         Task<IEnumerable<ConsentPurpose>> GetPurposesByOrgAsync(Guid organizationId);
         Task<ConsentRecord?> GetLatestConsentByPrincipalIdAsync(Guid dataPrincipalId, Guid organizationId);
+
         // Naya consent record database me add karne ke liye
         Task<ConsentRecord> AddAsync(ConsentRecord consent);
 
@@ -26,5 +33,12 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task AddPurposeAsync(ConsentPurpose purpose);
 
         Task<List<ConsentPurpose>> GetAllPurposesByOrgAsync(Guid organizationId);
+       
+        // MASTER DATA (Categories & Processors)
+        Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId);
+        Task<DataCategory> AddCategoryAsync(DataCategory category);
+
+        Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId);
+        Task<DataProcessor> AddProcessorAsync(DataProcessor processor);
     }
 }

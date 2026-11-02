@@ -1,19 +1,23 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.DTOs
 {
     public class BulkImportRequestDto
     {
-        // Dropdown se aayega, e.g., "Consumers"
-        public string ImportType { get; set; } = "Consumers";
+        [Required]
+        public string ImportType { get; set; } = string.Empty; // Dropdown value: "Consumers" ya "Consumers + consent decisions"
 
-        // File ka naam reference ke liye
         public string? FileName { get; set; }
 
-        // Agar user ne file upload ki hai
         public IFormFile? CsvFile { get; set; }
 
-        // Agar user ne direct text paste kiya hai
-        public string? RawCsvData { get; set; }
+        public string? RawCsvText { get; set; }
+
+        public bool IsValid()
+        {
+            // Dono mein se ek cheez aani hi chahiye tabhi request aage badhegi
+            return (CsvFile != null && CsvFile.Length > 0) || !string.IsNullOrWhiteSpace(RawCsvText);
+        }
     }
 }

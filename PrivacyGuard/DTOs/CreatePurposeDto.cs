@@ -14,6 +14,9 @@ namespace PrivacyGuard.DTOs
         public string RiskLevel { get; set; } = "Low risk";
         public bool DoesConsentLapse { get; set; }
 
+        public bool IsActive { get; set; } = true;
+        public bool IsProhibitedForChildren { get; set; } = false;
+
         // Jo categories aur processors Admin select karega, unki IDs aayengi
         public List<Guid> CategoryIds { get; set; } = new List<Guid>();
         public List<Guid> ProcessorIds { get; set; } = new List<Guid>();

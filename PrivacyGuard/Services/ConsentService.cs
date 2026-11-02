@@ -21,12 +21,21 @@ namespace PrivacyGuard.Services
             _repository = repository;
         }
 
+        // ==========================================
+        // UI Filters aur Grid Data
+        // ==========================================
+        public async Task<IEnumerable<object>> GetFilteredRecordsAsync(Guid organizationId, string? reference, string? status, string? purpose, string? channel, DateTime? fromDate, DateTime? toDate)
+        {
+            var records = await _repository.GetFilteredRecordsAsync(organizationId, reference, status, purpose, channel, fromDate, toDate);
+            return records.Select(c => MapToConsentArtifact(c));
+        }
+
         public async Task<IEnumerable<ConsentPurpose>> GetPurposesAsync(Guid organizationId)
         {
             return await _repository.GetPurposesByOrgAsync(organizationId);
         }
 
-        // Helper Method: SHA-256 Hash generate karne ke liye (PDF Req)[cite: 3]
+        // Helper Method: SHA-256 Hash generate karne ke liye
         private string GenerateHash(object payload)
         {
             string jsonPayload = JsonSerializer.Serialize(payload);
@@ -51,8 +60,8 @@ namespace PrivacyGuard.Services
                 DataPrincipalId = request.DataPrincipalId,
                 Channel = request.Channel,
                 Language = request.Language,
-                ReferenceNumber = $"CNS-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}", // CNS Generator[cite: 2]
-                ReceiptId = $"RCP-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",     // RCP Generator[cite: 3]
+                ReferenceNumber = $"CNS-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",
+                ReceiptId = $"RCP-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",
                 Version = 1,
                 CreatedAt = DateTime.UtcNow
             };
@@ -64,7 +73,7 @@ namespace PrivacyGuard.Services
                 var userDecision = request.Decisions.FirstOrDefault(d => d.ConsentPurposeId == purpose.ConsentPurposeId);
                 string decision = userDecision?.Decision ?? "No";
 
-                if (purpose.IsMandatory) decision = "Yes"; // Mandatory Force[cite: 4]
+                if (purpose.IsMandatory) decision = "Yes";
 
                 if (decision == "Yes") hasYes = true;
                 if (decision == "No") hasNo = true;
@@ -80,12 +89,10 @@ namespace PrivacyGuard.Services
                 });
             }
 
-            // PDF Fix: Overall Status Logic[cite: 2]
             if (hasYes && hasNo) record.OverallStatus = ConsentStatus.PartiallyGranted;
             else if (hasYes) record.OverallStatus = ConsentStatus.Granted;
             else record.OverallStatus = ConsentStatus.Withdrawn;
 
-            // PDF Fix: Hash Generation[cite: 3]
             var payload = new { record.ReceiptId, record.DataPrincipalId, Timestamp = record.CreatedAt };
             record.ArtifactHash = GenerateHash(payload);
             record.KeyId = "ED25519-KEY-001";
@@ -97,13 +104,11 @@ namespace PrivacyGuard.Services
             return (true, "Success", record.ReceiptId);
         }
 
-        // PDF Fix: Versioned Withdrawal[cite: 4]
         public async Task<bool> WithdrawConsentAsync(Guid consentRecordId, Guid organizationId)
         {
             var oldRecord = await _repository.GetByIdAsync(consentRecordId, organizationId);
             if (oldRecord == null) return false;
 
-            // Withdrawal pe naya record ban raha hai (Versioning)
             var newRecord = new ConsentRecord
             {
                 ConsentRecordId = Guid.NewGuid(),
@@ -113,8 +118,8 @@ namespace PrivacyGuard.Services
                 Language = oldRecord.Language,
                 ReferenceNumber = oldRecord.ReferenceNumber,
                 ReceiptId = $"RCP-{DateTime.UtcNow.Year}-{new Random().Next(100000, 999999)}",
-                PreviousRecordId = oldRecord.ConsentRecordId, // Chain link[cite: 3]
-                Version = oldRecord.Version + 1, // Version++[cite: 4]
+                PreviousRecordId = oldRecord.ConsentRecordId,
+                Version = oldRecord.Version + 1,
                 OverallStatus = ConsentStatus.Withdrawn,
                 CreatedAt = DateTime.UtcNow
             };
@@ -139,36 +144,23 @@ namespace PrivacyGuard.Services
             return true;
         }
 
+        // ==========================================
+        // LATEST & HISTORY MAPS
+        // ==========================================
         public async Task<object?> GetLatestConsentAsync(Guid dataPrincipalId, Guid organizationId)
         {
             var consent = await _repository.GetLatestConsentByPrincipalIdAsync(dataPrincipalId, organizationId);
             if (consent == null) return null;
 
-            return new
-            {
-                consent.ConsentRecordId,
-                consent.ReceiptId,
-                consent.ReferenceNumber,
-                Status = consent.OverallStatus.ToString(),
-                consent.ArtifactHash,
-                consent.Version,
-                Decisions = consent.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
-            };
+            return MapToConsentArtifact(consent);
         }
 
         public async Task<IEnumerable<object>> GetHistoryAsync(Guid dataPrincipalId, Guid organizationId)
         {
             var history = await _repository.GetHistoryAsync(dataPrincipalId, organizationId);
-            return history.Select(c => new
-            {
-                c.Version,
-                c.CreatedAt,
-                Status = c.OverallStatus.ToString(),
-                c.ArtifactHash,
-                c.ReceiptId,
-                Decisions = c.ConsentDetails.Select(d => new { d.ConsentPurpose.ShortName, d.Decision })
-            });
+            return history.Select(c => MapToConsentArtifact(c));
         }
+
         public async Task<ConsentPurpose> CreatePurposeAsync(CreatePurposeDto dto, Guid organizationId)
         {
             var purpose = new ConsentPurpose
@@ -183,11 +175,11 @@ namespace PrivacyGuard.Services
                 RetentionPeriod = dto.RetentionPeriod,
                 RiskLevel = dto.RiskLevel,
                 DoesConsentLapse = dto.DoesConsentLapse,
+                IsActive = dto.IsActive, 
                 Categories = new List<ConsentPurposeDataCategory>(),
                 Processors = new List<ConsentPurposeDataProcessor>()
             };
 
-            // Category IDs ko mapping table object mein convert karna
             foreach (var catId in dto.CategoryIds)
             {
                 purpose.Categories.Add(new ConsentPurposeDataCategory
@@ -197,7 +189,6 @@ namespace PrivacyGuard.Services
                 });
             }
 
-            // Processor IDs ko mapping table object mein convert karna
             foreach (var procId in dto.ProcessorIds)
             {
                 purpose.Processors.Add(new ConsentPurposeDataProcessor
@@ -215,12 +206,104 @@ namespace PrivacyGuard.Services
         {
             var purposes = await _repository.GetAllPurposesByOrgAsync(orgId);
 
-            
             return purposes.Select(p => new PurposeCheckboxItemDto
             {
                 Code = p.Code,
                 Name = p.ShortName
             }).ToList();
+        }
+
+        // ==========================================
+        // MASTER DATA (Categories & Processors)
+        // ==========================================
+        public async Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId)
+        {
+            return await _repository.GetCategoriesAsync(organizationId);
+        }
+
+        public async Task<DataCategory> AddCategoryAsync(CreateDataCategoryDto request, Guid organizationId)
+        {
+            var category = new DataCategory
+            {
+                DataCategoryId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = request.Code,
+                Name = request.Name,
+                Description = request.Description,
+                Sensitivity = request.Sensitivity
+            };
+
+            return await _repository.AddCategoryAsync(category);
+        }
+
+        public async Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId)
+        {
+            return await _repository.GetProcessorsAsync(organizationId);
+        }
+
+        public async Task<DataProcessor> AddProcessorAsync(CreateDataProcessorDto request, Guid organizationId)
+        {
+            var processor = new DataProcessor
+            {
+                DataProcessorId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = request.Code,
+                LegalName = request.LegalName,
+                Relationship = request.Relationship,
+                Country = request.Country,
+                DataLeavesIndia = request.DataLeavesIndia
+            };
+
+            return await _repository.AddProcessorAsync(processor);
+        }
+
+        public async Task<object?> GetConsentRecordByIdAsync(Guid consentRecordId, Guid organizationId)
+        {
+            var consent = await _repository.GetByIdAsync(consentRecordId, organizationId);
+            if (consent == null) return null;
+
+            // Wahi same formatter use hoga jo history/latest ke liye hai
+            return MapToConsentArtifact(consent);
+        }
+
+        // ==========================================
+        // HELPER METHOD: Modal aur Grid ki fields map karne ke liye
+        // ==========================================
+        private object MapToConsentArtifact(ConsentRecord c)
+        {
+            return new
+            {
+                c.ConsentRecordId,
+                Reference = c.ReferenceNumber,
+                Receipt = c.ReceiptId, // UI Modal uses 'Receipt'
+                ReceiptId = c.ReceiptId,
+                c.Version,
+                Status = c.OverallStatus.ToString(),
+                DataPrincipal = c.DataPrincipalId,
+
+                Notice = "general_service_notice_v1",
+                Channel = c.Channel.ToString(),
+                Language = c.Language ?? "en-IN",
+                Given = c.CreatedAt,
+                Expires = c.ConsentDetails.Any() ? c.ConsentDetails.Max(d => (DateTime?)d.ExpiryDate) : null,
+                Hash = c.ArtifactHash,
+                ArtifactHash = c.ArtifactHash,
+                Signature = c.DigitalSignature ?? "Not recorded",
+
+                Purposes = c.ConsentDetails.Select(d => new
+                {
+                    Purpose = d.ConsentPurpose?.ShortName ?? "Unknown",
+                    Decision = d.Decision,
+                    Status = d.Status
+                }),
+
+                Decisions = c.ConsentDetails.Select(d => new
+                {
+                    Purpose = d.ConsentPurpose?.ShortName ?? "Unknown",
+                    Decision = d.Decision,
+                    Status = d.Status
+                })
+            };
         }
     }
 }

@@ -18,11 +18,13 @@ namespace PrivacyGuard.Models
 
         [Required]
         [MaxLength(50)]
-        public string ImportType { get; set; } = string.Empty; // "Consumers" ya aur koi type
+        // UI Dropdown ke hisaab se: "Consumers" ya "Consumers + consent decisions"
+        public string ImportType { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(20)]
-        public string Status { get; set; } = "Staged"; // Staged, Processing, Completed, Failed
+        [MaxLength(50)]
+        // UI Dropdown wale exact status: Uploaded, Validating, Validated, Importing, Completed, Failed, Cancelled
+        public string Status { get; set; } = "Uploaded";
 
         public int TotalRows { get; set; } = 0;
         public int ProcessedRows { get; set; } = 0;
@@ -31,6 +33,7 @@ namespace PrivacyGuard.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
 
-        public ICollection<BulkImportRow> Rows { get; set; } 
+        // CS8618 Warning Fix: Collection ko initialize kar diya taaki null reference error na aaye
+        public ICollection<BulkImportRow> Rows { get; set; } = new List<BulkImportRow>();
     }
 }
