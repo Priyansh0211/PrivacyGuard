@@ -46,7 +46,6 @@ namespace PrivacyGuard.Repositories
             return template;
         }
 
-       
         public async Task<bool> DeleteTemplateAsync(Guid id, Guid organizationId)
         {
             var template = await _context.NoticeTemplates

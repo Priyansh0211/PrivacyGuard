@@ -1,4 +1,7 @@
 ﻿using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
@@ -9,7 +12,5 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<NoticeTemplate?> GetTemplateByIdAsync(Guid id, Guid organizationId);
         Task<NoticeTemplate> UpdateTemplateAsync(NoticeTemplate template);
         Task<bool> DeleteTemplateAsync(Guid id, Guid organizationId);
-
-        
     }
 }
