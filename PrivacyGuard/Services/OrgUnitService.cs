@@ -2,6 +2,10 @@
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
 {
@@ -18,10 +22,10 @@ namespace PrivacyGuard.Services
         {
             var orgUnit = new OrgUnit
             {
-                OrganizationId = organizationId, // Controller se aayi hui ID save ho rahi hai
+                OrganizationId = organizationId,
                 Name = dto.Name,
                 UnitType = dto.UnitType,
-                UnitCode = dto.UnitCode, // <-- DATABASE MAPPING
+                UnitCode = dto.UnitCode,
                 ParentId = dto.ParentId,
                 IsActive = true
             };
@@ -35,23 +39,11 @@ namespace PrivacyGuard.Services
                 OrganizationId = orgUnit.OrganizationId,
                 Name = orgUnit.Name,
                 UnitType = orgUnit.UnitType,
-                UnitCode = orgUnit.UnitCode, // <-- POST RESPONSE MAPPING
+                UnitCode = orgUnit.UnitCode,
                 ParentId = orgUnit.ParentId,
                 IsActive = orgUnit.IsActive,
                 PrincipalsCount = 0
             };
-        }
-
-        public async Task<bool> DeactivateOrgUnitAsync(Guid id, Guid organizationId)
-        {
-            var unit = await _repository.GetByIdAsync(id, organizationId);
-            if (unit == null) return false;
-
-            unit.IsActive = false;
-            _repository.Update(unit);
-            await _repository.SaveChangesAsync();
-
-            return true;
         }
 
         public async Task<List<OrgUnitResponseDto>> GetHierarchyAsync(Guid organizationId, string role, Guid userOrgUnitId)
@@ -64,8 +56,8 @@ namespace PrivacyGuard.Services
                 OrganizationId = u.OrganizationId,
                 Name = u.Name,
                 UnitType = u.UnitType,
-                UnitCode = u.UnitCode,      // <-- Yeh UI ke tags ke liye zaroori hai (e.g., "zone-amravati")
-                PrincipalsCount = 0,        // <-- Abhi ke liye 0, baad mein Users table se link karenge
+                UnitCode = u.UnitCode,
+                PrincipalsCount = 0, // Isko baad me repository count function se replace kar sakte ho
                 ParentId = u.ParentId,
                 IsActive = u.IsActive
             }).ToDictionary(u => u.Id);
@@ -80,22 +72,86 @@ namespace PrivacyGuard.Services
                 }
                 else
                 {
-                    tree.Add(item); // Sirf Zone (Top Level) yahan add honge
+                    tree.Add(item);
                 }
             }
 
-            // RBAC FILTER LOGIC:
             if (role == "Admin" || role == "SuperAdmin")
             {
-                return tree; 
+                return tree;
             }
             else if (role == "BranchAdmin" && dict.ContainsKey(userOrgUnitId))
             {
-                // BranchAdmin ko sirf uska branch aur uske sub-branches (children) do
                 return new List<OrgUnitResponseDto> { dict[userOrgUnitId] };
             }
 
-            return new List<OrgUnitResponseDto>(); // Agar role match na ho toh empty
+            return new List<OrgUnitResponseDto>();
+        }
+
+        public async Task<bool> DeactivateOrgUnitAsync(Guid id, Guid organizationId)
+        {
+            var unit = await _repository.GetByIdAsync(id, organizationId);
+            if (unit == null) return false;
+
+            unit.IsActive = false;
+            _repository.Update(unit);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> ActivateOrgUnitAsync(Guid id, Guid organizationId)
+        {
+            var unit = await _repository.GetByIdAsync(id, organizationId);
+            if (unit == null) return false;
+
+            unit.IsActive = true;
+            _repository.Update(unit);
+            await _repository.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<OrgUnitResponseDto?> UpdateOrgUnitAsync(Guid id, Guid organizationId, UpdateOrgUnitDto dto)
+        {
+            var unit = await _repository.GetByIdAsync(id, organizationId);
+            if (unit == null) return null;
+
+            unit.Name = dto.Name;
+            unit.UnitCode = dto.UnitCode;
+
+            _repository.Update(unit);
+            await _repository.SaveChangesAsync();
+
+            return new OrgUnitResponseDto
+            {
+                Id = unit.Id,
+                OrganizationId = unit.OrganizationId,
+                Name = unit.Name,
+                UnitType = unit.UnitType,
+                UnitCode = unit.UnitCode,
+                ParentId = unit.ParentId,
+                IsActive = unit.IsActive,
+                PrincipalsCount = 0
+            };
+        }
+        public async Task<bool> DeleteOrgUnitAsync(Guid id, Guid organizationId)
+        {
+            var unit = await _repository.GetByIdAsync(id, organizationId);
+            if (unit == null) return false;
+
+            // UI level check: Delete karne se pehle check kar sakte ho ki child exist karta hai ya nahi
+            bool hasChildren = await _repository.HasChildrenAsync(id);
+            if (hasChildren)
+            {
+                // Agar child hain toh delete allow mat karo (ya custom exception throw karo)
+                return false;
+            }
+
+            _repository.Delete(unit);
+            await _repository.SaveChangesAsync();
+
+            return true;
         }
     }
 }

@@ -11,8 +11,10 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<OrgUnit?> GetByIdAsync(Guid id, Guid organizationId);
         Task<IEnumerable<OrgUnit>> GetAllByOrgIdAsync(Guid organizationId);
         void Update(OrgUnit orgUnit);
+        void Delete(OrgUnit orgUnit);
         Task<int> SaveChangesAsync();
 
+        // Advanced Validations & Counts
         Task<bool> IsUnitCodeUniqueAsync(string unitCode, Guid organizationId, Guid? excludeId = null);
         Task<int> GetPrincipalsCountAsync(Guid orgUnitId);
         Task<bool> HasChildrenAsync(Guid orgUnitId);
