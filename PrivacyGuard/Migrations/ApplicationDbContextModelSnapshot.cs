@@ -317,6 +317,9 @@ namespace PrivacyGuard.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -340,6 +343,9 @@ namespace PrivacyGuard.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("PreviousPurposeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("RetentionPeriod")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -351,6 +357,9 @@ namespace PrivacyGuard.Migrations
                     b.Property<string>("ShortName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
                     b.HasKey("ConsentPurposeId");
 
