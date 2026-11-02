@@ -26,6 +26,9 @@ namespace PrivacyGuard.Models
         [MaxLength(20)]
         public string PrimaryColor { get; set; } = "#0F62FE";
 
+        [MaxLength(50)]
+        public string Layout { get; set; } = "Standard";
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
