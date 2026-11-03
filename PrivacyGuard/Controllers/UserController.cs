@@ -20,7 +20,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("add-employee")]
-        [HasPermission("Users.Add")]
+        [HasPermission("Users.Create")]
         public async Task<IActionResult> AddEmployee([FromBody] CreateUserDto request)
         {
             // JWT Token ke claims me se OrganizationId nikalna
