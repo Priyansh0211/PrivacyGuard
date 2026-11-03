@@ -175,7 +175,10 @@ namespace PrivacyGuard.Services
                 RetentionPeriod = dto.RetentionPeriod,
                 RiskLevel = dto.RiskLevel,
                 DoesConsentLapse = dto.DoesConsentLapse,
-                IsActive = dto.IsActive, 
+                IsActive = dto.IsActive,
+                IsProhibitedForChildren = dto.IsProhibitedForChildren,
+                Version = 1, // Start with version 1
+                CreatedAt = DateTime.UtcNow,
                 Categories = new List<ConsentPurposeDataCategory>(),
                 Processors = new List<ConsentPurposeDataProcessor>()
             };
@@ -214,6 +217,70 @@ namespace PrivacyGuard.Services
         }
 
         // ==========================================
+        // NAYA: Purpose Edit & History (Versioning Logic)
+        // ==========================================
+        public async Task<ConsentPurpose?> EditPurposeAsync(Guid purposeId, CreatePurposeDto dto, Guid organizationId)
+        {
+            var oldPurpose = await _repository.GetPurposeByIdAsync(purposeId, organizationId);
+            if (oldPurpose == null) return null;
+
+            // HISTORY LOGIC: Purane ko inactive karke naya version (v+1) banate hain
+            oldPurpose.IsActive = false;
+
+            var newPurpose = new ConsentPurpose
+            {
+                ConsentPurposeId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                Code = dto.Code,
+                ShortName = dto.ShortName,
+                Description = dto.Description,
+                IsMandatory = dto.IsMandatory,
+                LegalBasis = dto.LegalBasis,
+                RetentionPeriod = dto.RetentionPeriod,
+                RiskLevel = dto.RiskLevel,
+                DoesConsentLapse = dto.DoesConsentLapse,
+                IsActive = dto.IsActive,
+                IsProhibitedForChildren = dto.IsProhibitedForChildren,
+
+                // VERSIONING
+                Version = oldPurpose.Version + 1,
+                PreviousPurposeId = oldPurpose.ConsentPurposeId,
+                CreatedAt = DateTime.UtcNow,
+
+                Categories = new List<ConsentPurposeDataCategory>(),
+                Processors = new List<ConsentPurposeDataProcessor>()
+            };
+
+            foreach (var catId in dto.CategoryIds)
+            {
+                newPurpose.Categories.Add(new ConsentPurposeDataCategory { ConsentPurposeId = newPurpose.ConsentPurposeId, DataCategoryId = catId });
+            }
+            foreach (var procId in dto.ProcessorIds)
+            {
+                newPurpose.Processors.Add(new ConsentPurposeDataProcessor { ConsentPurposeId = newPurpose.ConsentPurposeId, DataProcessorId = procId });
+            }
+
+            await _repository.AddPurposeAsync(newPurpose);
+            return newPurpose;
+        }
+
+        public async Task<IEnumerable<object>> GetPurposeHistoryAsync(Guid purposeId, Guid organizationId)
+        {
+            var currentPurpose = await _repository.GetPurposeByIdAsync(purposeId, organizationId);
+            if (currentPurpose == null) return new List<object>();
+
+            // Is code ke saare versions le aao
+            var history = await _repository.GetPurposeHistoryAsync(currentPurpose.Code, organizationId);
+
+            return history.Select(h => new
+            {
+                Revision = $"v{h.Version}",
+                State = h.IsActive ? "Current" : "Archived",
+                Recorded = h.CreatedAt
+            });
+        }
+
+        // ==========================================
         // MASTER DATA (Categories & Processors)
         // ==========================================
         public async Task<IEnumerable<DataCategory>> GetCategoriesAsync(Guid organizationId)
@@ -236,6 +303,20 @@ namespace PrivacyGuard.Services
             return await _repository.AddCategoryAsync(category);
         }
 
+        public async Task<DataCategory?> EditCategoryAsync(Guid id, CreateDataCategoryDto dto, Guid organizationId)
+        {
+            var category = await _repository.GetCategoryByIdAsync(id, organizationId);
+            if (category == null) return null;
+
+            category.Code = dto.Code;
+            category.Name = dto.Name;
+            category.Description = dto.Description;
+            category.Sensitivity = dto.Sensitivity;
+
+            await _repository.SaveChangesAsync();
+            return category;
+        }
+
         public async Task<IEnumerable<DataProcessor>> GetProcessorsAsync(Guid organizationId)
         {
             return await _repository.GetProcessorsAsync(organizationId);
@@ -255,6 +336,21 @@ namespace PrivacyGuard.Services
             };
 
             return await _repository.AddProcessorAsync(processor);
+        }
+
+        public async Task<DataProcessor?> EditProcessorAsync(Guid id, CreateDataProcessorDto dto, Guid organizationId)
+        {
+            var processor = await _repository.GetProcessorByIdAsync(id, organizationId);
+            if (processor == null) return null;
+
+            processor.Code = dto.Code;
+            processor.LegalName = dto.LegalName;
+            processor.Relationship = dto.Relationship;
+            processor.Country = dto.Country;
+            processor.DataLeavesIndia = dto.DataLeavesIndia;
+
+            await _repository.SaveChangesAsync();
+            return processor;
         }
 
         public async Task<object?> GetConsentRecordByIdAsync(Guid consentRecordId, Guid organizationId)

@@ -26,4 +26,9 @@
         public Guid? ParentId { get; set; }
 
     }
+    public class UpdateOrgUnitDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string UnitCode { get; set; } = string.Empty;
+    }
 }
