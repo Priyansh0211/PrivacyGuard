@@ -40,5 +40,38 @@ namespace PrivacyGuard.Repositories
                 .FirstOrDefaultAsync(dp => dp.DataPrincipalId == dataPrincipalId
                                         && dp.OrganizationId == organizationId);
         }
+        public async Task<(List<DataPrincipal> Principals, int TotalCount)> GetPaginatedDataPrincipalsAsync(
+    Guid organizationId, string search, string classType, int page, int pageSize)
+        {
+            var query = _context.DataPrincipals.AsQueryable()
+                                .Where(dp => dp.OrganizationId == organizationId);
+
+            // Filters apply karna
+            if (!string.IsNullOrEmpty(classType))
+            {
+                query = query.Where(dp => dp.Class.ToLower() == classType.ToLower());
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+                query = query.Where(dp =>
+                    (dp.FullName != null && dp.FullName.ToLower().Contains(search)) ||
+                    (dp.Email != null && dp.Email.ToLower().Contains(search)) ||
+                    (dp.Mobile != null && dp.Mobile.Contains(search)) ||
+                    dp.ReferenceId.ToLower().Contains(search)
+                );
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var principals = await query
+                .OrderByDescending(dp => dp.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (principals, totalCount);
+        }
     }
 }

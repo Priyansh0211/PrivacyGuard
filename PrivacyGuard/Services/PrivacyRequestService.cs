@@ -2,6 +2,9 @@
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
 {
@@ -16,14 +19,17 @@ namespace PrivacyGuard.Services
 
         public async Task<PrivacyRequest> RaiseRequestAsync(CreatePrivacyRequestDto requestDto, Guid organizationId)
         {
-            // DTO se data nikal kar naya PrivacyRequest object banaya
+            // Parse String from DTO to Enum for Model
+            Enum.TryParse<PrivacyRequestType>(requestDto.RequestType, true, out var parsedType);
+
             var newRequest = new PrivacyRequest
             {
                 DataPrincipalId = Guid.Parse(requestDto.DataPrincipalId),
                 OrganizationId = organizationId,
-                RequestType = requestDto.RequestType, // e.g., "Erasure", "Correction"
+                ReferenceId = $"DSR-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                RequestType = parsedType,
                 RequestDetails = requestDto.RequestDetails,
-                Status = "Pending", // By default nayi request Pending hogi
+                Status = PrivacyRequestStatus.Submitted, // Enum instead of "Pending"
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -35,14 +41,17 @@ namespace PrivacyGuard.Services
 
         public async Task<bool> ResolveRequestAsync(Guid requestId, ResolvePrivacyRequestDto resolveDto, Guid organizationId)
         {
-            // Pehle check karo request DB mein exist karti hai ya nahi
             var existingRequest = await _repository.GetByIdAsync(requestId, organizationId);
 
             if (existingRequest == null)
                 return false;
 
-            // Admin ne jo status aur remarks bheje hain, wo update kardo
-            existingRequest.Status = resolveDto.Status;
+            // Parse String from DTO to Enum for Status Update
+            if (Enum.TryParse<PrivacyRequestStatus>(resolveDto.Status, true, out var parsedStatus))
+            {
+                existingRequest.Status = parsedStatus;
+            }
+
             existingRequest.ResolutionRemarks = resolveDto.ResolutionRemarks;
             existingRequest.ResolvedAt = DateTime.UtcNow;
 

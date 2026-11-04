@@ -9,5 +9,6 @@ namespace PrivacyGuard.Interfaces.Services
     {
         Task<DataPrincipal> CreateSingleDataPrincipalAsync(DataPrincipalDto dto, Guid organizationId);
         Task<DataPrincipal360Dto?> Get360ViewAsync(Guid dataPrincipalId, Guid organizationId);
+        Task<DataPrincipalListResponseDto> GetDataPrincipalsListAsync(Guid organizationId, string search, string classType, int page, int pageSize);
     }
 }
