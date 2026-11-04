@@ -14,5 +14,7 @@ namespace PrivacyGuard.Interfaces.Services
 
         Task<bool> PublishNoticeAsync(Guid id, Guid orgId);
         Task<Guid?> CreateNewVersionAsync(Guid originalId, Guid orgId);
+        Task<List<PublicNoticeListDto>> GetAllActiveNoticesAsync(Guid orgId, string languageCode);
+        Task<PublicNoticeResponseDto> GetActiveNoticeForPrincipalAsync(string code, string languageCode, Guid orgId);
     }
 }
