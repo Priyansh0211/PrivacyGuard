@@ -1119,6 +1119,12 @@ namespace PrivacyGuard.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompletedTasks")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1128,14 +1134,17 @@ namespace PrivacyGuard.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ReferenceId")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("RequestDetails")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RequestType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("RequestType")
+                        .HasColumnType("int");
 
                     b.Property<string>("ResolutionRemarks")
                         .HasColumnType("nvarchar(max)");
@@ -1143,10 +1152,14 @@ namespace PrivacyGuard.Migrations
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TargetResolutionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("TotalTasks")
+                        .HasColumnType("int");
 
                     b.HasKey("RequestId");
 

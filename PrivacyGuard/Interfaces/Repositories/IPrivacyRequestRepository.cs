@@ -18,5 +18,9 @@ namespace PrivacyGuard.Interfaces.Repositories
 
         // Changes SQL mein save karne ke liye
         Task<int> SaveChangesAsync();
+        Task<(List<PrivacyRequest> Requests, int TotalCount)> GetFilteredRequestsAsync(
+        Guid organizationId, string? search, PrivacyRequestStatus? status, PrivacyRequestType? type, bool overdueOnly, int page, int pageSize);
+
+        Task<PrivacyRequest?> GetRequestDetailsAsync(Guid requestId, Guid organizationId);
     }
 }

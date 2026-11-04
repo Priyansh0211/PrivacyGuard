@@ -162,8 +162,6 @@ namespace PrivacyGuard.Services
             };
         }
 
-        // ... (purane methods ke baad)
-
         public async Task<(bool IsSuccess, string Message)> ExecuteImportBatchAsync(Guid batchId, Guid organizationId)
         {
             var batch = await _repository.GetBatchByIdAsync(batchId, organizationId);
@@ -188,7 +186,9 @@ namespace PrivacyGuard.Services
             var consumersToInsert = new List<DataPrincipal>();
 
             // Random ID generate karne ke liye
-            var random = new Random();
+            // var random = new Random();
+
+            // (Is line ko hata do: var random = new Random(); )
 
             foreach (var row in validRows)
             {
@@ -200,12 +200,16 @@ namespace PrivacyGuard.Services
                     // DPDP Act Compliance Rule: Child ya Disabled ke liye consent true
                     bool requiresGuardian = record!.Class?.ToLower() == "child" || record.Class?.ToLower() == "person_with_disability";
 
+                    var dpId = Guid.NewGuid();
+
+                    // FIX 1: Better Collision-Free Reference ID (Same as DataPrincipalService)
+                    string uniqueRef = $"PSD-{DateTime.UtcNow:yyMM}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
+
                     var consumer = new DataPrincipal
                     {
-                        DataPrincipalId = Guid.NewGuid(),
+                        DataPrincipalId = dpId,
                         OrganizationId = organizationId,
-                        // Reference format: PSD-XXXXXXXX[cite: 3]
-                        ReferenceId = $"PSD-{random.Next(10000000, 99999999)}",
+                        ReferenceId = uniqueRef,
                         Mobile = record.Mobile,
                         Email = record.Email,
                         ConsumerNo = record.ConsumerNo,
@@ -214,12 +218,25 @@ namespace PrivacyGuard.Services
                         DateOfBirth = string.IsNullOrWhiteSpace(record.DateOfBirth) ? null : DateTime.Parse(record.DateOfBirth),
                         Class = record.Class?.ToLower() ?? "adult",
                         PreferredLocale = record.PreferredLocale ?? "en-IN",
-                        RequiresGuardianConsent = requiresGuardian // Applied Rule
+                        RequiresGuardianConsent = requiresGuardian,
+
+                        // FIX 2: Initialize empty identifiers list instantly
+                        Identifiers = new List<PrincipalIdentifier>()
                     };
+
+                    // FIX 3: Push Identifiers from CSV directly into DB to fix 360-View
+                    if (!string.IsNullOrEmpty(record.Mobile))
+                        consumer.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Mobile", Value = record.Mobile, IsPrimary = true });
+
+                    if (!string.IsNullOrEmpty(record.Email))
+                        consumer.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Email", Value = record.Email, IsPrimary = false });
+
+                    if (!string.IsNullOrEmpty(record.ConsumerNo))
+                        consumer.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Consumer No", Value = record.ConsumerNo, IsPrimary = false });
 
                     consumersToInsert.Add(consumer);
 
-                    row.Status = "Executed"; // Row processing track ho gayi[cite: 4]
+                    row.Status = "Executed"; // Row processing track ho gayi[cite: 1]
                 }
                 catch (Exception ex)
                 {
