@@ -48,7 +48,11 @@ namespace PrivacyGuard.Data
                     new Permission { ModuleName = "Campaign Management", ActionName = "View Campaigns", SystemName = "Campaigns.View" },
                     new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" },
 
-                    new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" }
+                    new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" },
+                    new Permission { ModuleName = "Notice Template", ActionName = "Notice Template View", SystemName = "NoticeTemplates.View" },
+                    new Permission { ModuleName = "Notice Template", ActionName = "Notice Template Manage", SystemName = "NoticeTemplates.Manage" },
+                    new Permission { ModuleName = "Organization", ActionName = "Organization View", SystemName = "OrgUnit.View" },
+                    new Permission { ModuleName = "Organization", ActionName = "Organization Manage", SystemName = "OrgUnit.Manage" }
                 };
 
                 context.Permissions.AddRange(permissions);

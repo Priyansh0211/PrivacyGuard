@@ -7,5 +7,7 @@ namespace PrivacyGuard.Interfaces.Repositories
     {
         Task<DataPrincipal> AddDataPrincipalAsync(DataPrincipal dataPrincipal);
         Task SaveChangesAsync();
+
+        Task<DataPrincipal?> Get360ViewEntityAsync(Guid dataPrincipalId, Guid organizationId);
     }
 }
