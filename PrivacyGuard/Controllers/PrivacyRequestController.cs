@@ -64,5 +64,40 @@ namespace PrivacyGuard.Controllers
 
             return Ok(requests);
         }
+        // API: Admin Dashboard Filter & List
+        [HttpGet]
+        public async Task<IActionResult> GetRequests(
+            [FromQuery] string? search,
+            [FromQuery] string? status,
+            [FromQuery] string? type,
+            [FromQuery] bool overdueOnly = false,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            if (!TryGetOrganizationId(out var orgId))
+                return Forbid();
+
+            // Agar frontend se "Any status" ya "Any right" aata hai (khali string), toh hum filters skip kar denge
+            if (status == "Any status") status = null;
+            if (type == "Any right") type = null;
+
+            var result = await _service.GetFilteredRequestsAsync(orgId, search, status, type, overdueOnly, page, pageSize);
+
+            return Ok(result);
+        }
+        // API: Get Single Privacy Request Details for Admin
+        [HttpGet("{id:guid}/detail")]
+        public async Task<IActionResult> GetRequestDetail(Guid id)
+        {
+            if (!TryGetOrganizationId(out var orgId))
+                return Forbid();
+
+            var detail = await _service.GetRequestDetailsAsync(id, orgId);
+
+            if (detail == null)
+                return NotFound(new { Message = "Privacy request not found." });
+
+            return Ok(detail);
+        }
     }
 }
