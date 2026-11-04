@@ -2,7 +2,7 @@
 
 namespace PrivacyGuard.Models
 {
-    // Screenshot 103: Data Categories
+    // Data Categories
     public class DataCategory
     {
         public Guid DataCategoryId { get; set; }
@@ -14,7 +14,7 @@ namespace PrivacyGuard.Models
         public string? Description { get; set; }
     }
 
-    // Screenshot 104: Data Processors (Third Party)
+    //  Data Processors (Third Party)
     public class DataProcessor
     {
         public Guid DataProcessorId { get; set; }
