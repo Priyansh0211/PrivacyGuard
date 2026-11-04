@@ -212,5 +212,65 @@ public async Task<bool> PublishNoticeAsync(Guid id, Guid orgId)
 
             return createdNotice.Id;
         }
+
+        public async Task<List<PublicNoticeListDto>> GetAllActiveNoticesAsync(Guid orgId, string languageCode)
+        {
+            // 1. Repo se data mangaya
+            var allPublished = await _noticeRepo.GetPublishedNoticesByOrgAsync(orgId);
+
+            // 2. Business Logic: Har code ka sirf latest version filter karo
+            var latestNotices = allPublished
+                .GroupBy(n => n.Code)
+                .Select(g => g.OrderByDescending(n => n.Version).First())
+                .ToList();
+
+            var result = new List<PublicNoticeListDto>();
+
+            // 3. Mapping: Bhasha ke hisaab se translation lagao
+            foreach (var notice in latestNotices)
+            {
+                var translation = notice.Translations.FirstOrDefault(t => t.LanguageCode == languageCode)
+                                  ?? notice.Translations.FirstOrDefault(t => t.LanguageCode == "en");
+
+                result.Add(new PublicNoticeListDto
+                {
+                    Code = notice.Code,
+                    Version = notice.Version,
+                    LogoUrl = notice.LogoUrl,
+                    PrimaryColor = notice.PrimaryColor,
+                    //UpdatedAt = notice.UpdatedAt,
+                    Title = translation?.Title ?? "Privacy Notice",
+                    Summary = translation?.Summary ?? "Click to read more."
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<PublicNoticeResponseDto> GetActiveNoticeForPrincipalAsync(string code, string languageCode, Guid orgId)
+        {
+            // 1. Repo se ek specific notice mangaya
+            var notice = await _noticeRepo.GetLatestPublishedNoticeByCodeAsync(orgId, code);
+
+            if (notice == null) return null;
+
+            // 2. Language filter
+            var translation = notice.Translations.FirstOrDefault(t => t.LanguageCode == languageCode)
+                              ?? notice.Translations.FirstOrDefault(t => t.LanguageCode == "en");
+
+            // 3. Map to DTO
+            return new PublicNoticeResponseDto
+            {
+                Code = notice.Code,
+                Version = notice.Version,
+                Layout = notice.Layout,
+                PrimaryColor = notice.PrimaryColor,
+                LogoUrl = notice.LogoUrl,
+                PurposesJson = notice.PurposesJson,
+                Sha256Hash = notice.Sha256Hash,
+                Title = translation?.Title ?? "Privacy Notice",
+                Summary = translation?.Summary ?? "Notice details are currently unavailable."
+            };
+        }
     }
 }

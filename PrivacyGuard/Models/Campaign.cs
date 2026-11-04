@@ -40,7 +40,7 @@ namespace PrivacyGuard.Models
         public string Status { get; set; } = "Draft";
 
         // Tumhare dost ke DataInventory table se link (Sirf Consent campaigns ke liye)
-        public Guid? DataInventoryId { get; set; }
+        public Guid? DataInventoryId { get; set; }  
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
