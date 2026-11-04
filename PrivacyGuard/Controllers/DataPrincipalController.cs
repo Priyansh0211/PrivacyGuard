@@ -20,6 +20,28 @@ namespace PrivacyGuard.Controllers
             _dataPrincipalService = dataPrincipalService;
         }
 
+        // ==========================================
+        // NAYA ENDPOINT: Paginated List for Dashboard Grid
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> GetDataPrincipals(
+            [FromQuery] string search = "",
+            [FromQuery] string classType = "",
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var result = await _dataPrincipalService.GetDataPrincipalsListAsync(
+                Guid.Parse(orgIdClaim), search, classType, page, pageSize);
+
+            return Ok(result);
+        }
+
+        // ==========================================
+        // ENDPOINT: Add Single Data Principal
+        // ==========================================
         [HttpPost("add")]
         public async Task<IActionResult> AddDataPrincipal([FromBody] DataPrincipalDto request)
         {
@@ -42,7 +64,7 @@ namespace PrivacyGuard.Controllers
         }
 
         // ==========================================
-        // NAYA ENDPOINT: 360-Degree View Dashboard
+        // ENDPOINT: 360-Degree View Dashboard
         // ==========================================
         [HttpGet("{id}/360-view")]
         public async Task<IActionResult> Get360View(Guid id)
