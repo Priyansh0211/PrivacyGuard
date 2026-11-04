@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.Models
@@ -10,10 +11,9 @@ namespace PrivacyGuard.Models
 
         public Guid OrganizationId { get; set; }
 
-        // Auto-generated reference format: PSD-XXXXXXXX
         [Required]
         [MaxLength(20)]
-        public string ReferenceId { get; set; }
+        public string ReferenceId { get; set; } = string.Empty;
 
         [MaxLength(15)]
         public string? Mobile { get; set; }
@@ -32,19 +32,29 @@ namespace PrivacyGuard.Models
 
         public DateTime? DateOfBirth { get; set; }
 
-        // Restricted to: adult, child, person_with_disability
         [Required]
         [MaxLength(30)]
         public string Class { get; set; } = "adult";
 
-        // Supported locales: mr-IN, en-IN, hi-IN
         [MaxLength(10)]
         public string PreferredLocale { get; set; } = "en-IN";
 
-        // DPDP Rule for child or person_with_disability
         public bool RequiresGuardianConsent { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // ==========================================
+        // 360-DEGREE VIEW CONNECTIONS (Navigation Properties)
+        // ==========================================
+
+        // 1. Identifiers list (Email, Mobile mappings)
+        public ICollection<PrincipalIdentifier> Identifiers { get; set; } = new List<PrincipalIdentifier>();
+
+        // 2. User ki saari Rights/Privacy Requests
+        public ICollection<PrivacyRequest> PrivacyRequests { get; set; } = new List<PrivacyRequest>();
+
+        // 3. User ke saare Consents (Jo record table tumne pehle banai thi)
+        public ICollection<ConsentRecord> ConsentRecords { get; set; } = new List<ConsentRecord>();
     }
 }
