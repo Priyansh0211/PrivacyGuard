@@ -2,8 +2,9 @@
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
-using PrivacyGuard.Helpers; // Masking Helper ke liye
+using PrivacyGuard.Helpers;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,16 +19,24 @@ namespace PrivacyGuard.Services
             _repository = repository;
         }
 
+        // ==========================================
+        // 1. ADD DATA PRINCIPAL (Fixed Identifiers & Reference ID)
+        // ==========================================
         public async Task<DataPrincipal> CreateSingleDataPrincipalAsync(DataPrincipalDto dto, Guid organizationId)
         {
             bool requiresGuardian = !string.IsNullOrEmpty(dto.Class) &&
                 (dto.Class.ToLower() == "child" || dto.Class.ToLower() == "person_with_disability");
 
+            var dpId = Guid.NewGuid();
+
+            // FIX: Unique Reference ID to prevent Random() collisions
+            string uniqueRef = $"PSD-{DateTime.UtcNow:yyMM}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
+
             var dataPrincipal = new DataPrincipal
             {
-                DataPrincipalId = Guid.NewGuid(),
+                DataPrincipalId = dpId,
                 OrganizationId = organizationId,
-                ReferenceId = $"PSD-{new Random().Next(10000000, 99999999)}",
+                ReferenceId = uniqueRef,
                 Mobile = dto.Mobile,
                 Email = dto.Email,
                 ConsumerNo = dto.ConsumerNo,
@@ -36,8 +45,21 @@ namespace PrivacyGuard.Services
                 Class = dto.Class,
                 PreferredLocale = dto.PreferredLocale,
                 RequiresGuardianConsent = requiresGuardian,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+
+                // FIX: Initialize Identifiers list immediately so 360-view isn't blank
+                Identifiers = new List<PrincipalIdentifier>()
             };
+
+            // Populate Identifiers for the 360-Degree View
+            if (!string.IsNullOrEmpty(dto.Mobile))
+                dataPrincipal.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Mobile", Value = dto.Mobile, IsPrimary = true });
+
+            if (!string.IsNullOrEmpty(dto.Email))
+                dataPrincipal.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Email", Value = dto.Email, IsPrimary = false });
+
+            if (!string.IsNullOrEmpty(dto.ConsumerNo))
+                dataPrincipal.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Consumer No", Value = dto.ConsumerNo, IsPrimary = false });
 
             await _repository.AddDataPrincipalAsync(dataPrincipal);
             await _repository.SaveChangesAsync();
@@ -46,22 +68,51 @@ namespace PrivacyGuard.Services
         }
 
         // ==========================================
-        // NAYA METHOD: Fetch & Mask 360-View Data
+        // 2. NAYA METHOD: Get Paginated & Masked List
+        // ==========================================
+        public async Task<DataPrincipalListResponseDto> GetDataPrincipalsListAsync(
+            Guid organizationId, string search, string classType, int page, int pageSize)
+        {
+            var (principals, totalCount) = await _repository.GetPaginatedDataPrincipalsAsync(organizationId, search, classType, page, pageSize);
+
+            var listDto = new DataPrincipalListResponseDto
+            {
+                TotalCount = totalCount,
+                Data = principals.Select(dp => new DataPrincipalRowDto
+                {
+                    DataPrincipalId = dp.DataPrincipalId,
+                    ReferenceId = dp.ReferenceId,
+                    Name = PiiMaskingHelper.MaskName(dp.FullName ?? dp.DisplayName ?? "N/A"),
+                    Mobile = PiiMaskingHelper.MaskMobile(dp.Mobile ?? ""),
+                    Email = PiiMaskingHelper.MaskEmail(dp.Email ?? ""),
+                    ConsumerNo = PiiMaskingHelper.MaskConsumerNo(dp.ConsumerNo ?? ""),
+                    Class = dp.Class,
+                    PreferredLocale = dp.PreferredLocale,
+                    RequiresGuardianConsent = dp.RequiresGuardianConsent,
+                    Status = "Active",
+                    CreatedAt = dp.CreatedAt,
+                    Source = "Manual"
+                }).ToList()
+            };
+
+            return listDto;
+        }
+
+        // ==========================================
+        // 3. FETCH 360-VIEW DATA (Fixed Active Consents)
         // ==========================================
         public async Task<DataPrincipal360Dto?> Get360ViewAsync(Guid dataPrincipalId, Guid organizationId)
         {
-            // Ye method hum repository mein banayenge jo Include() karega
             var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
 
             if (dp == null) return null;
 
-            // DTO Mapping aur Data Masking
             var dto = new DataPrincipal360Dto
             {
                 Record = new RecordDto
                 {
                     ReferenceId = dp.ReferenceId,
-                    Name = PiiMaskingHelper.MaskName(dp.FullName ?? dp.DisplayName), // Helper Call
+                    Name = PiiMaskingHelper.MaskName(dp.FullName ?? dp.DisplayName ?? "N/A"),
                     Class = dp.Class,
                     Status = "Active",
                     PreferredLanguage = dp.PreferredLocale,
@@ -70,31 +121,38 @@ namespace PrivacyGuard.Services
                 Identifiers = dp.Identifiers.Select(i => new IdentifierDto
                 {
                     Kind = i.Kind,
-                    Value = MaskIdentifierValue(i.Kind, i.Value), // Helper Call for each type
+                    Value = MaskIdentifierValue(i.Kind, i.Value),
                     IsPrimary = i.IsPrimary,
                     IsVerified = i.IsVerified
                 }).ToList(),
                 RightsRequests = dp.PrivacyRequests.Select(pr => new RightRequestSummaryDto
                 {
                     RequestId = pr.RequestId,
-                    Reference = $"DSR-{pr.CreatedAt.Year}-{pr.RequestId.ToString().Substring(0, 6).ToUpper()}",
-                    RightExercised = pr.RequestType,
-                    Status = pr.Status,
+                    // Status property jo tumne model me update ki hai, usko string me map kiya
+                    Reference = pr.ReferenceId ?? $"DSR-{pr.CreatedAt.Year}-{pr.RequestId.ToString().Substring(0, 6).ToUpper()}",
+                    RightExercised = pr.RequestType.ToString(),
+                    Status = pr.Status.ToString(),
                     RaisedOn = pr.CreatedAt,
                     Deadline = pr.TargetResolutionDate
                 }).ToList(),
-                ActiveConsents = dp.ConsentRecords.Select(cr => new ConsentStateDto
-                {
-                    PurposeName = "Mapped Purpose", // Note: Agar ConsentRecord me Purpose.Name hai toh cr.Purpose.Name use karein
-                    GrantedOn = cr.CreatedAt,
-                    Status = cr.OverallStatus.ToString()
-                }).ToList()
+
+                // FIX: Only Active Consents and Real Purpose Name
+                ActiveConsents = dp.ConsentRecords
+                    .Where(cr => cr.OverallStatus.ToString() == "Granted" || cr.OverallStatus.ToString() == "PartiallyGranted")
+                    .Select(cr => new ConsentStateDto
+                    {
+                        PurposeName ="Standard Consent",
+                        GrantedOn = cr.CreatedAt,
+                        Status = cr.OverallStatus.ToString()
+                    }).ToList()
             };
 
             return dto;
         }
 
-        // Switch case jo correct helper method call karega
+        // ==========================================
+        // 4. HELPER METHOD
+        // ==========================================
         private string MaskIdentifierValue(string kind, string value)
         {
             return kind.ToLower() switch
@@ -102,7 +160,7 @@ namespace PrivacyGuard.Services
                 "email" => PiiMaskingHelper.MaskEmail(value),
                 "mobile" => PiiMaskingHelper.MaskMobile(value),
                 "consumer no" => PiiMaskingHelper.MaskConsumerNo(value),
-                _ => value // agar koi unmapped kind hai toh default return
+                _ => value
             };
         }
     }

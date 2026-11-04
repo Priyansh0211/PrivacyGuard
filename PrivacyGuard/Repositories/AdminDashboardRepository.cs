@@ -1,7 +1,8 @@
-﻿using PrivacyGuard.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PrivacyGuard.Data;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
-using Microsoft.EntityFrameworkCore;
+using PrivacyGuard.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +37,7 @@ namespace PrivacyGuard.Repositories
             var riskThresholdDate = currentDate.AddDays(-25);
 
             var allPendingRequests = await _dbContext.PrivacyRequests
-                .Where(p => p.OrganizationId == organizationId && p.Status == "Pending")
+                .Where(p => p.OrganizationId == organizationId && p.Status == PrivacyRequestStatus.Submitted)
                 .ToListAsync();
 
             var pendingRequestsCount = allPendingRequests.Count;

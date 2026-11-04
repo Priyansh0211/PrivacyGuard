@@ -9,5 +9,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task SaveChangesAsync();
 
         Task<DataPrincipal?> Get360ViewEntityAsync(Guid dataPrincipalId, Guid organizationId);
+        Task<(List<DataPrincipal> Principals, int TotalCount)> GetPaginatedDataPrincipalsAsync(
+    Guid organizationId, string search, string classType, int page, int pageSize);
     }
 }

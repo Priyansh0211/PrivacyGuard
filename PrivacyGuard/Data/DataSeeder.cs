@@ -163,9 +163,10 @@ namespace PrivacyGuard.Data
             context.ConsentRecords.Add(new ConsentRecord{ ConsentRecordId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = Guid.NewGuid(), CreatedAt = DateTime.UtcNow });
 
             // 7.4 Privacy Requests (Tumhara naya code, id fix kar di gayi hai)
+            // 7.4 Privacy Requests (FIXED: Strings replaced with Enums)
             context.PrivacyRequests.AddRange(
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, RequestType = "Data Deletion", RequestDetails = "Please delete my old X-Ray reports", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-2) },
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, RequestType = "Data Access", RequestDetails = "I need my complete medical history", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-28) }
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) },
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, ReferenceId = "DSR-2026-0002", RequestType = PrivacyRequestType.Access, RequestDetails = "I need my complete medical history", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-28) }
             );
 
             // 7.5 Data Breach
