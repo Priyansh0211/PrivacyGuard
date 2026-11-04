@@ -13,5 +13,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task UpdateNoticeAsync(Notice notice);
         Task<NoticeTemplate?> GetTemplateByIdAsync(Guid templateId);
         Task UpdateNoticeWithTranslationsAsync(Notice notice, List<NoticeTranslation> newTranslations);
+        Task<List<Notice>> GetPublishedNoticesByOrgAsync(Guid orgId);
+        Task<Notice> GetLatestPublishedNoticeByCodeAsync(Guid orgId, string code);
     }
 }

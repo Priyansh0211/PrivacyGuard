@@ -78,5 +78,23 @@ namespace PrivacyGuard.Repositories
             
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<Notice>> GetPublishedNoticesByOrgAsync(Guid orgId)
+        {
+           
+            return await _context.Notices
+                .Include(n => n.Translations)
+                .Where(n => n.OrganizationId == orgId && n.Status == "Published")
+                .ToListAsync();
+        }
+
+        public async Task<Notice> GetLatestPublishedNoticeByCodeAsync(Guid orgId, string code)
+        {
+            return await _context.Notices
+                .Include(n => n.Translations)
+                .Where(n => n.OrganizationId == orgId && n.Code == code && n.Status == "Published")
+                .OrderByDescending(n => n.Version)
+                .FirstOrDefaultAsync();
+        }
     }
 }
