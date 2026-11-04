@@ -48,7 +48,11 @@ namespace PrivacyGuard.Data
                     new Permission { ModuleName = "Campaign Management", ActionName = "View Campaigns", SystemName = "Campaigns.View" },
                     new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" },
 
-                    new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" }
+                    new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" },
+                    new Permission { ModuleName = "Notice Template", ActionName = "Notice Template View", SystemName = "NoticeTemplates.View" },
+                    new Permission { ModuleName = "Notice Template", ActionName = "Notice Template Manage", SystemName = "NoticeTemplates.Manage" },
+                    new Permission { ModuleName = "Organization", ActionName = "Organization View", SystemName = "OrgUnit.View" },
+                    new Permission { ModuleName = "Organization", ActionName = "Organization Manage", SystemName = "OrgUnit.Manage" }
                 };
 
                 context.Permissions.AddRange(permissions);
@@ -160,8 +164,8 @@ namespace PrivacyGuard.Data
 
             // 7.4 Privacy Requests (Tumhara naya code, id fix kar di gayi hai)
             context.PrivacyRequests.AddRange(
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id.ToString(), RequestType = "Data Deletion", RequestDetails = "Please delete my old X-Ray reports", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-2) },
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id.ToString(), RequestType = "Data Access", RequestDetails = "I need my complete medical history", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-28) }
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, RequestType = "Data Deletion", RequestDetails = "Please delete my old X-Ray reports", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-2) },
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, RequestType = "Data Access", RequestDetails = "I need my complete medical history", Status = "Pending", CreatedAt = DateTime.UtcNow.AddDays(-28) }
             );
 
             // 7.5 Data Breach

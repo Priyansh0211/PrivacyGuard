@@ -31,7 +31,7 @@ namespace PrivacyGuard.Repositories
         {
             // Nayi request sabse upar dikhe isliye OrderByDescending lagaya hai
             return await _context.PrivacyRequests
-                .Where(r => r.DataPrincipalId == dataPrincipalId && r.OrganizationId == organizationId)
+                .Where(r => r.DataPrincipalId == Guid.Parse(dataPrincipalId) && r.OrganizationId == organizationId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
         }

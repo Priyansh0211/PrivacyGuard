@@ -181,10 +181,8 @@ namespace PrivacyGuard.Repositories
             await _context.SaveChangesAsync();
             return processor;
         }
-        // ==========================================
+       
         // NAYE METHODS (Edit & History Support)
-        // ==========================================
-
         public async Task<ConsentPurpose?> GetPurposeByIdAsync(Guid purposeId, Guid organizationId)
         {
             return await _context.ConsentPurposes

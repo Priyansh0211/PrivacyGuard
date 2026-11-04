@@ -19,7 +19,7 @@ namespace PrivacyGuard.Services
             // DTO se data nikal kar naya PrivacyRequest object banaya
             var newRequest = new PrivacyRequest
             {
-                DataPrincipalId = requestDto.DataPrincipalId,
+                DataPrincipalId = Guid.Parse(requestDto.DataPrincipalId),
                 OrganizationId = organizationId,
                 RequestType = requestDto.RequestType, // e.g., "Erasure", "Correction"
                 RequestDetails = requestDto.RequestDetails,
