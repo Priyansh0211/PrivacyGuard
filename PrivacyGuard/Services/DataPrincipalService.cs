@@ -149,7 +149,31 @@ namespace PrivacyGuard.Services
 
             return dto;
         }
+        // ==========================================
+        // DSAR: Right to Erasure (Soft Delete / Anonymize)
+        // ==========================================
+        public async Task<bool> AnonymizeDataPrincipalAsync(Guid dataPrincipalId, Guid organizationId)
+        {
+            var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
+            if (dp == null) return false;
 
+            // DPDP Act Compliance: PII data ko scramble/anonymize kar do
+            dp.FullName = "Anonymized User";
+            dp.Email = "erased@anonymized.local";
+            dp.Mobile = "0000000000";
+            dp.ConsumerNo = "ERASED";
+            //dp.Status = "Erased"; // Status change kar diya
+
+            // Identifiers ko bhi scramble kar do
+            foreach (var identifier in dp.Identifiers)
+            {
+                identifier.Value = "ERASED";
+            }
+
+            // DB mein save
+            await _repository.SaveChangesAsync();
+            return true;
+        }
         // ==========================================
         // 4. HELPER METHOD
         // ==========================================

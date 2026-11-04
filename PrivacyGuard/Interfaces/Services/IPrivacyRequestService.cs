@@ -13,5 +13,9 @@ namespace PrivacyGuard.Interfaces.Services
 
         // User apni requests ki history dekhega
         Task<IEnumerable<PrivacyRequest>> GetMyRequestsAsync(string dataPrincipalId, Guid organizationId);
+        Task<PrivacyRequestListResponseDto> GetFilteredRequestsAsync(
+        Guid organizationId, string? search, string? status, string? type, bool overdueOnly, int page, int pageSize);
+
+        Task<PrivacyRequestDetailDto?> GetRequestDetailsAsync(Guid requestId, Guid organizationId);
     }
 }
