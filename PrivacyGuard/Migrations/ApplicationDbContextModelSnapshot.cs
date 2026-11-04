@@ -850,6 +850,60 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("GrievanceMessages");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Layout")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LogoUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("NoticeTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PurposesJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Sha256Hash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notices");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.NoticeTemplate", b =>
                 {
                     b.Property<Guid>("Id")
@@ -897,6 +951,39 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("NoticeTemplates");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.NoticeTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsTranslated")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("NoticeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NoticeId");
+
+                    b.ToTable("NoticeTranslations");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
@@ -1326,6 +1413,17 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Sender");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.NoticeTranslation", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Notice", "Notice")
+                        .WithMany("Translations")
+                        .HasForeignKey("NoticeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Notice");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.OrgUnit", b =>
                 {
                     b.HasOne("PrivacyGuard.Models.OrgUnit", null)
@@ -1398,6 +1496,11 @@ namespace PrivacyGuard.Migrations
             modelBuilder.Entity("PrivacyGuard.Models.Grievance", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
+                {
+                    b.Navigation("Translations");
                 });
 #pragma warning restore 612, 618
         }

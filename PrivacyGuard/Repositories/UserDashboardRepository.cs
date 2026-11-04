@@ -59,7 +59,7 @@ namespace PrivacyGuard.Repositories
 
             // 5. Total Requests Raised by User
             var totalRequestsCount = await _dbContext.PrivacyRequests
-                .CountAsync(p => p.OrganizationId == organizationId && p.DataPrincipalId == userIdStr);
+                .CountAsync(p => p.OrganizationId == organizationId && p.DataPrincipalId == Guid.Parse(userIdStr));
 
             return new UserDashboardDto
             {
