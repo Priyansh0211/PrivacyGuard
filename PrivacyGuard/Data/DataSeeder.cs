@@ -160,9 +160,49 @@ namespace PrivacyGuard.Data
             context.Campaigns.Add(new Campaign { CampaignId = Guid.NewGuid(), OrganizationId = orgId, Title = "New Health Data Policy 2026", CampaignType = "Awareness", TargetRole = "All", Status = "Active", StartDate = DateTime.UtcNow.AddDays(-5), EndDate = DateTime.UtcNow.AddDays(15), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, DataInventoryId = inventoryId });
 
             // 7.3 Consent Record (userId fix karke user1Id kar diya hai)
-            context.ConsentRecords.Add(new ConsentRecord{ ConsentRecordId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = Guid.NewGuid(), CreatedAt = DateTime.UtcNow });
+            // 1. Sabse pehle ek dummy DataPrincipal (User) DB mein daalo taaki uski ID ban jaye
+            var dummyPrincipalId = Guid.NewGuid();
 
-            // 7.4 Privacy Requests (Tumhara naya code, id fix kar di gayi hai)
+            if (!context.DataPrincipals.Any())
+            {
+                context.DataPrincipals.Add(new DataPrincipal
+                {
+                    DataPrincipalId = dummyPrincipalId,
+                    OrganizationId = orgId, // Ensure karna ki tumhara orgId variable yahan available ho
+                    ReferenceId = "PSD-DUMMY-001",
+                    FullName = "Amit Dummy",
+                    Email = "amit@dummy.com",
+                    Mobile = "9999999999",
+                    Class = "adult",
+                    PreferredLocale = "en-IN",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                // Pehle isko save karo taaki Foreign Key ban jaye
+                context.SaveChanges();
+            }
+            else
+            {
+                // Agar pehle se DB mein koi principal hai, toh uski ID use kar lo
+                dummyPrincipalId = context.DataPrincipals.First().DataPrincipalId;
+            }
+
+            // 2. Ab ConsentRecord daalo, aur usme wahi dummyPrincipalId pass karo
+            context.ConsentRecords.Add(new ConsentRecord
+            {
+                ConsentRecordId = Guid.NewGuid(),
+                OrganizationId = orgId,
+                DataPrincipalId = dummyPrincipalId, // Yahan random GUID ki jagah asli ID pass ki hai
+                OverallStatus = ConsentStatus.Granted,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            // 3. Sath mein Privacy Request bhi daal do usi ID ke sath
+            context.PrivacyRequests.AddRange(
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) }
+            );
+
+            context.SaveChanges();
             // 7.4 Privacy Requests (FIXED: Strings replaced with Enums)
             context.PrivacyRequests.AddRange(
                 new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) },

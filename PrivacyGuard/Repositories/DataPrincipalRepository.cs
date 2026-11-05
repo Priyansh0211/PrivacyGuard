@@ -32,11 +32,13 @@ namespace PrivacyGuard.Repositories
         // ==========================================
         public async Task<DataPrincipal?> Get360ViewEntityAsync(Guid dataPrincipalId, Guid organizationId)
         {
-            // Ek hi query mein DataPrincipal ke sath uski teeno related lists fetch kar li
+            // Ek hi query mein DataPrincipal ke sath uski saari related lists aur nested tables fetch kar li
             return await _context.DataPrincipals
                 .Include(dp => dp.Identifiers)
                 .Include(dp => dp.PrivacyRequests)
                 .Include(dp => dp.ConsentRecords)
+                    .ThenInclude(cr => cr.ConsentDetails)
+                        .ThenInclude(cd => cd.ConsentPurpose) // Ye include real purpose name laane ke liye zaroori hai
                 .FirstOrDefaultAsync(dp => dp.DataPrincipalId == dataPrincipalId
                                         && dp.OrganizationId == organizationId);
         }
