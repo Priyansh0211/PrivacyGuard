@@ -2,102 +2,76 @@
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
 {
     public class CampaignService : ICampaignService
     {
         private readonly ICampaignRepository _campaignRepository;
-
-        public CampaignService(ICampaignRepository campaignRepository)
-        {
-            _campaignRepository = campaignRepository;
-        }
+        public CampaignService(ICampaignRepository campaignRepository) { _campaignRepository = campaignRepository; }
 
         public async Task<Campaign> CreateCampaignAsync(CreateCampaignDto dto, Guid organizationId)
         {
-            // 💡 BUSINESS LOGIC 1: Date Validation
-            if (dto.EndDate <= dto.StartDate)
-            {
-                throw new Exception("End date must be greater than Start date.");
-            }
+            if (dto.EndDate <= dto.StartDate) throw new Exception("End date must be greater than Start date.");
+            if (dto.CampaignType == "Consent" && dto.DataInventoryId == null) throw new Exception("DataInventoryId required for Consent type.");
 
-            // 💡 BUSINESS LOGIC 2: Consent campaign ke liye DataInventoryId check
-            if (dto.CampaignType == "Consent" && dto.DataInventoryId == null)
-            {
-                throw new Exception("DataInventoryId is required for Consent type campaigns.");
-            }
-
-            // DTO ko Database Model (Entity) mein map kar rahe hain
             var campaign = new Campaign
             {
                 OrganizationId = organizationId,
                 Title = dto.Title,
                 Description = dto.Description,
                 CampaignType = dto.CampaignType,
+                TargetAudience = dto.TargetAudience,
                 TargetRole = dto.TargetRole,
                 StartDate = dto.StartDate,
                 EndDate = dto.EndDate,
-                Status = "Active", // By default active rakh rahe hain taaki turant test ho sake
+                Status = "Active",
                 DataInventoryId = dto.DataInventoryId
             };
-
             return await _campaignRepository.CreateCampaignAsync(campaign);
         }
 
-        public async Task<IEnumerable<Campaign>> GetMyActiveCampaignsAsync(Guid organizationId, Guid userId, string userRole)
+        public async Task<IEnumerable<Campaign>> GetMyActiveCampaignsAsync(Guid organizationId, Guid actorId, string userRole, bool isInternalUser)
         {
-            // 1. Repository se saare active campaigns le aao jo is role ke liye hain
-            var allActiveCampaigns = await _campaignRepository.GetActiveCampaignsForUserAsync(organizationId, userRole);
-
-            // 2. 💡 BUSINESS LOGIC 3: Un campaigns ko filter out karo jinka response user pehle hi de chuka hai
+            var allActiveCampaigns = await _campaignRepository.GetActiveCampaignsForUserAsync(organizationId, actorId, userRole, isInternalUser);
             var pendingCampaigns = new List<Campaign>();
 
             foreach (var campaign in allActiveCampaigns)
             {
-                var existingResponse = await _campaignRepository.GetUserResponseAsync(campaign.CampaignId, userId);
-
-                // Agar user ne abhi tak koi response nahi diya hai (null), tabhi list mein add karo
-                if (existingResponse == null)
-                {
-                    pendingCampaigns.Add(campaign);
-                }
+                var existingResponse = await _campaignRepository.GetUserResponseAsync(campaign.CampaignId, actorId, isInternalUser);
+                if (existingResponse == null) pendingCampaigns.Add(campaign);
             }
-
-            return pendingCampaigns; // Ab user ko dashboard par sirf "Pending" tasks dikhenge!
+            return pendingCampaigns;
         }
 
-        public async Task<CampaignResponse> SubmitCampaignResponseAsync(SubmitCampaignResponseDto dto, Guid userId, Guid organizationId)
+        public async Task<CampaignResponse> SubmitCampaignResponseAsync(SubmitCampaignResponseDto dto, Guid actorId, Guid organizationId, bool isInternalUser)
         {
-            // 1. Verify karo ki campaign exist karta hai aur isi tenant(org) ka hai
             var campaign = await _campaignRepository.GetCampaignByIdAsync(dto.CampaignId, organizationId);
-            if (campaign == null)
-            {
-                throw new Exception("Campaign not found or does not belong to your organization.");
-            }
+            if (campaign == null) throw new Exception("Campaign not found.");
 
-            // 2. Naya response object banao
             var response = new CampaignResponse
             {
                 CampaignId = dto.CampaignId,
-                UserId = userId,
-                ResponseStatus = dto.ResponseStatus, // "Accepted", "Rejected", ya "Completed"
-                RespondedAt = DateTime.UtcNow
+                ResponseStatus = dto.ResponseStatus,
+                RespondedAt = DateTime.UtcNow,
+                UserId = isInternalUser ? actorId : null,
+                DataPrincipalId = !isInternalUser ? actorId : null
             };
-
-            // 3. Database mein save karo
-            return await _campaignRepository.SaveResponseAsync(response);
+            return await _campaignRepository.SaveResponseAsync(response, isInternalUser);
         }
 
-        public async Task<IEnumerable<Campaign>> GetAllCampaignsAsync(Guid organizationId)
-        {
-            // Repository se seedha saare campaigns mangwa lenge
-            return await _campaignRepository.GetAllCampaignsByOrgAsync(organizationId);
-        }
+        public async Task<IEnumerable<Campaign>> GetAllCampaignsAsync(Guid organizationId) => await _campaignRepository.GetAllCampaignsByOrgAsync(organizationId);
+        public async Task<CampaignStatsDto> GetCampaignStatsAsync(Guid campaignId, Guid organizationId) => await _campaignRepository.GetCampaignStatsAsync(campaignId, organizationId);
+        public async Task<List<AudienceMemberDto>> GetAudienceListAsync(Guid orgId, string type) => await _campaignRepository.GetAudienceListAsync(orgId, type);
 
-        public async Task<CampaignStatsDto> GetCampaignStatsAsync(Guid campaignId, Guid organizationId)
+        public async Task<bool> AssignAudienceAsync(LinkAudienceRequestDto request)
         {
-            return await _campaignRepository.GetCampaignStatsAsync(campaignId, organizationId);
+            if (request.SelectedIds == null || request.SelectedIds.Count == 0) return false;
+            await _campaignRepository.LinkAudienceToCampaignAsync(request.CampaignId, request.SelectedIds, request.IsInternalUserMapping);
+            return true;
         }
     }
 }

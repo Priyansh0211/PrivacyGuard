@@ -1,24 +1,26 @@
 ﻿using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
     public interface ICampaignRepository
     {
-
-        // Admin operations
         Task<Campaign> CreateCampaignAsync(Campaign campaign);
         Task<Campaign?> GetCampaignByIdAsync(Guid campaignId, Guid organizationId);
         Task<IEnumerable<Campaign>> GetAllCampaignsByOrgAsync(Guid organizationId);
 
-        // User operations
-        Task<IEnumerable<Campaign>> GetActiveCampaignsForUserAsync(Guid organizationId, string userRole);
+        Task<IEnumerable<Campaign>> GetActiveCampaignsForUserAsync(Guid organizationId, Guid actorId, string userRole, bool isInternalUser);
 
-        // Tracking/Response operations
-        Task<CampaignResponse?> GetUserResponseAsync(Guid campaignId, Guid userId);
-        Task<CampaignResponse> SaveResponseAsync(CampaignResponse response);
+        Task<CampaignResponse?> GetUserResponseAsync(Guid campaignId, Guid actorId, bool isInternalUser);
+        Task<CampaignResponse> SaveResponseAsync(CampaignResponse response, bool isInternalUser);
 
         Task<CampaignStatsDto> GetCampaignStatsAsync(Guid campaignId, Guid organizationId);
 
+        // 💡 Audience Mapping
+        Task<List<AudienceMemberDto>> GetAudienceListAsync(Guid orgId, string type);
+        Task LinkAudienceToCampaignAsync(Guid campaignId, List<Guid> selectedIds, bool isInternalUserMapping);
     }
 }
