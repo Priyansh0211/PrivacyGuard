@@ -52,6 +52,8 @@ namespace PrivacyGuard.Data
         public DbSet<Notice> Notices { get; set; }
         public DbSet<NoticeTranslation> NoticeTranslations { get; set; }
 
+        public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
+
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
         // ==========================================
