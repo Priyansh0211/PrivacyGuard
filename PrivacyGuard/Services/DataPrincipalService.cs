@@ -37,7 +37,7 @@ namespace PrivacyGuard.Services
                 DataPrincipalId = dpId,
                 OrganizationId = organizationId,
                 ReferenceId = uniqueRef,
-                Mobile = dto.Mobile,
+                Mobile = dto.Mobile, 
                 Email = dto.Email,
                 ConsumerNo = dto.ConsumerNo,
                 FullName = dto.FullName,
@@ -136,15 +136,23 @@ namespace PrivacyGuard.Services
                     Deadline = pr.TargetResolutionDate
                 }).ToList(),
 
-                // FIX: Only Active Consents and Real Purpose Name
+                // FIX: Active Consents mapped with real Purpose Names from ConsentDetails
                 ActiveConsents = dp.ConsentRecords
-                    .Where(cr => cr.OverallStatus.ToString() == "Granted" || cr.OverallStatus.ToString() == "PartiallyGranted")
-                    .Select(cr => new ConsentStateDto
-                    {
-                        PurposeName ="Standard Consent",
-                        GrantedOn = cr.CreatedAt,
-                        Status = cr.OverallStatus.ToString()
-                    }).ToList()
+            .Where(cr => cr.OverallStatus == ConsentStatus.Granted || cr.OverallStatus == ConsentStatus.PartiallyGranted)
+            .Select(cr => new ConsentStateDto
+            {
+                // ConsentDetails ke andar se saare purposes nikal kar comma (,) se join kar rahe hain
+                PurposeName = cr.ConsentDetails != null && cr.ConsentDetails.Any()
+                    ? string.Join(", ", cr.ConsentDetails
+                        .Where(cd => cd.Decision == "Yes" || cd.Status == "Active") // Sirf active purposes
+                        .Select(cd => cd.ConsentPurpose != null && !string.IsNullOrEmpty(cd.ConsentPurpose.ShortName)
+                                      ? cd.ConsentPurpose.ShortName
+                                      : "General Purpose"))
+                    : "No specific purpose recorded",
+
+                GrantedOn = cr.CreatedAt,
+                Status = cr.OverallStatus.ToString()
+            }).ToList()
             };
 
             return dto;
