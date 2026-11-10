@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PrivacyGuard.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialcreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -295,6 +295,28 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ReportJobs",
+                columns: table => new
+                {
+                    JobId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReportType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ParametersJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequestedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    ReportFormat = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: false),
+                    RetryCount = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ReportJobs", x => x.JobId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RetentionPolicies",
                 columns: table => new
                 {
@@ -527,6 +549,32 @@ namespace PrivacyGuard.Migrations
                         column: x => x.OrganizationId,
                         principalTable: "Organizations",
                         principalColumn: "OrganizationId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GeneratedReports",
+                columns: table => new
+                {
+                    ReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    JobId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ChecksumSha256 = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    RecordCount = table.Column<int>(type: "int", nullable: false),
+                    FileSizeKb = table.Column<long>(type: "bigint", nullable: false),
+                    DownloadCount = table.Column<int>(type: "int", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GeneratedReports", x => x.ReportId);
+                    table.ForeignKey(
+                        name: "FK_GeneratedReports_ReportJobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "ReportJobs",
+                        principalColumn: "JobId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -877,6 +925,11 @@ namespace PrivacyGuard.Migrations
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_GeneratedReports_JobId",
+                table: "GeneratedReports",
+                column: "JobId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GrievanceMessages_GrievanceId",
                 table: "GrievanceMessages",
                 column: "GrievanceId");
@@ -982,6 +1035,9 @@ namespace PrivacyGuard.Migrations
                 name: "DpiaRecords");
 
             migrationBuilder.DropTable(
+                name: "GeneratedReports");
+
+            migrationBuilder.DropTable(
                 name: "GrievanceMessages");
 
             migrationBuilder.DropTable(
@@ -1019,6 +1075,9 @@ namespace PrivacyGuard.Migrations
 
             migrationBuilder.DropTable(
                 name: "DataProcessors");
+
+            migrationBuilder.DropTable(
+                name: "ReportJobs");
 
             migrationBuilder.DropTable(
                 name: "Grievances");
