@@ -53,6 +53,8 @@ namespace PrivacyGuard.Data
         public DbSet<NoticeTranslation> NoticeTranslations { get; set; }
 
         public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
+        public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
+
 
         public DbSet<ReportJob> ReportJobs { get; set; }
         public DbSet<GeneratedReport> GeneratedReports { get; set; }

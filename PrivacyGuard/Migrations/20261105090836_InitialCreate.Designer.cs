@@ -12,8 +12,8 @@ using PrivacyGuard.Data;
 namespace PrivacyGuard.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261104104034_PrivacyRequestUpdate")]
-    partial class PrivacyRequestUpdate
+    [Migration("20261105090836_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -199,6 +199,9 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int>("TargetAudience")
+                        .HasColumnType("int");
+
                     b.Property<string>("TargetRole")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -221,6 +224,29 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("Campaigns");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceMapping", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AssignedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DataPrincipalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CampaignAudienceMappings");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
                 {
                     b.Property<Guid>("ResponseId")
@@ -233,6 +259,9 @@ namespace PrivacyGuard.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("DataPrincipalId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("RespondedAt")
                         .HasColumnType("datetime2");
 
@@ -241,12 +270,14 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("ResponseId");
 
                     b.HasIndex("CampaignId");
+
+                    b.HasIndex("DataPrincipalId");
 
                     b.HasIndex("UserId");
 
@@ -1171,6 +1202,49 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("PrivacyRequests");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.RetentionPolicy", b =>
+                {
+                    b.Property<Guid>("PolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PolicyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("RetentionPeriodInDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TriggerEvent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PolicyId");
+
+                    b.ToTable("RetentionPolicies");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1324,13 +1398,19 @@ namespace PrivacyGuard.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "DataPrincipal")
+                        .WithMany()
+                        .HasForeignKey("DataPrincipalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("PrivacyGuard.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Campaign");
+
+                    b.Navigation("DataPrincipal");
 
                     b.Navigation("User");
                 });

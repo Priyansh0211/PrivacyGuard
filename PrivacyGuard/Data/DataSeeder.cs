@@ -51,8 +51,14 @@ namespace PrivacyGuard.Data
                     new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template View", SystemName = "NoticeTemplates.View" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template Manage", SystemName = "NoticeTemplates.Manage" },
+                    
+                    // Module 9: Organization & OrgUnit Management
                     new Permission { ModuleName = "Organization", ActionName = "Organization View", SystemName = "OrgUnit.View" },
-                    new Permission { ModuleName = "Organization", ActionName = "Organization Manage", SystemName = "OrgUnit.Manage" }
+                    new Permission { ModuleName = "Organization", ActionName = "Organization Manage", SystemName = "OrgUnit.Manage" },
+                    
+                    // Module 10: Retention Policy Management
+                    new Permission { ModuleName = "Retention Policy Management", ActionName = "View Retention Policies", SystemName = "RetentionPolicy.View" },
+                    new Permission { ModuleName = "Retention Policy Management", ActionName = "Manage Retention Policies", SystemName = "RetentionPolicy.Manage" }  
                 };
 
                 context.Permissions.AddRange(permissions);
