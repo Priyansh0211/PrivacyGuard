@@ -54,6 +54,9 @@ namespace PrivacyGuard.Data
 
         public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
 
+        public DbSet<ReportJob> ReportJobs { get; set; }
+        public DbSet<GeneratedReport> GeneratedReports { get; set; }
+
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
         // ==========================================
