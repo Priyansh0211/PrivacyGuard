@@ -1243,7 +1243,6 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("PrivacyRequests");
                 });
 
-<<<<<<< Updated upstream
             modelBuilder.Entity("PrivacyGuard.Models.ReportJob", b =>
                 {
                     b.Property<Guid>("JobId")
@@ -1252,22 +1251,10 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
-=======
-            modelBuilder.Entity("PrivacyGuard.Models.RetentionPolicy", b =>
-                {
-                    b.Property<Guid>("PolicyId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
->>>>>>> Stashed changes
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-<<<<<<< Updated upstream
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("nvarchar(max)");
 
@@ -1304,7 +1291,21 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("JobId");
 
                     b.ToTable("ReportJobs");
-=======
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.RetentionPolicy", b =>
+                {
+                    b.Property<Guid>("PolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -1333,7 +1334,6 @@ namespace PrivacyGuard.Migrations
                     b.HasKey("PolicyId");
 
                     b.ToTable("RetentionPolicies");
->>>>>>> Stashed changes
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Role", b =>
