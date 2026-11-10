@@ -5,6 +5,7 @@ using PrivacyGuard.Interfaces.Services;
 using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
+using PrivacyGuard.Filters;
 
 namespace PrivacyGuard.Controllers
 {
@@ -36,7 +37,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Create([FromBody] CreateOrgUnitDto dto)
         {
             if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
@@ -45,6 +46,8 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("hierarchy")]
+        [HasPermission("OrgUnit.View")]
+
         public async Task<IActionResult> GetHierarchy()
         {
             if (!TryGetClaimData(out var orgId, out var orgUnitId, out var role)) return Forbid();
@@ -54,7 +57,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPut("{id:guid}/deactivate")]
-        [Authorize(Roles = "Admin")]
+        [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Deactivate(Guid id)
         {
             if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
@@ -65,7 +68,7 @@ namespace PrivacyGuard.Controllers
 
         // NAYA: Activate endpoint
         [HttpPut("{id:guid}/activate")]
-        [Authorize(Roles = "Admin")]
+        [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Activate(Guid id)
         {
             if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
@@ -76,7 +79,7 @@ namespace PrivacyGuard.Controllers
 
         // NAYA: Edit endpoint
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOrgUnitDto dto)
         {
             if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
@@ -87,7 +90,7 @@ namespace PrivacyGuard.Controllers
 
         // NAYA: Delete endpoint
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Delete(Guid id)
         {
             if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();

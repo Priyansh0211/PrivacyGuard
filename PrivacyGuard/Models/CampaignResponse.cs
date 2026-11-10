@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PrivacyGuard.Models
@@ -11,23 +12,20 @@ namespace PrivacyGuard.Models
         [Required]
         public Guid CampaignId { get; set; }
 
-        [Required]
-        public Guid UserId { get; set; }
+        public Guid? UserId { get; set; }
+        public Guid? DataPrincipalId { get; set; }
 
-        // Isme aayega: "Pending", "Completed" (Awareness ke liye), "Accepted", "Rejected" (Consent ke liye)
-        [Required]
-        [MaxLength(30)]
+        [Required, MaxLength(30)]
         public string ResponseStatus { get; set; } = "Pending";
 
         public DateTime? RespondedAt { get; set; }
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // --- Navigation Properties ---
         [ForeignKey("CampaignId")]
         public Campaign? Campaign { get; set; }
-
         [ForeignKey("UserId")]
         public User? User { get; set; }
+        [ForeignKey("DataPrincipalId")]
+        public DataPrincipal? DataPrincipal { get; set; }
     }
 }

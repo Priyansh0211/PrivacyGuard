@@ -146,6 +146,17 @@ builder.Services.AddScoped<IDataPrincipalService, DataPrincipalService>();
 builder.Services.AddScoped<INoticeTemplateRepository, NoticeTemplateRepository>();
 builder.Services.AddScoped<INoticeTemplateService, NoticeTemplateService>();
 
+builder.Services.AddScoped<INoticeRepository, NoticeRepository>();
+builder.Services.AddScoped<INoticeService, NoticeService>();
+
+// Repositories
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
+// Services
+builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+//builder.Services.AddScoped<IReportDataService, ReportDataService>();
+builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
+
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();

@@ -49,12 +49,23 @@ namespace PrivacyGuard.Data
 
         public DbSet<NoticeTemplate> NoticeTemplates { get; set; }
 
+        public DbSet<Notice> Notices { get; set; }
+        public DbSet<NoticeTranslation> NoticeTranslations { get; set; }
+
+        public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
+
+        public DbSet<ReportJob> ReportJobs { get; set; }
+        public DbSet<GeneratedReport> GeneratedReports { get; set; }
+
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
         // ==========================================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+
+          
 
             // DataInventory mapping
             modelBuilder.Entity<DataInventory>()
@@ -76,6 +87,14 @@ namespace PrivacyGuard.Data
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
+
+            modelBuilder.Entity<NoticeTranslation>()
+    .HasOne(nt => nt.Notice)
+    .WithMany(n => n.Translations)
+    .HasForeignKey(nt => nt.NoticeId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+
             // Unique database index on OrganizationId + UnitCode
             modelBuilder.Entity<PrivacyGuard.Models.OrgUnit>()
                 .HasIndex(o => new { o.OrganizationId, o.UnitCode })
