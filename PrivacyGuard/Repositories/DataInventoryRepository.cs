@@ -2,6 +2,10 @@
 using PrivacyGuard.Data;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Repositories
 {
@@ -14,19 +18,14 @@ namespace PrivacyGuard.Repositories
             _context = context;
         }
 
-        public async Task<DataInventory?> GetByIdAsync(
-            Guid id,
-            Guid organizationId)
+        public async Task<DataInventory?> GetByIdAsync(Guid id, Guid organizationId)
         {
+            // AsNoTracking hataya hai taaki Update/Delete par ChangeTracker (Audit log) kaam kar sake
             return await _context.DataInventories
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.DataInventoryId == id &&
-                    x.OrganizationId == organizationId);
+                .FirstOrDefaultAsync(x => x.DataInventoryId == id && x.OrganizationId == organizationId);
         }
 
-        public async Task<List<DataInventory>> GetAllAsync(
-            Guid organizationId)
+        public async Task<List<DataInventory>> GetAllAsync(Guid organizationId)
         {
             return await _context.DataInventories
                 .AsNoTracking()
@@ -53,14 +52,10 @@ namespace PrivacyGuard.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> ExistsAsync(
-            Guid id,
-            Guid organizationId)
+        public async Task<bool> ExistsAsync(Guid id, Guid organizationId)
         {
             return await _context.DataInventories
-                .AnyAsync(x =>
-                    x.DataInventoryId == id &&
-                    x.OrganizationId == organizationId);
+                .AnyAsync(x => x.DataInventoryId == id && x.OrganizationId == organizationId);
         }
     }
 }

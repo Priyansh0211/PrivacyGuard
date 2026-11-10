@@ -156,7 +156,8 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
 //builder.Services.AddScoped<IReportDataService, ReportDataService>();
 builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
-
+builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
+builder.Services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
