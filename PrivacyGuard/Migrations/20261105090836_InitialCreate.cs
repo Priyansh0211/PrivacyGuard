@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PrivacyGuard.Migrations
 {
     /// <inheritdoc />
-    public partial class campaignUpdte : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -295,6 +295,26 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RetentionPolicies",
+                columns: table => new
+                {
+                    PolicyId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PolicyName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RetentionPeriodInDays = table.Column<int>(type: "int", nullable: false),
+                    TriggerEvent = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ActionType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetentionPolicies", x => x.PolicyId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -414,12 +434,17 @@ namespace PrivacyGuard.Migrations
                     RequestId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     DataPrincipalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RequestType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    ReferenceId = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    RequestType = table.Column<int>(type: "int", nullable: false),
                     RequestDetails = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    AssignedToUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TotalTasks = table.Column<int>(type: "int", nullable: false),
+                    CompletedTasks = table.Column<int>(type: "int", nullable: false),
                     ResolutionRemarks = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TargetResolutionDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -970,6 +995,9 @@ namespace PrivacyGuard.Migrations
 
             migrationBuilder.DropTable(
                 name: "PrivacyRequests");
+
+            migrationBuilder.DropTable(
+                name: "RetentionPolicies");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");

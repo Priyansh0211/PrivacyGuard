@@ -149,6 +149,7 @@ builder.Services.AddScoped<INoticeTemplateService, NoticeTemplateService>();
 builder.Services.AddScoped<INoticeRepository, NoticeRepository>();
 builder.Services.AddScoped<INoticeService, NoticeService>();
 
+<<<<<<< Updated upstream
 // Repositories
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
@@ -156,6 +157,10 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
 //builder.Services.AddScoped<IReportDataService, ReportDataService>();
 builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
+=======
+builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
+builder.Services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
+>>>>>>> Stashed changes
 
 
 // 5. Configure OpenAPI
