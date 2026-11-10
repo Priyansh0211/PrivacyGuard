@@ -23,5 +23,6 @@ namespace PrivacyGuard.Interfaces.Services
         Task<bool> DeletePolicyAsync(Guid policyId, Guid organizationId);
         // Background job is method ko daily call karegi
         Task ExecuteDailyErasureJobAsync();
+        Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
     }
 }
