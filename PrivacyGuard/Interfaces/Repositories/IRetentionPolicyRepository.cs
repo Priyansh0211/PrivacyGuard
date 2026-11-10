@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using PrivacyGuard.DTOs;
 using PrivacyGuard.Models;
 
 namespace PrivacyGuard.Interfaces.Repositories

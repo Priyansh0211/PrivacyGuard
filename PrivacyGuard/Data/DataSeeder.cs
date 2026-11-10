@@ -32,7 +32,7 @@ namespace PrivacyGuard.Data
                     // Module 4: Consent Management
                     new Permission { ModuleName = "Consent Management", ActionName = "View Consent Records", SystemName = "Consent.View" },
                     
-                    // 🚨 Module 5: Data Inventory (FIXED: Controller ke HasPermission attribute se match kar diya)
+                    // Module 5: Data Inventory
                     new Permission { ModuleName = "Data Inventory", ActionName = "View Inventory", SystemName = "DataInventory.View" },
                     new Permission { ModuleName = "Data Inventory", ActionName = "Manage Inventory", SystemName = "DataInventory.Manage" },
 
@@ -98,14 +98,9 @@ namespace PrivacyGuard.Data
             var dummyHash = "dummyhash";
 
             context.Users.AddRange(
-                // 1 Admin
                 new User { UserId = adminId, OrganizationId = orgId, ReferenceId = "EMP-ADMIN01", FullName = "Smt. Anjali Deshpande", Email = "anjali@mahavitaran.in", Department = "DPO", RoleId = adminRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-
-                // 2 Staff
                 new User { UserId = staff1Id, OrganizationId = orgId, ReferenceId = "EMP-STAFF01", FullName = "Rahul Kulkarni", Email = "rahul@mahavitaran.in", Department = "Support", RoleId = staffRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
                 new User { UserId = Guid.NewGuid(), OrganizationId = orgId, ReferenceId = "EMP-STAFF02", FullName = "Sneha Jadhav", Email = "sneha@mahavitaran.in", Department = "Compliance", RoleId = staffRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-
-                // 7 Normal Users
                 new User { UserId = user1Id, OrganizationId = orgId, ReferenceId = "MSD-7GADEHTJ", FullName = "Amit Sharma", Email = "amit@user.com", RoleId = userRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
                 new User { UserId = Guid.NewGuid(), OrganizationId = orgId, ReferenceId = "MSD-3S99X4MF", FullName = "Priya Singh", Email = "priya@user.com", RoleId = userRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
                 new User { UserId = Guid.NewGuid(), OrganizationId = orgId, ReferenceId = "MSD-CAMSVD2E", FullName = "Karan Patel", Email = "karan@user.com", RoleId = userRoleId, PasswordHash = dummyHash, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
@@ -156,17 +151,12 @@ namespace PrivacyGuard.Data
             );
 
             // 7. 🟢 BAAKI PURANA DUMMY DATA (Merged and Fixed)
-
-            // 7.1 Data Inventory 
             var inventoryId = Guid.NewGuid();
             context.DataInventories.Add(new DataInventory { DataInventoryId = inventoryId, OrganizationId = orgId, Name = "Patient Medical Records", DataCategory = "Health Data", Purpose = "Treatment & Diagnosis", Status = "Active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
 
-            // 7.2 Campaign
             context.Campaigns.Add(new Campaign { CampaignId = Guid.NewGuid(), OrganizationId = orgId, Title = "New Health Data Policy 2026", CampaignType = "Awareness", TargetRole = "All", Status = "Active", StartDate = DateTime.UtcNow.AddDays(-5), EndDate = DateTime.UtcNow.AddDays(15), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, DataInventoryId = inventoryId });
 
-            // 7.3 Consent Record 
             var dummyPrincipalId = Guid.NewGuid();
-
             if (!context.DataPrincipals.Any())
             {
                 context.DataPrincipals.Add(new DataPrincipal
@@ -181,7 +171,6 @@ namespace PrivacyGuard.Data
                     PreferredLocale = "en-IN",
                     CreatedAt = DateTime.UtcNow
                 });
-
                 context.SaveChanges();
             }
             else
@@ -198,16 +187,61 @@ namespace PrivacyGuard.Data
                 CreatedAt = DateTime.UtcNow
             });
 
-            // 7.4 Privacy Requests (🚨 FIXED: user1Id ki jagah dummyPrincipalId use kiya hai taaki FK error na aaye)
             context.PrivacyRequests.AddRange(
                 new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) },
                 new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0002", RequestType = PrivacyRequestType.Access, RequestDetails = "I need my complete medical history", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-28) }
             );
 
-            // 7.5 Data Breach
             context.DataBreachIncidents.Add(new DataBreachIncident { Id = Guid.NewGuid(), OrganizationId = orgId, Title = "Unauthorized Access to Lab Results", Description = "An intern accessed reports without permission.", Severity = "High", IncidentDate = DateTime.UtcNow.AddDays(-3), DiscoveryDate = DateTime.UtcNow.AddDays(-2), EstimatedAffectedRecords = 150, Status = "Open", CreatedAt = DateTime.UtcNow });
-
             context.SaveChanges();
+
+            // 8. 🟢 SEED RETENTION POLICY & METRICS DATA (Dashboard test karne ke liye)
+            if (!context.RetentionPolicies.Any())
+            {
+                var policyId = Guid.NewGuid();
+                context.RetentionPolicies.Add(new RetentionPolicy
+                {
+                    PolicyId = policyId,
+                    OrganizationId = orgId, // Same organization ID taaki query chal sake
+                    PolicyName = "Standard Inactive User Policy",
+                    Description = "Anonymize users older than 30 days",
+                    RetentionPeriodInDays = 30,
+                    TriggerEvent = "AccountCreated",
+                    ActionType = "Anonymize",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                // Metrics numbers ke liye dummy records
+                context.DataPrincipals.AddRange(
+                    new DataPrincipal
+                    {
+                        DataPrincipalId = Guid.NewGuid(),
+                        OrganizationId = orgId,
+                        ReferenceId = "PSD-OVERDUE-01",
+                        FullName = "Overdue User",
+                        Email = "overdue@test.com",
+                        Mobile = "1111111111",
+                        Class = "adult",
+                        PreferredLocale = "en-IN",
+                        CreatedAt = DateTime.UtcNow.AddDays(-35) // Overdue ke liye 30 days se pehle ka
+                    },
+                    new DataPrincipal
+                    {
+                        DataPrincipalId = Guid.NewGuid(),
+                        OrganizationId = orgId,
+                        ReferenceId = "PSD-QUEUE-01",
+                        FullName = "Queue User",
+                        Email = "queue@test.com",
+                        Mobile = "2222222222",
+                        Class = "adult",
+                        PreferredLocale = "en-IN",
+                        CreatedAt = DateTime.UtcNow.AddDays(-25) // Queue ke liye 23 to 30 days ke beech ka
+                    }
+                );
+
+                context.SaveChanges();
+            }
         }
     }
 }

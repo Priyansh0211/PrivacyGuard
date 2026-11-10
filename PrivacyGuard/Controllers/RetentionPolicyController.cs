@@ -103,5 +103,16 @@ namespace PrivacyGuard.Controllers
             // Successfully delete hone par 204 No Content status bhejte hain
             return NoContent();
         }
+
+        [HttpGet("metrics")]
+        [HasPermission("RetentionPolicy.View")]
+        public async Task<IActionResult> GetMetrics()
+        {
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
+
+            var metrics = await _retentionPolicyService.GetDashboardMetricsAsync(orgId);
+            return Ok(metrics);
+        }
     }
 }
