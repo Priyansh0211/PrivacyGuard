@@ -32,19 +32,19 @@ namespace PrivacyGuard.Data
                     // Module 4: Consent Management
                     new Permission { ModuleName = "Consent Management", ActionName = "View Consent Records", SystemName = "Consent.View" },
                     
-                    // Module 5: Data Inventory
-                    new Permission { ModuleName = "Data Inventory", ActionName = "View Inventory", SystemName = "Inventory.View" },
-                    new Permission { ModuleName = "Data Inventory", ActionName = "Manage Inventory", SystemName = "Inventory.Manage" },
+                    // 🚨 Module 5: Data Inventory (FIXED: Controller ke HasPermission attribute se match kar diya)
+                    new Permission { ModuleName = "Data Inventory", ActionName = "View Inventory", SystemName = "DataInventory.View" },
+                    new Permission { ModuleName = "Data Inventory", ActionName = "Manage Inventory", SystemName = "DataInventory.Manage" },
 
-                    // 🚨 Module 6: Grievance Management
+                    // Module 6: Grievance Management
                     new Permission { ModuleName = "Grievance Management", ActionName = "View Grievances", SystemName = "Grievances.View" },
                     new Permission { ModuleName = "Grievance Management", ActionName = "Manage Grievances", SystemName = "Grievances.Manage" },
 
-                    // 🚨 Module 7: Breach Management
+                    // Module 7: Breach Management
                     new Permission { ModuleName = "Breach Management", ActionName = "View Breaches", SystemName = "Breaches.View" },
                     new Permission { ModuleName = "Breach Management", ActionName = "Manage Breaches", SystemName = "Breaches.Manage" },
 
-                    // 🚨 Module 8: Campaign Management
+                    // Module 8: Campaign Management
                     new Permission { ModuleName = "Campaign Management", ActionName = "View Campaigns", SystemName = "Campaigns.View" },
                     new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" },
 
@@ -58,7 +58,7 @@ namespace PrivacyGuard.Data
                     
                     // Module 10: Retention Policy Management
                     new Permission { ModuleName = "Retention Policy Management", ActionName = "View Retention Policies", SystemName = "RetentionPolicy.View" },
-                    new Permission { ModuleName = "Retention Policy Management", ActionName = "Manage Retention Policies", SystemName = "RetentionPolicy.Manage" }  
+                    new Permission { ModuleName = "Retention Policy Management", ActionName = "Manage Retention Policies", SystemName = "RetentionPolicy.Manage" }
                 };
 
                 context.Permissions.AddRange(permissions);
@@ -149,7 +149,6 @@ namespace PrivacyGuard.Data
             };
             context.Grievances.Add(grievance);
 
-            // [MERGED] Tumhare dost ka Grievance Messages wala code
             context.GrievanceMessages.AddRange(
                 new GrievanceMessage { Id = Guid.NewGuid(), GrievanceId = grievanceId, SenderId = user1Id, MessageText = "Please help, my data is leaked.", IsInternal = false, CreatedAt = DateTime.UtcNow.AddHours(-2) },
                 new GrievanceMessage { Id = Guid.NewGuid(), GrievanceId = grievanceId, SenderId = staff1Id, MessageText = "We are looking into this urgently.", IsInternal = false, CreatedAt = DateTime.UtcNow.AddHours(-1) },
@@ -158,15 +157,14 @@ namespace PrivacyGuard.Data
 
             // 7. 🟢 BAAKI PURANA DUMMY DATA (Merged and Fixed)
 
-            // 7.1 Data Inventory (Ye upar aana zaruri hai taaki Campaign isko use kar sake)
+            // 7.1 Data Inventory 
             var inventoryId = Guid.NewGuid();
             context.DataInventories.Add(new DataInventory { DataInventoryId = inventoryId, OrganizationId = orgId, Name = "Patient Medical Records", DataCategory = "Health Data", Purpose = "Treatment & Diagnosis", Status = "Active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
 
             // 7.2 Campaign
             context.Campaigns.Add(new Campaign { CampaignId = Guid.NewGuid(), OrganizationId = orgId, Title = "New Health Data Policy 2026", CampaignType = "Awareness", TargetRole = "All", Status = "Active", StartDate = DateTime.UtcNow.AddDays(-5), EndDate = DateTime.UtcNow.AddDays(15), CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, DataInventoryId = inventoryId });
 
-            // 7.3 Consent Record (userId fix karke user1Id kar diya hai)
-            // 1. Sabse pehle ek dummy DataPrincipal (User) DB mein daalo taaki uski ID ban jaye
+            // 7.3 Consent Record 
             var dummyPrincipalId = Guid.NewGuid();
 
             if (!context.DataPrincipals.Any())
@@ -174,7 +172,7 @@ namespace PrivacyGuard.Data
                 context.DataPrincipals.Add(new DataPrincipal
                 {
                     DataPrincipalId = dummyPrincipalId,
-                    OrganizationId = orgId, // Ensure karna ki tumhara orgId variable yahan available ho
+                    OrganizationId = orgId,
                     ReferenceId = "PSD-DUMMY-001",
                     FullName = "Amit Dummy",
                     Email = "amit@dummy.com",
@@ -184,35 +182,26 @@ namespace PrivacyGuard.Data
                     CreatedAt = DateTime.UtcNow
                 });
 
-                // Pehle isko save karo taaki Foreign Key ban jaye
                 context.SaveChanges();
             }
             else
             {
-                // Agar pehle se DB mein koi principal hai, toh uski ID use kar lo
                 dummyPrincipalId = context.DataPrincipals.First().DataPrincipalId;
             }
 
-            // 2. Ab ConsentRecord daalo, aur usme wahi dummyPrincipalId pass karo
             context.ConsentRecords.Add(new ConsentRecord
             {
                 ConsentRecordId = Guid.NewGuid(),
                 OrganizationId = orgId,
-                DataPrincipalId = dummyPrincipalId, // Yahan random GUID ki jagah asli ID pass ki hai
+                DataPrincipalId = dummyPrincipalId,
                 OverallStatus = ConsentStatus.Granted,
                 CreatedAt = DateTime.UtcNow
             });
 
-            // 3. Sath mein Privacy Request bhi daal do usi ID ke sath
+            // 7.4 Privacy Requests (🚨 FIXED: user1Id ki jagah dummyPrincipalId use kiya hai taaki FK error na aaye)
             context.PrivacyRequests.AddRange(
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) }
-            );
-
-            context.SaveChanges();
-            // 7.4 Privacy Requests (FIXED: Strings replaced with Enums)
-            context.PrivacyRequests.AddRange(
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) },
-                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = user1Id, ReferenceId = "DSR-2026-0002", RequestType = PrivacyRequestType.Access, RequestDetails = "I need my complete medical history", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-28) }
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0001", RequestType = PrivacyRequestType.Erasure, RequestDetails = "Please delete my old X-Ray reports", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-2) },
+                new PrivacyRequest { RequestId = Guid.NewGuid(), OrganizationId = orgId, DataPrincipalId = dummyPrincipalId, ReferenceId = "DSR-2026-0002", RequestType = PrivacyRequestType.Access, RequestDetails = "I need my complete medical history", Status = PrivacyRequestStatus.Submitted, CreatedAt = DateTime.UtcNow.AddDays(-28) }
             );
 
             // 7.5 Data Breach
