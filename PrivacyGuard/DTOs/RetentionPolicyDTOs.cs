@@ -3,6 +3,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PrivacyGuard.DTOs
 {
+    public class RetentionMetricsDto
+    {
+        public int ActivePolicies { get; set; }
+        public int Overdue { get; set; }
+        public int JobsInQueue { get; set; }
+    }
+
     // Frontend ko policy list ya detail dikhane ke liye DTO
     public class RetentionPolicyDto
     {
