@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using PrivacyGuard.Models;
 using PrivacyGuard.Interfaces.Repositories;
-using PrivacyGuard.Interfaces.Services; 
+using PrivacyGuard.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
+
 namespace PrivacyGuard.Services
 {
     public class ReportGeneratorService : IReportGeneratorService
@@ -21,7 +23,7 @@ namespace PrivacyGuard.Services
             _env = env;
         }
 
-        // Job create karne ka naya method (Controller directly DB me job na banaye isliye)
+
         public async Task<ReportJob> InitializeReportJobAsync(Guid orgId, Guid userId, string reportType)
         {
             var job = new ReportJob
@@ -122,5 +124,82 @@ namespace PrivacyGuard.Services
                 return false;
             }
         }
+
+        public async Task<bool> GenerateGrievanceReportAsync(Guid jobId, Guid organizationId) 
+        {
+            
+            var grievanceData = await _reportRepository.GetGrievanceReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, grievanceData, "GrievanceReport");
+        }
+
+        public async Task<bool> GenerateGrievanceAuditReportAsync(Guid jobId, Guid organizationId)
+        {
+          
+            var auditData = await _reportRepository.GetGrievanceAuditReportDataAsync(organizationId);
+
+         
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, auditData, "GrievanceAuditReport");
+        }
+
+        public async Task<bool> GenerateConsentAuditReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetConsentAuditReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "ConsentAuditReport");
+        }
+
+        public async Task<bool> GenerateDataBreachReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDataBreachReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DataBreachReport");
+        }
+
+        public async Task<bool> GenerateDpiaReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDpiaReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DpiaReport");
+        }
+
+        public async Task<bool> GenerateDsarReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDsarReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DsarReport");
+        }
+
+        public async Task<bool> GenerateDataInventoryReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDataInventoryReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DataInventoryReport");
+        }
+
+        public async Task<bool> GenerateDataProcessingReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDataProcessingReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DataProcessingReport");
+        }
+
+        public async Task<bool> GenerateDataRetentionReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDataRetentionReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DataRetentionReport");
+        }
+
+        public async Task<bool> GenerateDataSharingReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetDataSharingReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "DataSharingReport");
+        }
+
+        public async Task<bool> GenerateSecurityAuditReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetSecurityAuditReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "SecurityAuditReport");
+        }
+
+        public async Task<bool> GenerateComplianceGapReportAsync(Guid jobId, Guid organizationId)
+        {
+            var data = await _reportRepository.GetComplianceGapReportDataAsync(organizationId);
+            return await GenerateAndSaveCsvEvidenceAsync(jobId, organizationId, data, "ComplianceGapReport");
+        }
+
     }
 }
