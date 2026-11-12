@@ -221,6 +221,59 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("Campaigns");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceGroup", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("GroupId");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CampaignAudienceGroups");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceGroupMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MemberId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId", "MemberId", "UserType")
+                        .IsUnique();
+
+                    b.ToTable("CampaignAudienceGroupMembers");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceMapping", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1481,6 +1534,17 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceGroupMember", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.CampaignAudienceGroup", "Group")
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.CampaignResponse", b =>
                 {
                     b.HasOne("PrivacyGuard.Models.Campaign", "Campaign")
@@ -1743,6 +1807,11 @@ namespace PrivacyGuard.Migrations
             modelBuilder.Entity("PrivacyGuard.Models.BulkImportBatch", b =>
                 {
                     b.Navigation("Rows");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.CampaignAudienceGroup", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.ConsentPurpose", b =>
