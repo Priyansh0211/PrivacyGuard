@@ -1,9 +1,13 @@
-﻿namespace PrivacyGuard.DTOs
+﻿using System;
+
+namespace PrivacyGuard.DTOs
 {
     public class DataPrincipalDto
     {
+        public Guid? RoleId { get; set; }
         public string? Mobile { get; set; }
         public string? Email { get; set; }
+        public string? Password { get; set; }
         public string? ConsumerNo { get; set; }
         public string? FullName { get; set; }
         public string? DateOfBirth { get; set; } // yyyy-MM-dd format

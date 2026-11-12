@@ -85,24 +85,54 @@ namespace PrivacyGuard.Services
         {
             var user = await _tenantRepository.GetUserByEmailAsync(request.Email);
 
-            if (user == null || user.PasswordHash != request.Password) return (false, string.Empty, "Invalid email or password");
-            if (!user.IsActive) return (false, string.Empty, "Account is disabled");
+            Guid organizationId;
+            string email;
+            string roleName;
+            string userType;
+            User? internalUser = null;
+            DataPrincipal? dataPrincipal = null;
 
-            var roleName = user.UserRole != null ? user.UserRole.Name : "NoRoleAssigned";
+            var isLegacyDataPrincipalUser =
+                user?.UserRole?.Name.Equals("DataPrincipal", StringComparison.OrdinalIgnoreCase) == true;
 
-            // 1. Ek hi baar claims list banayenge
+            if (user != null && !isLegacyDataPrincipalUser && user.PasswordHash == request.Password)
+            {
+                if (!user.IsActive) return (false, string.Empty, "Account is disabled");
+
+                internalUser = user;
+                organizationId = user.OrganizationId;
+                email = user.Email;
+                roleName = user.UserRole?.Name ?? "NoRoleAssigned";
+                userType = "InternalUser";
+            }
+            else
+            {
+                dataPrincipal = await _tenantRepository.GetDataPrincipalByEmailAsync(request.Email);
+
+                if (dataPrincipal == null || dataPrincipal.PasswordHash != request.Password)
+                    return (false, string.Empty, "Invalid email or password");
+
+                organizationId = dataPrincipal.OrganizationId;
+                email = dataPrincipal.Email!;
+                roleName = dataPrincipal.Role?.Name ?? "DataPrincipal";
+                userType = "DataPrincipal";
+            }
+
+            var identityId = internalUser?.UserId ?? dataPrincipal!.DataPrincipalId;
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.NameIdentifier, identityId.ToString()),
+                new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, roleName),
-                new Claim("OrganizationId", user.OrganizationId.ToString())
+                new Claim("UserType", userType),
+                new Claim("OrganizationId", organizationId.ToString())
             };
 
             
 
             // Teammate ka feature: Permissions add karna
-            var userPermissions = await _tenantRepository.GetPermissionsByRoleIdAsync(user.RoleId);
+            var permissionsRoleId = internalUser?.RoleId ?? dataPrincipal?.RoleId;
+            var userPermissions = await _tenantRepository.GetPermissionsByRoleIdAsync(permissionsRoleId);
             if (userPermissions != null && userPermissions.Any())
             {
                 foreach (var systemName in userPermissions)
@@ -112,9 +142,9 @@ namespace PrivacyGuard.Services
             }
 
             // Teammate ka feature: OrgUnitId check
-            if (user.OrgUnitId.HasValue && user.OrgUnitId.Value != Guid.Empty)
+            if (internalUser?.OrgUnitId.HasValue == true && internalUser.OrgUnitId.Value != Guid.Empty)
             {
-                claims.Add(new Claim("OrgUnitId", user.OrgUnitId.Value.ToString()));
+                claims.Add(new Claim("OrgUnitId", internalUser.OrgUnitId.Value.ToString()));
             }
 
             // 2. Ek hi baar Security Key banayenge null check ke sath
@@ -141,9 +171,12 @@ namespace PrivacyGuard.Services
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-            user.LastLoginDate = DateTime.UtcNow;
-            user.LastLoginIP = loginIp;
-            await _tenantRepository.UpdateUserAsync(user);
+            if (internalUser != null)
+            {
+                internalUser.LastLoginDate = DateTime.UtcNow;
+                internalUser.LastLoginIP = loginIp;
+                await _tenantRepository.UpdateUserAsync(internalUser);
+            }
 
             return (true, tokenString, string.Empty);
         }

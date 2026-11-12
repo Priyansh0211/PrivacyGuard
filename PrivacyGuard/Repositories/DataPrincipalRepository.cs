@@ -34,6 +34,7 @@ namespace PrivacyGuard.Repositories
         {
             // Ek hi query mein DataPrincipal ke sath uski saari related lists aur nested tables fetch kar li
             return await _context.DataPrincipals
+                .Include(dp => dp.Role)
                 .Include(dp => dp.Identifiers)
                 .Include(dp => dp.PrivacyRequests)
                 .Include(dp => dp.ConsentRecords)

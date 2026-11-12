@@ -63,7 +63,25 @@ namespace PrivacyGuard.Repositories
 
         public async Task<CampaignResponse> SaveResponseAsync(CampaignResponse response, bool isInternalUser)
         {
-            Guid actorId = isInternalUser ? response.UserId.Value : response.DataPrincipalId.Value;
+            if (isInternalUser)
+            {
+                if (!response.UserId.HasValue ||
+                    !await _dbContext.Users.AnyAsync(u => u.UserId == response.UserId.Value))
+                {
+                    throw new InvalidOperationException("The logged-in internal user does not exist.");
+                }
+            }
+            else
+            {
+                if (!response.DataPrincipalId.HasValue ||
+                    !await _dbContext.DataPrincipals.AnyAsync(dp => dp.DataPrincipalId == response.DataPrincipalId.Value))
+                {
+                    throw new InvalidOperationException(
+                        "The token contains an invalid DataPrincipalId. Log out, log in again, and use the new token.");
+                }
+            }
+
+            Guid actorId = isInternalUser ? response.UserId!.Value : response.DataPrincipalId!.Value;
             var existing = await GetUserResponseAsync(response.CampaignId, actorId, isInternalUser);
 
             if (existing != null)
