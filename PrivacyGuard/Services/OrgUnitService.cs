@@ -42,7 +42,7 @@ namespace PrivacyGuard.Services
                 UnitCode = orgUnit.UnitCode,
                 ParentId = orgUnit.ParentId,
                 IsActive = orgUnit.IsActive,
-                PrincipalsCount = 0
+                PrincipalsCount = 0 // Naya banaya hai toh count 0 hi rahega
             };
         }
 
@@ -50,17 +50,26 @@ namespace PrivacyGuard.Services
         {
             var allUnits = await _repository.GetAllByOrgIdAsync(organizationId);
 
-            var dict = allUnits.Select(u => new OrgUnitResponseDto
+            var dict = new Dictionary<Guid, OrgUnitResponseDto>();
+
+            // FIX 2: Hardcoded 0 ki jagah Repository se actual DB count mangwa rahe hain
+            foreach (var u in allUnits)
             {
-                Id = u.Id,
-                OrganizationId = u.OrganizationId,
-                Name = u.Name,
-                UnitType = u.UnitType,
-                UnitCode = u.UnitCode,
-                PrincipalsCount = 0, // Isko baad me repository count function se replace kar sakte ho
-                ParentId = u.ParentId,
-                IsActive = u.IsActive
-            }).ToDictionary(u => u.Id);
+                var principalsCount = await _repository.GetPrincipalsCountAsync(u.Id);
+
+                dict.Add(u.Id, new OrgUnitResponseDto
+                {
+                    Id = u.Id,
+                    OrganizationId = u.OrganizationId,
+                    Name = u.Name,
+                    UnitType = u.UnitType,
+                    UnitCode = u.UnitCode,
+                    PrincipalsCount = principalsCount, // Actual count mapped here
+                    ParentId = u.ParentId,
+                    IsActive = u.IsActive,
+                    Children = new List<OrgUnitResponseDto>()
+                });
+            }
 
             var tree = new List<OrgUnitResponseDto>();
 
@@ -76,7 +85,9 @@ namespace PrivacyGuard.Services
                 }
             }
 
-            if (role == "Admin" || role == "SuperAdmin")
+            // FIX 1: "SystemAdmin" ko add kar diya aur ek fallback (string.IsNullOrEmpty) de diya
+            // Kyunki controller par [HasPermission] pehle hi security handle kar raha hai
+            if (role == "Admin" || role == "SuperAdmin" || role == "SystemAdmin" || string.IsNullOrEmpty(role))
             {
                 return tree;
             }
@@ -132,19 +143,18 @@ namespace PrivacyGuard.Services
                 UnitCode = unit.UnitCode,
                 ParentId = unit.ParentId,
                 IsActive = unit.IsActive,
-                PrincipalsCount = 0
+                PrincipalsCount = await _repository.GetPrincipalsCountAsync(unit.Id)
             };
         }
+
         public async Task<bool> DeleteOrgUnitAsync(Guid id, Guid organizationId)
         {
             var unit = await _repository.GetByIdAsync(id, organizationId);
             if (unit == null) return false;
 
-            // UI level check: Delete karne se pehle check kar sakte ho ki child exist karta hai ya nahi
             bool hasChildren = await _repository.HasChildrenAsync(id);
             if (hasChildren)
             {
-                // Agar child hain toh delete allow mat karo (ya custom exception throw karo)
                 return false;
             }
 

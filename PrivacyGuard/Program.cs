@@ -103,6 +103,8 @@ builder.Services.AddScoped<IBreachService, BreachService>();
 
 builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
+builder.Services.AddScoped<ICampaignAudienceGroupRepository, CampaignAudienceGroupRepository>();
+builder.Services.AddScoped<ICampaignAudienceGroupService, CampaignAudienceGroupService>();
 
 builder.Services.AddScoped<IConsentRepository, ConsentRepository>();
 builder.Services.AddScoped<IConsentService, ConsentService>();
@@ -149,6 +151,15 @@ builder.Services.AddScoped<INoticeTemplateService, NoticeTemplateService>();
 builder.Services.AddScoped<INoticeRepository, NoticeRepository>();
 builder.Services.AddScoped<INoticeService, NoticeService>();
 
+// Repositories
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+
+// Services
+builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+//builder.Services.AddScoped<IReportDataService, ReportDataService>();
+builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
+builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
+builder.Services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();

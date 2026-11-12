@@ -53,6 +53,13 @@ namespace PrivacyGuard.Data
         public DbSet<NoticeTranslation> NoticeTranslations { get; set; }
 
         public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
+        public DbSet<CampaignAudienceGroup> CampaignAudienceGroups { get; set; }
+        public DbSet<CampaignAudienceGroupMember> CampaignAudienceGroupMembers { get; set; }
+        public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
+
+
+        public DbSet<ReportJob> ReportJobs { get; set; }
+        public DbSet<GeneratedReport> GeneratedReports { get; set; }
 
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
@@ -103,6 +110,20 @@ namespace PrivacyGuard.Data
 
             modelBuilder.Entity<ConsentPurposeDataProcessor>()
                 .HasKey(pp => new { pp.ConsentPurposeId, pp.DataProcessorId });
+
+            modelBuilder.Entity<CampaignAudienceGroupMember>()
+                .HasOne(member => member.Group)
+                .WithMany(group => group.Members)
+                .HasForeignKey(member => member.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CampaignAudienceGroup>()
+                .HasIndex(group => new { group.OrganizationId, group.Name })
+                .IsUnique();
+
+            modelBuilder.Entity<CampaignAudienceGroupMember>()
+                .HasIndex(member => new { member.GroupId, member.MemberId, member.UserType })
+                .IsUnique();
         }
 
         // ==========================================
