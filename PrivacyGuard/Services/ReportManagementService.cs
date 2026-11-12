@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Hosting;
-using PrivacyGuard.Models;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
+using PrivacyGuard.Models;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Services
 {
@@ -18,6 +19,24 @@ namespace PrivacyGuard.Services
         {
             _reportRepository = reportRepository;
             _env = env;
+        }
+
+        public async Task<Guid> CreateReportJobAsync(Guid organizationId, string reportType)
+        {
+        
+            var job = new ReportJob
+            {
+                JobId = Guid.NewGuid(),
+                OrganizationId = organizationId,
+                ReportType = reportType, // Jaise "GrievanceReport"
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            
+            await _reportRepository.CreateJobAsync(job);
+
+            return job.JobId;
         }
 
         public async Task<IEnumerable<ReportJob>> GetReportHistoryAsync(Guid organizationId)

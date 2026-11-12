@@ -1,16 +1,17 @@
-﻿
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces.Services;
-using System.Security.Claims;
+using System;
+using System.Threading.Tasks;
+// using PrivacyGuard.Filters; // Apne project ke hisaab se HasPermission ka namespace uncomment kar lena
 
 namespace PrivacyGuard.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Bina valid JWT token ke API access nahi - 401 dega
-
+    [Authorize]
     public class DataInventoryController : ControllerBase
     {
         private readonly IDataInventoryService _service;
@@ -20,69 +21,72 @@ namespace PrivacyGuard.Controllers
             _service = service;
         }
 
-        // Custom helper - JWT token ke andar se (claims se) OrganizationId nikalta hai taaki user sirf apni company ka data dekh sake
-
-        private bool TryGetOrganizationId(out Guid organizationId)
+        // Helper: Token se Org ID nikalne ke liye
+        private Guid GetOrganizationId()
         {
-            organizationId = Guid.Empty;
-
             var claim = User.FindFirst("OrganizationId");
-
-            return claim != null &&
-                   Guid.TryParse(claim.Value, out organizationId);
+            return claim != null && Guid.TryParse(claim.Value, out var orgId) ? orgId : Guid.Empty;
         }
+
         [HttpGet]
+        [HasPermission("DataInventory.View")] // Sirf View permission
         public async Task<IActionResult> GetAll()
         {
-            // Agar token me organization id nahi mili (gadbad hai), to request ko reject kar dega (403 Forbidden)
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
 
-           var result = await _service.GetAllAsync(organizationId);
-
+            var result = await _service.GetAllAsync(orgId);
             return Ok(result);
         }
 
         [HttpGet("{id:guid}")]
+        [HasPermission("DataInventory.View")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            var orgId = GetOrganizationId();
+            var result = await _service.GetByIdAsync(id, orgId);
 
-            var result = await _service.GetByIdAsync(id, organizationId);
-
-            if (result == null)
-                return NotFound(new { Message = "Inventory record not found." });
+            if (result == null) return NotFound(new { Message = "Inventory record not found." });
 
             return Ok(result);
         }
-        
+
         [HttpPost("Create")]
-        public async Task<IActionResult> Create(
-            [FromBody] CreateDataInventoryDto request)
+        [HasPermission("DataInventory.Manage")] // Manage permission for Creating
+        public async Task<IActionResult> Create([FromBody] CreateDataInventoryDto request)
         {
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var result = await _service.CreateAsync(request, organizationId);
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
 
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = result.DataInventoryId },
-                result);
+            var result = await _service.CreateAsync(request, orgId);
+
+            return CreatedAtAction(nameof(GetById), new { id = result.DataInventoryId }, result);
         }
 
         [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id,[FromBody] UpdateDataInventoryDto request)
+        [HasPermission("DataInventory.Manage")] // Manage permission for Updating
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDataInventoryDto request)
         {
-            if (!TryGetOrganizationId(out var organizationId))
-                return Forbid();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var updated = await _service.UpdateAsync(
-                id, request, organizationId);
+            var orgId = GetOrganizationId();
+            var updated = await _service.UpdateAsync(id, request, orgId);
 
-            if (!updated)
-                return NotFound(new { Message = "Inventory record not found." });
+            if (!updated) return NotFound(new { Message = "Inventory record not found." });
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id:guid}")]
+        [HasPermission("DataInventory.Manage")] // Delete method add kiya gaya hai
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var orgId = GetOrganizationId();
+            var deleted = await _service.DeleteAsync(id, orgId);
+
+            if (!deleted) return NotFound(new { Message = "Inventory record not found." });
 
             return NoContent();
         }

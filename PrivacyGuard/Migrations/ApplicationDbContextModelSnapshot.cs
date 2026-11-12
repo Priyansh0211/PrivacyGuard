@@ -1293,6 +1293,49 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("ReportJobs");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.RetentionPolicy", b =>
+                {
+                    b.Property<Guid>("PolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PolicyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("RetentionPeriodInDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TriggerEvent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PolicyId");
+
+                    b.ToTable("RetentionPolicies");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.Role", b =>
                 {
                     b.Property<Guid>("Id")
