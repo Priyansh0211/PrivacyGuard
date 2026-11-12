@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PrivacyGuard.Models
 {
@@ -11,6 +12,11 @@ namespace PrivacyGuard.Models
 
         public Guid OrganizationId { get; set; }
 
+        public Guid? RoleId { get; set; }
+
+        [ForeignKey(nameof(RoleId))]
+        public Role? Role { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string ReferenceId { get; set; } = string.Empty;
@@ -20,6 +26,11 @@ namespace PrivacyGuard.Models
 
         [MaxLength(100)]
         public string? Email { get; set; }
+
+        // Credentials used by the shared login endpoint.
+        // Existing records must be assigned a password before they can log in.
+        public string? PasswordHash { get; set; }
+        public bool IsActive { get; set; } = true;
 
         [MaxLength(50)]
         public string? ConsumerNo { get; set; }

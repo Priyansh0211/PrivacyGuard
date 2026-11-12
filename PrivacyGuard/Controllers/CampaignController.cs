@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Filters;
@@ -44,7 +45,16 @@ namespace PrivacyGuard.Controllers
                 if (string.IsNullOrEmpty(actorIdStr) || string.IsNullOrEmpty(orgIdStr)) return Unauthorized();
 
                 var campaigns = await _campaignService.GetMyActiveCampaignsAsync(Guid.Parse(orgIdStr), Guid.Parse(actorIdStr), userRole, IsInternalUser());
-                return Ok(campaigns);
+                        return Ok(campaigns);
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(new
+                {
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message,
+                    rootError = ex.InnerException?.InnerException?.Message
+                });
             }
             catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
         }
@@ -60,6 +70,15 @@ namespace PrivacyGuard.Controllers
 
                 var response = await _campaignService.SubmitCampaignResponseAsync(dto, Guid.Parse(actorIdStr), Guid.Parse(orgIdStr), IsInternalUser());
                 return Ok(new { message = "Response recorded successfully.", responseStatus = response.ResponseStatus });
+            }
+            catch (DbUpdateException ex)
+            {
+                return BadRequest(new
+                {
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message,
+                    rootError = ex.InnerException?.InnerException?.Message
+                });
             }
             catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
         }

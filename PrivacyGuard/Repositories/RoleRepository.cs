@@ -3,6 +3,7 @@ using PrivacyGuard.Data;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
 using static PrivacyGuard.DTOs.RolePermissionDto;
+using System.Data;
 
 namespace PrivacyGuard.Repositories
 {
@@ -23,7 +24,7 @@ namespace PrivacyGuard.Repositories
         public async Task<bool> CreateRoleWithPermissionsAsync(Role role, List<RolePermission> rolePermissions)
         {
             // Transaction शुरू कर रहे हैं ताकि Role और Permissions दोनों एक साथ सेव हों
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 // 1. Role सेव करो
@@ -115,7 +116,7 @@ namespace PrivacyGuard.Repositories
         public async Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, string name, string description, List<int> permissionIds)
         {
             // Transaction shuru kar rahe hain, taaki agar error aaye toh aadha data save na ho
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 // 1. Check karo ki Role exist karta hai aur current Organization ka hi hai

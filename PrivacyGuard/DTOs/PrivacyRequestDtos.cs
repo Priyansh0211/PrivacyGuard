@@ -11,7 +11,7 @@
     // Admin jab request resolve karega
     public class ResolvePrivacyRequestDto
     {
-        public string Status { get; set; } = string.Empty; // e.g., "Resolved"
+        public string Status { get; set; } = string.Empty; 
         public string ResolutionRemarks { get; set; } = string.Empty; 
     }
 }
