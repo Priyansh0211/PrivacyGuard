@@ -25,12 +25,16 @@ namespace PrivacyGuard.Data
                     new Permission { ModuleName = "DPIA Management", ActionName = "Create New DPIA", SystemName = "DPIA.Create" },
                     new Permission { ModuleName = "DPIA Management", ActionName = "Approve / Reject DPIA", SystemName = "DPIA.Approve" },
 
-                    // Module 3: Privacy & Grievance Requests
+                    // Module 3 & 14 & 15: Privacy & Grievance Requests
                     new Permission { ModuleName = "Privacy Requests", ActionName = "View Requests", SystemName = "PrivacyRequest.View" },
                     new Permission { ModuleName = "Privacy Requests", ActionName = "Resolve Requests", SystemName = "PrivacyRequest.Resolve" },
+                    new Permission { ModuleName = "Privacy Requests", ActionName = "Manage Requests", SystemName = "PrivacyRequest.Manage" },
+                    new Permission { ModuleName = "Privacy Requests", ActionName = "Create Own Requests", SystemName = "PrivacyRequest.CreatePublic" },
+                    new Permission { ModuleName = "Privacy Requests", ActionName = "Read Own Requests", SystemName = "PrivacyRequest.ReadPublic" },
 
                     // Module 4: Consent Management
                     new Permission { ModuleName = "Consent Management", ActionName = "View Consent Records", SystemName = "Consent.View" },
+                    new Permission { ModuleName = "Consent Management", ActionName = "Manage Consent Records", SystemName = "Consent.Manage" },
                     
                     // Module 5: Data Inventory
                     new Permission { ModuleName = "Data Inventory", ActionName = "View Inventory", SystemName = "DataInventory.View" },
@@ -48,9 +52,11 @@ namespace PrivacyGuard.Data
                     new Permission { ModuleName = "Campaign Management", ActionName = "View Campaigns", SystemName = "Campaigns.View" },
                     new Permission { ModuleName = "Campaign Management", ActionName = "Create Campaigns", SystemName = "Campaigns.Create" },
 
+                    // Audit & Notice Templates
                     new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template View", SystemName = "NoticeTemplates.View" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template Manage", SystemName = "NoticeTemplates.Manage" },
+                    new Permission { ModuleName = "Notice Template", ActionName = "Read Public Notices", SystemName = "Notice.ReadPublic" },
                     
                     // Module 9: Organization & OrgUnit Management
                     new Permission { ModuleName = "Organization", ActionName = "Organization View", SystemName = "OrgUnit.View" },
@@ -58,7 +64,15 @@ namespace PrivacyGuard.Data
                     
                     // Module 10: Retention Policy Management
                     new Permission { ModuleName = "Retention Policy Management", ActionName = "View Retention Policies", SystemName = "RetentionPolicy.View" },
-                    new Permission { ModuleName = "Retention Policy Management", ActionName = "Manage Retention Policies", SystemName = "RetentionPolicy.Manage" }
+                    new Permission { ModuleName = "Retention Policy Management", ActionName = "Manage Retention Policies", SystemName = "RetentionPolicy.Manage" },
+
+                    // Module 11: Data Principal Management
+                    new Permission { ModuleName = "Data Principal", ActionName = "View Data Principals", SystemName = "DataPrincipal.View" },
+                    new Permission { ModuleName = "Data Principal", ActionName = "Manage Data Principals", SystemName = "DataPrincipal.Manage" },
+
+                    // Module 13: Bulk Import Management
+                    new Permission { ModuleName = "Bulk Import", ActionName = "View Imports", SystemName = "Import.View" },
+                    new Permission { ModuleName = "Bulk Import", ActionName = "Manage Imports", SystemName = "Import.Manage" }
                 };
 
                 context.Permissions.AddRange(permissions);
@@ -111,19 +125,30 @@ namespace PrivacyGuard.Data
             );
             context.SaveChanges();
 
-            // 5. 🟢 SEED ROLE PERMISSIONS (Dynamic Map)
-            var allPermissions = context.Permissions.ToList();
+            // 5. 🟢 SEED ROLE PERMISSIONS (Fixed Order)
+            var allPermissionsList = context.Permissions.ToList();
 
-            foreach (var perm in allPermissions)
+            // A. Admin ko saari permissions
+            foreach (var perm in allPermissionsList)
             {
                 context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = adminRoleId, PermissionId = perm.Id });
             }
 
-            var staffPerms = allPermissions.Where(p => p.SystemName.StartsWith("Grievances") || p.SystemName.StartsWith("Breaches")).ToList();
+            // B. Staff ko specific permissions (Grievances & Breaches)
+            var staffPerms = allPermissionsList.Where(p => p.SystemName.StartsWith("Grievances") || p.SystemName.StartsWith("Breaches")).ToList();
             foreach (var perm in staffPerms)
             {
                 context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = staffRoleId, PermissionId = perm.Id });
             }
+
+            // C. Data Principal ko sirf Public permissions
+            var publicPermissionNames = new List<string> { "Notice.ReadPublic", "PrivacyRequest.CreatePublic", "PrivacyRequest.ReadPublic" };
+            var publicPermissions = allPermissionsList.Where(p => publicPermissionNames.Contains(p.SystemName)).ToList();
+            foreach (var perm in publicPermissions)
+            {
+                context.RolePermissions.Add(new RolePermission { Id = Guid.NewGuid(), RoleId = userRoleId, PermissionId = perm.Id });
+            }
+
             context.SaveChanges();
 
             // 6. 🟢 DUMMY GRIEVANCE TICKET & MESSAGES
@@ -150,7 +175,7 @@ namespace PrivacyGuard.Data
                 new GrievanceMessage { Id = Guid.NewGuid(), GrievanceId = grievanceId, SenderId = adminId, MessageText = "Internal Note: Escalate this to DPO immediately. Possible breach.", IsInternal = true, CreatedAt = DateTime.UtcNow }
             );
 
-            // 7. 🟢 BAAKI PURANA DUMMY DATA (Merged and Fixed)
+            // 7. 🟢 BAAKI PURANA DUMMY DATA
             var inventoryId = Guid.NewGuid();
             context.DataInventories.Add(new DataInventory { DataInventoryId = inventoryId, OrganizationId = orgId, Name = "Patient Medical Records", DataCategory = "Health Data", Purpose = "Treatment & Diagnosis", Status = "Active", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
 
@@ -195,14 +220,14 @@ namespace PrivacyGuard.Data
             context.DataBreachIncidents.Add(new DataBreachIncident { Id = Guid.NewGuid(), OrganizationId = orgId, Title = "Unauthorized Access to Lab Results", Description = "An intern accessed reports without permission.", Severity = "High", IncidentDate = DateTime.UtcNow.AddDays(-3), DiscoveryDate = DateTime.UtcNow.AddDays(-2), EstimatedAffectedRecords = 150, Status = "Open", CreatedAt = DateTime.UtcNow });
             context.SaveChanges();
 
-            // 8. 🟢 SEED RETENTION POLICY & METRICS DATA (Dashboard test karne ke liye)
+            // 8. 🟢 SEED RETENTION POLICY & METRICS DATA
             if (!context.RetentionPolicies.Any())
             {
                 var policyId = Guid.NewGuid();
                 context.RetentionPolicies.Add(new RetentionPolicy
                 {
                     PolicyId = policyId,
-                    OrganizationId = orgId, // Same organization ID taaki query chal sake
+                    OrganizationId = orgId,
                     PolicyName = "Standard Inactive User Policy",
                     Description = "Anonymize users older than 30 days",
                     RetentionPeriodInDays = 30,
@@ -212,32 +237,54 @@ namespace PrivacyGuard.Data
                     CreatedAt = DateTime.UtcNow
                 });
 
-                // Metrics numbers ke liye dummy records
                 context.DataPrincipals.AddRange(
-                    new DataPrincipal
-                    {
-                        DataPrincipalId = Guid.NewGuid(),
-                        OrganizationId = orgId,
-                        ReferenceId = "PSD-OVERDUE-01",
-                        FullName = "Overdue User",
-                        Email = "overdue@test.com",
-                        Mobile = "1111111111",
-                        Class = "adult",
-                        PreferredLocale = "en-IN",
-                        CreatedAt = DateTime.UtcNow.AddDays(-35) // Overdue ke liye 30 days se pehle ka
-                    },
-                    new DataPrincipal
-                    {
-                        DataPrincipalId = Guid.NewGuid(),
-                        OrganizationId = orgId,
-                        ReferenceId = "PSD-QUEUE-01",
-                        FullName = "Queue User",
-                        Email = "queue@test.com",
-                        Mobile = "2222222222",
-                        Class = "adult",
-                        PreferredLocale = "en-IN",
-                        CreatedAt = DateTime.UtcNow.AddDays(-25) // Queue ke liye 23 to 30 days ke beech ka
-                    }
+                    new DataPrincipal { DataPrincipalId = Guid.NewGuid(), OrganizationId = orgId, ReferenceId = "PSD-OVERDUE-01", FullName = "Overdue User", Email = "overdue@test.com", Mobile = "1111111111", Class = "adult", PreferredLocale = "en-IN", CreatedAt = DateTime.UtcNow.AddDays(-35) },
+                    new DataPrincipal { DataPrincipalId = Guid.NewGuid(), OrganizationId = orgId, ReferenceId = "PSD-QUEUE-01", FullName = "Queue User", Email = "queue@test.com", Mobile = "2222222222", Class = "adult", PreferredLocale = "en-IN", CreatedAt = DateTime.UtcNow.AddDays(-25) }
+                );
+
+                context.SaveChanges();
+            }
+
+            // 9. 🟢 SEED NOTICE TEMPLATE & PUBLISHED NOTICE
+            if (!context.Notices.Any())
+            {
+                var templateId = Guid.NewGuid();
+                var noticeId = Guid.NewGuid();
+
+                context.NoticeTemplates.Add(new NoticeTemplate
+                {
+                    Id = templateId,
+                    OrganizationId = orgId,
+                    Code = "PRIV-2026",
+                    Name = "Standard DPDP Privacy Policy",
+                    Description = "Default privacy notice for all new users.",
+                    PurposesJson = "[\"Service Delivery\", \"Analytics\"]",
+                    LogoUrl = "/images/default-logo.png",
+                    PrimaryColor = "#0F62FE",
+                    Layout = "Standard",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+                context.Notices.Add(new Notice
+                {
+                    Id = noticeId,
+                    OrganizationId = orgId,
+                    NoticeTemplateId = templateId,
+                    Code = "PRIV-2026",
+                    Status = "Published",
+                    Version = 1,
+                    Sha256Hash = "dummy-hash-1234567890abcdef",
+                    PurposesJson = "[\"Service Delivery\", \"Analytics\"]",
+                    Layout = "Standard",
+                    PrimaryColor = "#0F62FE",
+                    LogoUrl = "/images/default-logo.png",
+                    CreatedAt = DateTime.UtcNow,
+                    PublishedAt = DateTime.UtcNow
+                });
+
+                context.NoticeTranslations.AddRange(
+                    new NoticeTranslation { Id = Guid.NewGuid(), NoticeId = noticeId, LanguageCode = "en", Title = "Privacy Notice", Summary = "We collect your data to provide better services.", IsTranslated = true },
+                    new NoticeTranslation { Id = Guid.NewGuid(), NoticeId = noticeId, LanguageCode = "hi", Title = "गोपनीयता सूचना", Summary = "हम बेहतर सेवाएं प्रदान करने के लिए आपका डेटा एकत्र करते हैं।", IsTranslated = true }
                 );
 
                 context.SaveChanges();

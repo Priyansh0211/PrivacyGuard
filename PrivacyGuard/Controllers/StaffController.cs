@@ -1,13 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters; // DHYAN RAHE: Ye namespace add karna zaroori hai
 using PrivacyGuard.Interfaces.Services;
+using System;
+using System.Threading.Tasks;
 
 namespace PrivacyGuard.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // Pura controller secure kar diya
     public class StaffController : ControllerBase
     {
         private readonly IStaffService _staffService;
@@ -18,6 +21,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("create")]
+        [HasPermission("Users.Create")] // FIX: Ab sirf wo user jiske paas Create permission hai, wahi staff bana payega
         public async Task<IActionResult> CreateStaff([FromBody] CreateStaffDto dto)
         {
             var orgIdClaim = User.FindFirst("OrganizationId");
@@ -35,18 +39,19 @@ namespace PrivacyGuard.Controllers
 
             return Ok(new { Message = "Staff created successfully", Data = result.Staff });
         }
-        [HttpGet]
-[Authorize(Roles = "Admin")] // Sirf Admin dekh sakta hai apne staff ko
-public async Task<IActionResult> GetStaffList()
-{
-    var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-    if (string.IsNullOrEmpty(orgIdClaim)) return Forbid();
-    
-    var organizationId = Guid.Parse(orgIdClaim);
 
-    var staffList = await _staffService.GetStaffListAsync(organizationId);
-    
-    return Ok(staffList);
-}
+        [HttpGet]
+        [HasPermission("Users.View")] // FIX: Staff list dekhne ke liye View permission
+        public async Task<IActionResult> GetStaffList()
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Forbid();
+
+            var organizationId = Guid.Parse(orgIdClaim);
+
+            var staffList = await _staffService.GetStaffListAsync(organizationId);
+
+            return Ok(staffList);
+        }
     }
 }
