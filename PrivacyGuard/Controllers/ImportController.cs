@@ -4,6 +4,7 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters; // FIX: Permission attribute ke liye zaroori hai
 using PrivacyGuard.Interfaces.Services;
 
 namespace PrivacyGuard.Controllers
@@ -22,6 +23,7 @@ namespace PrivacyGuard.Controllers
 
         // POST API: CSV upload ya paste karne ke liye
         [HttpPost("stage")]
+        [HasPermission("Import.Manage")] // UPDATE: Manage permission
         public async Task<IActionResult> StageImport([FromForm] BulkImportRequestDto request)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -56,6 +58,7 @@ namespace PrivacyGuard.Controllers
 
         // GET API: UI ke dual filters (Kind aur Status) ke sath
         [HttpGet("batches")]
+        [HasPermission("Import.View")] // UPDATE: View permission
         public async Task<IActionResult> GetBatches([FromQuery] string? kind, [FromQuery] string? status)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -68,6 +71,7 @@ namespace PrivacyGuard.Controllers
 
         // GET API: Ek specific batch aur uski rows ki detail dekhne ke liye (Paginated)
         [HttpGet("batches/{id}")]
+        [HasPermission("Import.View")] // UPDATE: View permission
         public async Task<IActionResult> GetBatchDetails(Guid id, [FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -82,6 +86,7 @@ namespace PrivacyGuard.Controllers
 
         // POST API: Staged batch ko final execute karke database mein save karna
         [HttpPost("batches/{id}/execute")]
+        [HasPermission("Import.Manage")] // UPDATE: Manage permission
         public async Task<IActionResult> ExecuteBatch(Guid id)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;

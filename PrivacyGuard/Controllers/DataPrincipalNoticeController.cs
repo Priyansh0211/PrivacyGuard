@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PrivacyGuard.Filters; // FIX: Filter namespace add kiya
 using PrivacyGuard.Interfaces.Services;
 using System;
 using System.Linq;
@@ -32,12 +33,14 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("all")]
+        [HasPermission("Notice.ReadPublic")] // UPDATE: Specific permission for Data Principals
         public async Task<IActionResult> GetAllActiveNotices([FromQuery] string lang = "en")
         {
             var claim = GetOrgIdClaim();
             if (!claim.isValid)
                 return Unauthorized(new { message = "Invalid or missing Organization Token." });
 
+            // Yeh service ab seedha naye NoticeTemplates table se data layegi
             var notices = await _noticeService.GetAllActiveNoticesAsync(claim.orgId, lang);
 
             if (notices == null || notices.Count == 0)
@@ -47,12 +50,14 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("{code}")]
+        [HasPermission("Notice.ReadPublic")] // UPDATE: Specific permission for Data Principals
         public async Task<IActionResult> GetActiveNotice(string code, [FromQuery] string lang = "en")
         {
             var claim = GetOrgIdClaim();
             if (!claim.isValid)
                 return Unauthorized(new { message = "Invalid or missing Organization Token." });
 
+            // Yeh service ab seedha naye NoticeTemplates table se data layegi
             var result = await _noticeService.GetActiveNoticeForPrincipalAsync(code, lang, claim.orgId);
 
             if (result == null)
