@@ -35,6 +35,8 @@ namespace PrivacyGuard.Data
                     // Module 4: Consent Management
                     new Permission { ModuleName = "Consent Management", ActionName = "View Consent Records", SystemName = "Consent.View" },
                     new Permission { ModuleName = "Consent Management", ActionName = "Manage Consent Records", SystemName = "Consent.Manage" },
+                    new Permission { ModuleName = "Consent Management", ActionName = "Read Own Consents", SystemName = "Consent.ReadPublic" },
+                    new Permission { ModuleName = "Consent Management", ActionName = "Give or Withdraw Consent", SystemName = "Consent.CreatePublic" },
                     
                     // Module 5: Data Inventory
                     new Permission { ModuleName = "Data Inventory", ActionName = "View Inventory", SystemName = "DataInventory.View" },
@@ -54,6 +56,7 @@ namespace PrivacyGuard.Data
 
                     // Audit & Notice Templates
                     new Permission { ModuleName = "Audit Management", ActionName = "Audit View", SystemName = "Audit.View" },
+                    new Permission { ModuleName = "Audit Management", ActionName = "Audit Manage", SystemName = "Audit.Manage" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template View", SystemName = "NoticeTemplates.View" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Notice Template Manage", SystemName = "NoticeTemplates.Manage" },
                     new Permission { ModuleName = "Notice Template", ActionName = "Read Public Notices", SystemName = "Notice.ReadPublic" },
@@ -72,7 +75,8 @@ namespace PrivacyGuard.Data
 
                     // Module 13: Bulk Import Management
                     new Permission { ModuleName = "Bulk Import", ActionName = "View Imports", SystemName = "Import.View" },
-                    new Permission { ModuleName = "Bulk Import", ActionName = "Manage Imports", SystemName = "Import.Manage" }
+                    new Permission { ModuleName = "Bulk Import", ActionName = "Manage Imports", SystemName = "Import.Manage" },
+
                 };
 
                 context.Permissions.AddRange(permissions);
@@ -142,7 +146,7 @@ namespace PrivacyGuard.Data
             }
 
             // C. Data Principal ko sirf Public permissions
-            var publicPermissionNames = new List<string> { "Notice.ReadPublic", "PrivacyRequest.CreatePublic", "PrivacyRequest.ReadPublic" };
+            var publicPermissionNames = new List<string> { "Notice.ReadPublic", "PrivacyRequest.CreatePublic", "PrivacyRequest.ReadPublic", "Consent.ReadPublic", "Consent.CreatePublic" };
             var publicPermissions = allPermissionsList.Where(p => publicPermissionNames.Contains(p.SystemName)).ToList();
             foreach (var perm in publicPermissions)
             {
