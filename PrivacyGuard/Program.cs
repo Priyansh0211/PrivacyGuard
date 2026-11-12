@@ -103,6 +103,8 @@ builder.Services.AddScoped<IBreachService, BreachService>();
 
 builder.Services.AddScoped<ICampaignRepository, CampaignRepository>();
 builder.Services.AddScoped<ICampaignService, CampaignService>();
+builder.Services.AddScoped<ICampaignAudienceGroupRepository, CampaignAudienceGroupRepository>();
+builder.Services.AddScoped<ICampaignAudienceGroupService, CampaignAudienceGroupService>();
 
 builder.Services.AddScoped<IConsentRepository, ConsentRepository>();
 builder.Services.AddScoped<IConsentService, ConsentService>();
