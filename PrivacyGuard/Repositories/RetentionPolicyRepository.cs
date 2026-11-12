@@ -112,5 +112,34 @@ namespace PrivacyGuard.Repositories
                 JobsInQueue = queueCount
             };
         }
+        public async Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId)
+        {
+            // Abhi hum active policy nikal rahe hain (Default 30 days wali jo seeder me daali thi)
+            var policy = await _context.RetentionPolicies
+                .FirstOrDefaultAsync(p => p.OrganizationId == organizationId && p.IsActive == true);
+
+            if (policy == null) return new List<ErasureQueueDto>();
+
+            // Wo records nikal rahe hain jo 23 se 35 din purane hain (Overdue aur Queue wale)
+            var targetDate = DateTime.UtcNow.AddDays(-23);
+
+            var queueRecords = await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId && dp.CreatedAt <= targetDate)
+                .Select(dp => new ErasureQueueDto
+                {
+                    RecordId = dp.DataPrincipalId,
+                    ReferenceId = dp.ReferenceId,
+                    PolicyName = policy.PolicyName,
+                    ActionType = policy.ActionType,
+                    // Calculate due date (CreatedAt + RetentionDays)
+                    DueDate = dp.CreatedAt.AddDays(policy.RetentionPeriodInDays),
+                    // Agar due date nikal chuki hai toh "Overdue", nahi toh "Pending"
+                    Status = dp.CreatedAt.AddDays(policy.RetentionPeriodInDays) < DateTime.UtcNow ? "Overdue" : "Pending"
+                })
+                .OrderBy(q => q.DueDate)
+                .ToListAsync();
+
+            return queueRecords;
+        }
     }
 }

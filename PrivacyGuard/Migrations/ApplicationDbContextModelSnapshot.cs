@@ -1031,6 +1031,8 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NoticeTemplateId");
+
                     b.ToTable("Notices");
                 });
 
@@ -1717,6 +1719,16 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Grievance");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.NoticeTemplate", "NoticeTemplate")
+                        .WithMany()
+                        .HasForeignKey("NoticeTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("NoticeTemplate");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.NoticeTranslation", b =>

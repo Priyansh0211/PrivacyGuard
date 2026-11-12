@@ -85,6 +85,10 @@ namespace PrivacyGuard.Services
             return await _repository.GetDashboardMetricsAsync(organizationId);
         }
 
+        public async Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId)
+        {
+            return await _repository.GetErasureQueueAsync(organizationId);
+        }
         private RetentionPolicyDto MapToDto(RetentionPolicy policy)
         {
             return new RetentionPolicyDto

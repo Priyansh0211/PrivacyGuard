@@ -29,5 +29,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         // Expired data ko delete/anonymize karne ka method
         Task ProcessExpiredDataAsync(string actionType, DateTime targetExpiryDate);
         Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
+        // Naya method Erasure Queue ke liye
+        Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId);
     }
 }

@@ -12,6 +12,7 @@ namespace PrivacyGuard.Models
         public Guid OrganizationId { get; set; }
 
         public Guid? NoticeTemplateId { get; set; }
+        public NoticeTemplate? NoticeTemplate { get; set; }
 
         [Required, MaxLength(100)]
         public string Code { get; set; } = string.Empty;
