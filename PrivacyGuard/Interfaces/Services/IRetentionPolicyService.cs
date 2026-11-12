@@ -24,5 +24,7 @@ namespace PrivacyGuard.Interfaces.Services
         // Background job is method ko daily call karegi
         Task ExecuteDailyErasureJobAsync();
         Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
+        // Naya method Erasure Queue ke liye
+        Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId);
     }
 }
