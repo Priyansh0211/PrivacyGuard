@@ -114,5 +114,16 @@ namespace PrivacyGuard.Controllers
             var metrics = await _retentionPolicyService.GetDashboardMetricsAsync(orgId);
             return Ok(metrics);
         }
+
+        [HttpGet("queue")]
+        [HasPermission("RetentionPolicy.View")]
+        public async Task<IActionResult> GetErasureQueue()
+        {
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
+
+            var queueList = await _retentionPolicyService.GetErasureQueueAsync(orgId);
+            return Ok(queueList);
+        }
     }
 }
