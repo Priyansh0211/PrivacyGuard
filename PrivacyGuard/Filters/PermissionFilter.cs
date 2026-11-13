@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using PrivacyGuard.Interfaces.Services;
+using System;
+using System.Linq;
 using System.Security.Claims;
 
 namespace PrivacyGuard.Filters
@@ -18,7 +20,18 @@ namespace PrivacyGuard.Filters
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            // 1. JWT टोकन से UserId निकालना
+            // Permissions are already issued in the JWT at login time. This is
+            // important for DataPrincipals because NameIdentifier is their
+            // DataPrincipalId, not a Users.UserId.
+            var tokenPermissions = context.HttpContext.User
+                .FindAll("Permission")
+                .Select(claim => claim.Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (tokenPermissions.Contains(_permission))
+                return;
+
+            // Backward-compatible fallback for older internal-user tokens.
             var userIdClaim = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (string.IsNullOrEmpty(userIdClaim))

@@ -34,6 +34,7 @@ namespace PrivacyGuard.Repositories
         {
             // Ek hi query mein DataPrincipal ke sath uski saari related lists aur nested tables fetch kar li
             return await _context.DataPrincipals
+                .Include(dp => dp.Role)
                 .Include(dp => dp.Identifiers)
                 .Include(dp => dp.PrivacyRequests)
                 .Include(dp => dp.ConsentRecords)
@@ -43,7 +44,7 @@ namespace PrivacyGuard.Repositories
                                         && dp.OrganizationId == organizationId);
         }
         public async Task<(List<DataPrincipal> Principals, int TotalCount)> GetPaginatedDataPrincipalsAsync(
-    Guid organizationId, string search, string classType, int page, int pageSize)
+            Guid organizationId, string search, string classType, int page, int pageSize)
         {
             var query = _context.DataPrincipals.AsQueryable()
                                 .Where(dp => dp.OrganizationId == organizationId);
@@ -74,6 +75,32 @@ namespace PrivacyGuard.Repositories
                 .ToListAsync();
 
             return (principals, totalCount);
+        }
+        // ==========================================
+        // FAST DASHBOARD COUNT (Optimized for Millions of rows)
+        // ==========================================
+        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null)
+        {
+            var query = _context.DataPrincipals.Where(dp => dp.OrganizationId == organizationId);
+
+            // Agar circle filter pass hua hai, toh sirf us circle ka count nikalo
+            if (orgUnitId.HasValue)
+            {
+                query = query.Where(dp => dp.OrgUnitId == orgUnitId.Value);
+            }
+
+            // CountAsync DB engine level par chalta hai, memory mein data nahi laata (Ultra fast)
+            return await query.CountAsync();
+        }
+
+        // ==========================================
+        // BULK IMPORT (CSV / EXCEL DATA KE LIYE)
+        // ==========================================
+        public async Task AddBulkDataPrincipalsAsync(List<DataPrincipal> dataPrincipals)
+        {
+            // AddRangeAsync 1000s of records ko ek sath batch banakar DB mein bhejta hai
+            await _context.DataPrincipals.AddRangeAsync(dataPrincipals);
+            await _context.SaveChangesAsync();
         }
     }
 }

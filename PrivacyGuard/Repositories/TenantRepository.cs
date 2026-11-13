@@ -3,6 +3,7 @@ using PrivacyGuard.Data;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
+using System.Data;
 
 namespace PrivacyGuard.Repositories
 {
@@ -17,7 +18,7 @@ namespace PrivacyGuard.Repositories
 
         public async Task<(Organization org, User admin)> CreateTenantWithAdminAsync(Organization org, User admin)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             try
             {
                 
@@ -63,6 +64,13 @@ namespace PrivacyGuard.Repositories
         public async Task<User?> GetUserByEmailAsync(string email)
         {
             return await _context.Users.Include(u => u.UserRole).FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<DataPrincipal?> GetDataPrincipalByEmailAsync(string email)
+        {
+            return await _context.DataPrincipals
+                .Include(dp => dp.Role)
+                .FirstOrDefaultAsync(dp => dp.Email == email && dp.IsActive);
         }
 
         public async Task UpdateUserAsync(User user)

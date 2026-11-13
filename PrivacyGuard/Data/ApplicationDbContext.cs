@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using PrivacyGuard.Models;
+using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -124,6 +125,16 @@ namespace PrivacyGuard.Data
             modelBuilder.Entity<CampaignAudienceGroupMember>()
                 .HasIndex(member => new { member.GroupId, member.MemberId, member.UserType })
                 .IsUnique();
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(log => new { log.OrganizationId, log.SequenceNumber })
+                .HasFilter("[OrganizationId] IS NOT NULL")
+                .IsUnique();
+
+            modelBuilder.Entity<AuditLog>()
+                .HasIndex(log => log.SequenceNumber)
+                .HasFilter("[OrganizationId] IS NULL")
+                .IsUnique();
         }
 
         // ==========================================
@@ -131,13 +142,55 @@ namespace PrivacyGuard.Data
         // ==========================================
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            var auditEntries = OnBeforeSaveChanges();
-            var result = await base.SaveChangesAsync(cancellationToken);
-            await OnAfterSaveChanges(auditEntries);
-            return result;
+            var transaction = Database.CurrentTransaction;
+            var ownsTransaction = transaction == null;
+
+            if (ownsTransaction)
+            {
+                transaction = await Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable,
+                    cancellationToken);
+            }
+
+            try
+            {
+                var chainTails = new Dictionary<Guid, AuditLog>();
+                var auditEntries = OnBeforeSaveChanges(chainTails);
+                var result = await base.SaveChangesAsync(cancellationToken);
+
+                OnAfterSaveChanges(auditEntries, chainTails);
+
+                if (auditEntries.Count > 0)
+                {
+                    result += await base.SaveChangesAsync(cancellationToken);
+                }
+
+                if (ownsTransaction)
+                {
+                    await transaction!.CommitAsync(cancellationToken);
+                }
+
+                return result;
+            }
+            catch
+            {
+                if (ownsTransaction)
+                {
+                    await transaction!.RollbackAsync(cancellationToken);
+                }
+
+                throw;
+            }
+            finally
+            {
+                if (ownsTransaction)
+                {
+                    await transaction!.DisposeAsync();
+                }
+            }
         }
 
-        private List<AuditEntry> OnBeforeSaveChanges()
+        private List<AuditEntry> OnBeforeSaveChanges(Dictionary<Guid, AuditLog> chainTails)
         {
             ChangeTracker.DetectChanges();
             var auditEntries = new List<AuditEntry>();
@@ -210,17 +263,19 @@ namespace PrivacyGuard.Data
             foreach (var auditEntry in auditEntries.Where(_ => !_.TemporaryProperties.Any()))
             {
                 var auditLog = auditEntry.ToAudit();
-                ApplyHashChaining(auditLog);
+                ApplyHashChaining(auditLog, chainTails);
                 AuditLogs.Add(auditLog);
             }
 
             return auditEntries.Where(_ => _.TemporaryProperties.Any()).ToList();
         }
 
-        private Task OnAfterSaveChanges(List<AuditEntry> auditEntries)
+        private void OnAfterSaveChanges(
+            List<AuditEntry> auditEntries,
+            Dictionary<Guid, AuditLog> chainTails)
         {
             if (auditEntries == null || auditEntries.Count == 0)
-                return Task.CompletedTask;
+                return;
 
             // Nayi (Create) rows jinki ID DB ne generate ki, unko update karke hash lagana
             foreach (var auditEntry in auditEntries)
@@ -237,20 +292,39 @@ namespace PrivacyGuard.Data
                     }
                 }
                 var auditLog = auditEntry.ToAudit();
-                ApplyHashChaining(auditLog);
+                ApplyHashChaining(auditLog, chainTails);
                 AuditLogs.Add(auditLog);
             }
-
-            return SaveChangesAsync(); // Audit logs save karne ke liye
         }
 
-        private void ApplyHashChaining(AuditLog newLog)
+        private void ApplyHashChaining(AuditLog newLog, Dictionary<Guid, AuditLog> chainTails)
         {
             // 1. Pichla record nikalna (Taki chain jud sake)
-            var lastLog = AuditLogs
-                .Where(a => a.OrganizationId == newLog.OrganizationId)
-                .OrderByDescending(a => a.SequenceNumber)
-                .FirstOrDefault();
+            AuditLog? lastLog = null;
+            var organizationKey = newLog.OrganizationId ?? Guid.Empty;
+
+            chainTails.TryGetValue(organizationKey, out lastLog);
+
+            if (lastLog == null)
+            {
+                var persistedLastLog = AuditLogs
+                    .AsNoTracking()
+                    .Where(a => a.OrganizationId == newLog.OrganizationId)
+                    .OrderByDescending(a => a.SequenceNumber)
+                    .FirstOrDefault();
+
+                var trackedLastLog = AuditLogs.Local
+                    .Where(a => a.OrganizationId == newLog.OrganizationId)
+                    .OrderByDescending(a => a.SequenceNumber)
+                    .FirstOrDefault();
+
+                lastLog = persistedLastLog;
+                if (trackedLastLog != null &&
+                    (lastLog == null || trackedLastLog.SequenceNumber > lastLog.SequenceNumber))
+                {
+                    lastLog = trackedLastLog;
+                }
+            }
 
             newLog.SequenceNumber = (lastLog?.SequenceNumber ?? 0) + 1;
             newLog.PreviousHash = lastLog?.EntryHash;
@@ -264,6 +338,8 @@ namespace PrivacyGuard.Data
                 var hashBytes = sha256.ComputeHash(bytes);
                 newLog.EntryHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
             }
+
+            chainTails[organizationKey] = newLog;
         }
     }
 }

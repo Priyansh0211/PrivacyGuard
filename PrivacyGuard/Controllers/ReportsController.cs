@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters; // FIX: Permission attribute access karne ke liye
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Services;
 using System;
@@ -17,12 +18,9 @@ namespace PrivacyGuard.Controllers
     {
         private readonly ICampaignService _campaignService;
         private readonly IReportGeneratorService _reportGenerator;
-
         private readonly IReportManagementService _reportManagementService;
 
-
-
-        public ReportsController(ICampaignService campaignService, IReportGeneratorService reportGenerator , IReportManagementService reportManagementService)
+        public ReportsController(ICampaignService campaignService, IReportGeneratorService reportGenerator, IReportManagementService reportManagementService)
         {
             _campaignService = campaignService;
             _reportGenerator = reportGenerator;
@@ -30,6 +28,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-campaign-report/{campaignId}")]
+        [HasPermission("Audit.Manage")] // UPDATE: Manage permission to generate reports
         public async Task<IActionResult> GenerateCampaignReport(Guid campaignId)
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -41,19 +40,12 @@ namespace PrivacyGuard.Controllers
             var orgId = Guid.Parse(orgIdStr);
             var userId = Guid.Parse(userIdStr);
 
-            // 1. Service ke through Job create karo (Clean approach)
             var job = await _reportGenerator.InitializeReportJobAsync(orgId, userId, "CampaignAudit");
-
-            // 2. Apni purani Service se data nikalo
             var reportData = await _campaignService.GetCampaignStatsAsync(campaignId, orgId);
             var dataList = new List<CampaignStatsDto> { reportData };
 
-            // 3. Generator Service ko data de do
             bool success = await _reportGenerator.GenerateAndSaveCsvEvidenceAsync(
-                job.JobId,
-                orgId,
-                dataList,
-                "CampaignAudit"
+                job.JobId, orgId, dataList, "CampaignAudit"
             );
 
             if (!success)
@@ -63,29 +55,26 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("history")]
+        [HasPermission("Audit.View")] // UPDATE: View permission to see generated reports
         public async Task<IActionResult> GetReportHistory()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr)) return Unauthorized();
 
             var orgId = Guid.Parse(orgIdStr);
-
-            // Management service ke through history fetch karo
             var jobs = await _reportManagementService.GetReportHistoryAsync(orgId);
 
             return Ok(jobs);
         }
 
-
         [HttpGet("download/{jobId}")]
+        [HasPermission("Audit.View")] // UPDATE: View permission to download files
         public async Task<IActionResult> DownloadReport(Guid jobId)
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr)) return Unauthorized();
 
             var orgId = Guid.Parse(orgIdStr);
-
-            // Management service ke through file bytes aur validation check karo
             var result = await _reportManagementService.GetReportForDownloadAsync(jobId, orgId);
 
             if (!result.IsSuccess)
@@ -97,15 +86,14 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-grievance-report")]
+        [HasPermission("Audit.Manage")]
         public async Task<IActionResult> GenerateGrievanceReport()
         {
-            
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
                 return Unauthorized(new { message = "Invalid token or Organization ID missing." });
 
             var organizationId = Guid.Parse(orgIdStr);
-
 
             var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceReport");
             var success = await _reportGenerator.GenerateGrievanceReportAsync(jobId, organizationId);
@@ -117,16 +105,15 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-grievance-audit")]
+        [HasPermission("Audit.Manage")]
         public async Task<IActionResult> GenerateGrievanceAuditReport()
         {
-           
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
                 return Unauthorized(new { message = "Invalid token or Organization ID missing." });
 
             var organizationId = Guid.Parse(orgIdStr);
 
-           
             var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceAuditReport");
             var success = await _reportGenerator.GenerateGrievanceAuditReportAsync(jobId, organizationId);
 
@@ -137,6 +124,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-consent-audit")]
+        [HasPermission("Audit.Manage")]
         public async Task<IActionResult> GenerateConsentAuditReport()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -155,6 +143,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-data-breach")]
+        [HasPermission("Audit.Manage")]
         public async Task<IActionResult> GenerateDataBreachReport()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -173,6 +162,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-dpia")]
+        [HasPermission("Audit.Manage")]
         public async Task<IActionResult> GenerateDpiaReport()
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
@@ -191,30 +181,37 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPost("generate-dsar-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateDsarReport() => GenerateOrganizationReportAsync(
             "DsarReport", "DSAR", _reportGenerator.GenerateDsarReportAsync);
 
         [HttpPost("generate-data-inventory-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateDataInventoryReport() => GenerateOrganizationReportAsync(
             "DataInventoryReport", "data inventory", _reportGenerator.GenerateDataInventoryReportAsync);
 
         [HttpPost("generate-data-processing-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateDataProcessingReport() => GenerateOrganizationReportAsync(
             "DataProcessingReport", "data processing", _reportGenerator.GenerateDataProcessingReportAsync);
 
         [HttpPost("generate-data-retention-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateDataRetentionReport() => GenerateOrganizationReportAsync(
             "DataRetentionReport", "data retention", _reportGenerator.GenerateDataRetentionReportAsync);
 
         [HttpPost("generate-data-sharing-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateDataSharingReport() => GenerateOrganizationReportAsync(
             "DataSharingReport", "data sharing", _reportGenerator.GenerateDataSharingReportAsync);
 
         [HttpPost("generate-security-audit-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateSecurityAuditReport() => GenerateOrganizationReportAsync(
             "SecurityAuditReport", "security audit", _reportGenerator.GenerateSecurityAuditReportAsync);
 
         [HttpPost("generate-compliance-gap-report")]
+        [HasPermission("Audit.Manage")]
         public Task<IActionResult> GenerateComplianceGapReport() => GenerateOrganizationReportAsync(
             "ComplianceGapReport", "compliance gap", _reportGenerator.GenerateComplianceGapReportAsync);
 
