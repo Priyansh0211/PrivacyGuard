@@ -29,10 +29,9 @@ namespace PrivacyGuard.Repositories
 
         public async Task<List<User>> GetUsersByOrganizationIdAsync(Guid organizationId)
         {
-
             return await _context.Users
-                 .Include(u => u.UserRole) 
-                 .Where(u => u.OrganizationId == organizationId)
+                 .Include(u => u.UserRole) // Role data sath laayega
+                 .Where(u => u.OrganizationId == organizationId && u.UserRole != null && u.UserRole.Name != "DataPrincipal") // Sirf internal staff ko filter karega
                  .ToListAsync();
         }
 

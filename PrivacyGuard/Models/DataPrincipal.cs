@@ -11,6 +11,7 @@ namespace PrivacyGuard.Models
         public Guid DataPrincipalId { get; set; }
 
         public Guid OrganizationId { get; set; }
+        public Guid? OrgUnitId { get; set; }
 
         public Guid? RoleId { get; set; }
 
