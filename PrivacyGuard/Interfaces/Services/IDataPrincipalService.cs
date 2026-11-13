@@ -14,5 +14,6 @@ namespace PrivacyGuard.Interfaces.Services
         Task<bool> AnonymizeDataPrincipalAsync(Guid dataPrincipalId, Guid organizationId);
         Task<(int SuccessCount, string Message)> BulkImportPrincipalsAsync(List<DataPrincipalDto> dtos, Guid organizationId, Guid? orgUnitId = null);
         Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null);
+        Task<bool> UpdateDataPrincipalAsync(Guid id, DataPrincipalDto dto, Guid organizationId);
     }
 }
