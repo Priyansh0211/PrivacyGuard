@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PrivacyGuard.Migrations
 {
     /// <inheritdoc />
-    public partial class initialcreate : Migration
+    public partial class InitialSetup : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -56,6 +56,21 @@ namespace PrivacyGuard.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BulkImportBatches", x => x.BatchId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CampaignAudienceGroups",
+                columns: table => new
+                {
+                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CampaignAudienceGroups", x => x.GroupId);
                 });
 
             migrationBuilder.CreateTable(
@@ -131,30 +146,6 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DataPrincipals",
-                columns: table => new
-                {
-                    DataPrincipalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReferenceId = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Mobile = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ConsumerNo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    DisplayName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    FullName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Class = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    PreferredLocale = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    RequiresGuardianConsent = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DataPrincipals", x => x.DataPrincipalId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DataProcessors",
                 columns: table => new
                 {
@@ -195,29 +186,6 @@ namespace PrivacyGuard.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DpiaRecords", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Notices",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    NoticeTemplateId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Version = table.Column<int>(type: "int", nullable: false),
-                    Sha256Hash = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PurposesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Layout = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PrimaryColor = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LogoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    PublishedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Notices", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -374,6 +342,26 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CampaignAudienceGroupMembers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GroupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MemberId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CampaignAudienceGroupMembers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CampaignAudienceGroupMembers_CampaignAudienceGroups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "CampaignAudienceGroups",
+                        principalColumn: "GroupId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ConsentPurposeDataCategories",
                 columns: table => new
                 {
@@ -394,6 +382,270 @@ namespace PrivacyGuard.Migrations
                         column: x => x.DataCategoryId,
                         principalTable: "DataCategories",
                         principalColumn: "DataCategoryId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ConsentPurposeDataProcessors",
+                columns: table => new
+                {
+                    ConsentPurposeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DataProcessorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConsentPurposeDataProcessors", x => new { x.ConsentPurposeId, x.DataProcessorId });
+                    table.ForeignKey(
+                        name: "FK_ConsentPurposeDataProcessors_ConsentPurposes_ConsentPurposeId",
+                        column: x => x.ConsentPurposeId,
+                        principalTable: "ConsentPurposes",
+                        principalColumn: "ConsentPurposeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ConsentPurposeDataProcessors_DataProcessors_DataProcessorId",
+                        column: x => x.DataProcessorId,
+                        principalTable: "DataProcessors",
+                        principalColumn: "DataProcessorId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Notices",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NoticeTemplateId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false),
+                    Sha256Hash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PurposesJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Layout = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PrimaryColor = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LogoUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PublishedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notices", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Notices_NoticeTemplates_NoticeTemplateId",
+                        column: x => x.NoticeTemplateId,
+                        principalTable: "NoticeTemplates",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DataInventories",
+                columns: table => new
+                {
+                    DataInventoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    DataCategory = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Purpose = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    DataSource = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    StorageLocation = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    RetentionPeriodDays = table.Column<int>(type: "int", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DataInventories", x => x.DataInventoryId);
+                    table.ForeignKey(
+                        name: "FK_DataInventories_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "OrganizationId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GeneratedReports",
+                columns: table => new
+                {
+                    ReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    JobId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ChecksumSha256 = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    RecordCount = table.Column<int>(type: "int", nullable: false),
+                    FileSizeKb = table.Column<long>(type: "bigint", nullable: false),
+                    DownloadCount = table.Column<int>(type: "int", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GeneratedReports", x => x.ReportId);
+                    table.ForeignKey(
+                        name: "FK_GeneratedReports_ReportJobs_JobId",
+                        column: x => x.JobId,
+                        principalTable: "ReportJobs",
+                        principalColumn: "JobId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DataPrincipals",
+                columns: table => new
+                {
+                    DataPrincipalId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ReferenceId = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Mobile = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    ConsumerNo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    DisplayName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    FullName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Class = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    PreferredLocale = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    RequiresGuardianConsent = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DataPrincipals", x => x.DataPrincipalId);
+                    table.ForeignKey(
+                        name: "FK_DataPrincipals_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReferenceId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Department = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    OrgUnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    LastLoginDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastLoginIP = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Users_OrgUnits_OrgUnitId",
+                        column: x => x.OrgUnitId,
+                        principalTable: "OrgUnits",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Users_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "OrganizationId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Users_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NoticeTranslations",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    NoticeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    LanguageCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Summary = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsTranslated = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NoticeTranslations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NoticeTranslations_Notices_NoticeId",
+                        column: x => x.NoticeId,
+                        principalTable: "Notices",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Campaigns",
+                columns: table => new
+                {
+                    CampaignId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CampaignType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    TargetAudience = table.Column<int>(type: "int", nullable: false),
+                    TargetRole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    DataInventoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Campaigns", x => x.CampaignId);
+                    table.ForeignKey(
+                        name: "FK_Campaigns_DataInventories_DataInventoryId",
+                        column: x => x.DataInventoryId,
+                        principalTable: "DataInventories",
+                        principalColumn: "DataInventoryId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Campaigns_Organizations_OrganizationId",
+                        column: x => x.OrganizationId,
+                        principalTable: "Organizations",
+                        principalColumn: "OrganizationId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -480,236 +732,6 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ConsentPurposeDataProcessors",
-                columns: table => new
-                {
-                    ConsentPurposeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DataProcessorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ConsentPurposeDataProcessors", x => new { x.ConsentPurposeId, x.DataProcessorId });
-                    table.ForeignKey(
-                        name: "FK_ConsentPurposeDataProcessors_ConsentPurposes_ConsentPurposeId",
-                        column: x => x.ConsentPurposeId,
-                        principalTable: "ConsentPurposes",
-                        principalColumn: "ConsentPurposeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ConsentPurposeDataProcessors_DataProcessors_DataProcessorId",
-                        column: x => x.DataProcessorId,
-                        principalTable: "DataProcessors",
-                        principalColumn: "DataProcessorId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "NoticeTranslations",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    NoticeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LanguageCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Summary = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsTranslated = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_NoticeTranslations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_NoticeTranslations_Notices_NoticeId",
-                        column: x => x.NoticeId,
-                        principalTable: "Notices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DataInventories",
-                columns: table => new
-                {
-                    DataInventoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    DataCategory = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Purpose = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    DataSource = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    StorageLocation = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    RetentionPeriodDays = table.Column<int>(type: "int", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DataInventories", x => x.DataInventoryId);
-                    table.ForeignKey(
-                        name: "FK_DataInventories_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "OrganizationId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "GeneratedReports",
-                columns: table => new
-                {
-                    ReportId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    JobId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    ChecksumSha256 = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
-                    RecordCount = table.Column<int>(type: "int", nullable: false),
-                    FileSizeKb = table.Column<long>(type: "bigint", nullable: false),
-                    DownloadCount = table.Column<int>(type: "int", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GeneratedReports", x => x.ReportId);
-                    table.ForeignKey(
-                        name: "FK_GeneratedReports_ReportJobs_JobId",
-                        column: x => x.JobId,
-                        principalTable: "ReportJobs",
-                        principalColumn: "JobId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "RolePermissions",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PermissionId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Permissions_PermissionId",
-                        column: x => x.PermissionId,
-                        principalTable: "Permissions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Users",
-                columns: table => new
-                {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ReferenceId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Department = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    OrgUnitId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    LastLoginDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastLoginIP = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.UserId);
-                    table.ForeignKey(
-                        name: "FK_Users_OrgUnits_OrgUnitId",
-                        column: x => x.OrgUnitId,
-                        principalTable: "OrgUnits",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Users_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "OrganizationId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Users_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ConsentDetails",
-                columns: table => new
-                {
-                    ConsentDetailId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConsentRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ConsentPurposeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Decision = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ConsentDetails", x => x.ConsentDetailId);
-                    table.ForeignKey(
-                        name: "FK_ConsentDetails_ConsentPurposes_ConsentPurposeId",
-                        column: x => x.ConsentPurposeId,
-                        principalTable: "ConsentPurposes",
-                        principalColumn: "ConsentPurposeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ConsentDetails_ConsentRecords_ConsentRecordId",
-                        column: x => x.ConsentRecordId,
-                        principalTable: "ConsentRecords",
-                        principalColumn: "ConsentRecordId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Campaigns",
-                columns: table => new
-                {
-                    CampaignId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OrganizationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    CampaignType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    TargetAudience = table.Column<int>(type: "int", nullable: false),
-                    TargetRole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    DataInventoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Campaigns", x => x.CampaignId);
-                    table.ForeignKey(
-                        name: "FK_Campaigns_DataInventories_DataInventoryId",
-                        column: x => x.DataInventoryId,
-                        principalTable: "DataInventories",
-                        principalColumn: "DataInventoryId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Campaigns_Organizations_OrganizationId",
-                        column: x => x.OrganizationId,
-                        principalTable: "Organizations",
-                        principalColumn: "OrganizationId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Grievances",
                 columns: table => new
                 {
@@ -775,6 +797,34 @@ namespace PrivacyGuard.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ConsentDetails",
+                columns: table => new
+                {
+                    ConsentDetailId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ConsentRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ConsentPurposeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Decision = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExpiryDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConsentDetails", x => x.ConsentDetailId);
+                    table.ForeignKey(
+                        name: "FK_ConsentDetails_ConsentPurposes_ConsentPurposeId",
+                        column: x => x.ConsentPurposeId,
+                        principalTable: "ConsentPurposes",
+                        principalColumn: "ConsentPurposeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ConsentDetails_ConsentRecords_ConsentRecordId",
+                        column: x => x.ConsentRecordId,
+                        principalTable: "ConsentRecords",
+                        principalColumn: "ConsentRecordId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -850,9 +900,35 @@ namespace PrivacyGuard.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AuditLogs_OrganizationId_SequenceNumber",
+                table: "AuditLogs",
+                columns: new[] { "OrganizationId", "SequenceNumber" },
+                unique: true,
+                filter: "[OrganizationId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AuditLogs_SequenceNumber",
+                table: "AuditLogs",
+                column: "SequenceNumber",
+                unique: true,
+                filter: "[OrganizationId] IS NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BulkImportRows_BatchId",
                 table: "BulkImportRows",
                 column: "BatchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CampaignAudienceGroupMembers_GroupId_MemberId_UserType",
+                table: "CampaignAudienceGroupMembers",
+                columns: new[] { "GroupId", "MemberId", "UserType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CampaignAudienceGroups_OrganizationId_Name",
+                table: "CampaignAudienceGroups",
+                columns: new[] { "OrganizationId", "Name" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CampaignResponses_CampaignId",
@@ -925,6 +1001,11 @@ namespace PrivacyGuard.Migrations
                 column: "OrganizationId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DataPrincipals_RoleId",
+                table: "DataPrincipals",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GeneratedReports_JobId",
                 table: "GeneratedReports",
                 column: "JobId");
@@ -948,6 +1029,11 @@ namespace PrivacyGuard.Migrations
                 name: "IX_Grievances_DataPrincipalId",
                 table: "Grievances",
                 column: "DataPrincipalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notices_NoticeTemplateId",
+                table: "Notices",
+                column: "NoticeTemplateId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_NoticeTranslations_NoticeId",
@@ -1011,6 +1097,9 @@ namespace PrivacyGuard.Migrations
                 name: "BulkImportRows");
 
             migrationBuilder.DropTable(
+                name: "CampaignAudienceGroupMembers");
+
+            migrationBuilder.DropTable(
                 name: "CampaignAudienceMappings");
 
             migrationBuilder.DropTable(
@@ -1041,9 +1130,6 @@ namespace PrivacyGuard.Migrations
                 name: "GrievanceMessages");
 
             migrationBuilder.DropTable(
-                name: "NoticeTemplates");
-
-            migrationBuilder.DropTable(
                 name: "NoticeTranslations");
 
             migrationBuilder.DropTable(
@@ -1060,6 +1146,9 @@ namespace PrivacyGuard.Migrations
 
             migrationBuilder.DropTable(
                 name: "BulkImportBatches");
+
+            migrationBuilder.DropTable(
+                name: "CampaignAudienceGroups");
 
             migrationBuilder.DropTable(
                 name: "Campaigns");
@@ -1096,6 +1185,9 @@ namespace PrivacyGuard.Migrations
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "NoticeTemplates");
 
             migrationBuilder.DropTable(
                 name: "OrgUnits");

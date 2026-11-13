@@ -38,7 +38,7 @@ namespace PrivacyGuard.Services
                 OrganizationId = organizationId,
                 RoleId = dto.RoleId,
                 ReferenceId = uniqueRef,
-                Mobile = dto.Mobile, 
+                Mobile = dto.Mobile,
                 Email = dto.Email,
                 PasswordHash = dto.Password,
                 ConsumerNo = dto.ConsumerNo,
@@ -159,6 +159,7 @@ namespace PrivacyGuard.Services
 
             return dto;
         }
+
         // ==========================================
         // DSAR: Right to Erasure (Soft Delete / Anonymize)
         // ==========================================
@@ -184,6 +185,61 @@ namespace PrivacyGuard.Services
             await _repository.SaveChangesAsync();
             return true;
         }
+
+        // ==========================================
+        // BULK IMPORT PROCESSOR (For CSV Uploads)
+        // ==========================================
+        public async Task<(int SuccessCount, string Message)> BulkImportPrincipalsAsync(
+            List<DataPrincipalDto> dtos, Guid organizationId, Guid? orgUnitId = null)
+        {
+            var newPrincipals = new List<DataPrincipal>();
+            var currentTime = DateTime.UtcNow;
+
+            foreach (var dto in dtos)
+            {
+                var dpId = Guid.NewGuid();
+                string uniqueRef = $"PSD-{currentTime:yyMM}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
+
+                var dp = new DataPrincipal
+                {
+                    DataPrincipalId = dpId,
+                    OrganizationId = organizationId,
+                    OrgUnitId = orgUnitId, // Circle / Branch mapping
+                    ReferenceId = uniqueRef,
+                    FullName = dto.FullName,
+                    Email = dto.Email,
+                    Mobile = dto.Mobile,
+                    ConsumerNo = dto.ConsumerNo,
+                    Class = string.IsNullOrEmpty(dto.Class) ? "adult" : dto.Class,
+                    CreatedAt = currentTime,
+                    UpdatedAt = currentTime,
+                    Identifiers = new List<PrincipalIdentifier>()
+                };
+
+                // Identifiers Mapping
+                if (!string.IsNullOrEmpty(dto.Mobile))
+                    dp.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Mobile", Value = dto.Mobile, IsPrimary = true });
+
+                if (!string.IsNullOrEmpty(dto.Email))
+                    dp.Identifiers.Add(new PrincipalIdentifier { DataPrincipalId = dpId, Kind = "Email", Value = dto.Email, IsPrimary = false });
+
+                newPrincipals.Add(dp);
+            }
+
+            // Ek hi baar mein saare records DB mein insert kardo (Hang nahi hoga)
+            await _repository.AddBulkDataPrincipalsAsync(newPrincipals);
+
+            return (newPrincipals.Count, $"{newPrincipals.Count} Principals successfully imported.");
+        }
+
+        // ==========================================
+        // NAYA METHOD: Get Total Principals Count
+        // ==========================================
+        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null)
+        {
+            return await _repository.GetTotalPrincipalsCountAsync(organizationId, orgUnitId);
+        }
+
         // ==========================================
         // 4. HELPER METHOD
         // ==========================================
