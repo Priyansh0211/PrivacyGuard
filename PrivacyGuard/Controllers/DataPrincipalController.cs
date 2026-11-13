@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters; // FIX: Permission filter ke liye namespace zaroori hai
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using System;
@@ -20,10 +21,10 @@ namespace PrivacyGuard.Controllers
             _dataPrincipalService = dataPrincipalService;
         }
 
-        // ==========================================
-        // NAYA ENDPOINT: Paginated List for Dashboard Grid
-        // ==========================================
+        // ENDPOINT: Paginated List for Dashboard Grid
+         
         [HttpGet]
+        [HasPermission("DataPrincipal.View")] // UPDATE: View permission add kar di
         public async Task<IActionResult> GetDataPrincipals(
             [FromQuery] string search = "",
             [FromQuery] string classType = "",
@@ -43,6 +44,7 @@ namespace PrivacyGuard.Controllers
         // ENDPOINT: Add Single Data Principal
         // ==========================================
         [HttpPost("add")]
+        [HasPermission("DataPrincipal.Manage")] // UPDATE: Create/Manage ke liye strict permission
         public async Task<IActionResult> AddDataPrincipal([FromBody] DataPrincipalDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -67,6 +69,7 @@ namespace PrivacyGuard.Controllers
         // ENDPOINT: 360-Degree View Dashboard
         // ==========================================
         [HttpGet("{id}/360-view")]
+        [HasPermission("DataPrincipal.View")] // UPDATE: View permission add kar di
         public async Task<IActionResult> Get360View(Guid id)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;

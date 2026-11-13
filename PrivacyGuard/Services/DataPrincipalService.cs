@@ -36,9 +36,11 @@ namespace PrivacyGuard.Services
             {
                 DataPrincipalId = dpId,
                 OrganizationId = organizationId,
+                RoleId = dto.RoleId,
                 ReferenceId = uniqueRef,
                 Mobile = dto.Mobile, 
                 Email = dto.Email,
+                PasswordHash = dto.Password,
                 ConsumerNo = dto.ConsumerNo,
                 FullName = dto.FullName,
                 DateOfBirth = string.IsNullOrEmpty(dto.DateOfBirth) ? null : DateTime.Parse(dto.DateOfBirth),

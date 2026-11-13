@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Filters; 
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using System;
@@ -10,7 +11,7 @@ namespace PrivacyGuard.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // JWT token required hoga
+    [Authorize]
     public class ConsentController : ControllerBase
     {
         private readonly IConsentService _consentService;
@@ -20,8 +21,10 @@ namespace PrivacyGuard.Controllers
             _consentService = consentService;
         }
 
-        // UI Dashboard Grid aur Filters ke liye
+        // ================= GET APIs (View Permission) =================
+
         [HttpGet("records")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetConsentRecords(
             [FromQuery] string? reference,
             [FromQuery] string? status,
@@ -39,21 +42,21 @@ namespace PrivacyGuard.Controllers
             return Ok(records);
         }
 
-        // NAYA ENDPOINT: Modal UI par click karne pe single detail lane ke liye (Consent Artifact modal fix)
         [HttpGet("record/{id}")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetConsentRecordById(Guid id)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
             var consentRecord = await _consentService.GetConsentRecordByIdAsync(id, Guid.Parse(orgIdClaim));
-
             if (consentRecord == null) return NotFound("Consent record not found.");
 
             return Ok(consentRecord);
         }
 
         [HttpGet("purposes")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetPurposes()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -63,31 +66,8 @@ namespace PrivacyGuard.Controllers
             return Ok(purposes);
         }
 
-        [HttpPost("record")]
-        public async Task<IActionResult> RecordConsent([FromBody] CreateConsentRequestDto request)
-        {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
-
-            var result = await _consentService.RecordConsentAsync(request, Guid.Parse(orgIdClaim));
-            if (!result.IsSuccess) return BadRequest(new { Error = result.Message });
-
-            return Ok(new { Message = result.Message, ReceiptId = result.ReceiptId });
-        }
-
-        [HttpPost("withdraw/{consentRecordId}")]
-        public async Task<IActionResult> WithdrawConsent(Guid consentRecordId)
-        {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
-
-            var success = await _consentService.WithdrawConsentAsync(consentRecordId, Guid.Parse(orgIdClaim));
-            if (!success) return NotFound("Consent record not found.");
-
-            return Ok(new { Message = "Consent withdrawn successfully. New version generated." });
-        }
-
         [HttpGet("latest/{dataPrincipalId}")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetLatestConsent(Guid dataPrincipalId)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -100,6 +80,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet("history/{dataPrincipalId}")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetHistory(Guid dataPrincipalId)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -109,19 +90,8 @@ namespace PrivacyGuard.Controllers
             return Ok(history);
         }
 
-        [HttpPost("add-purpose")]
-        public async Task<IActionResult> AddPurpose([FromBody] CreatePurposeDto request)
-        {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
-
-            var purpose = await _consentService.CreatePurposeAsync(request, Guid.Parse(orgIdClaim));
-            return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
-        }
-
-        // DATA CATEGORIES APIs
-
         [HttpGet("categories")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetCategories()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -131,19 +101,8 @@ namespace PrivacyGuard.Controllers
             return Ok(categories);
         }
 
-        [HttpPost("categories")]
-        public async Task<IActionResult> AddCategory([FromBody] CreateDataCategoryDto request)
-        {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
-
-            var category = await _consentService.AddCategoryAsync(request, Guid.Parse(orgIdClaim));
-            return Ok(new { Message = "Data Category added successfully", CategoryId = category.DataCategoryId });
-        }
-
-        // DATA PROCESSORS APIs
-
         [HttpGet("processors")]
+        [HasPermission("Consent.View")]
         public async Task<IActionResult> GetProcessors()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -153,7 +112,69 @@ namespace PrivacyGuard.Controllers
             return Ok(processors);
         }
 
+        [HttpGet("purposes/{id}/history")]
+        [HasPermission("Consent.View")]
+        public async Task<IActionResult> GetPurposeHistory(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var history = await _consentService.GetPurposeHistoryAsync(id, Guid.Parse(orgIdClaim));
+            return Ok(history);
+        }
+
+        // ================= POST & PUT APIs (Manage Permission) =================
+
+        [HttpPost("record")]
+        [HasPermission("Consent.Manage")] // UPDATE: Post ke liye manage permission
+        public async Task<IActionResult> RecordConsent([FromBody] CreateConsentRequestDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var result = await _consentService.RecordConsentAsync(request, Guid.Parse(orgIdClaim));
+            if (!result.IsSuccess) return BadRequest(new { Error = result.Message });
+
+            return Ok(new { Message = result.Message, ReceiptId = result.ReceiptId });
+        }
+
+        [HttpPost("withdraw/{consentRecordId}")]
+        [HasPermission("Consent.Manage")] // UPDATE
+        public async Task<IActionResult> WithdrawConsent(Guid consentRecordId)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var success = await _consentService.WithdrawConsentAsync(consentRecordId, Guid.Parse(orgIdClaim));
+            if (!success) return NotFound("Consent record not found.");
+
+            return Ok(new { Message = "Consent withdrawn successfully. New version generated." });
+        }
+
+        [HttpPost("add-purpose")]
+        [HasPermission("Consent.Manage")] // UPDATE
+        public async Task<IActionResult> AddPurpose([FromBody] CreatePurposeDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var purpose = await _consentService.CreatePurposeAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Complex Purpose added successfully", PurposeId = purpose.ConsentPurposeId });
+        }
+
+        [HttpPost("categories")]
+        [HasPermission("Consent.Manage")] // UPDATE
+        public async Task<IActionResult> AddCategory([FromBody] CreateDataCategoryDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var category = await _consentService.AddCategoryAsync(request, Guid.Parse(orgIdClaim));
+            return Ok(new { Message = "Data Category added successfully", CategoryId = category.DataCategoryId });
+        }
+
         [HttpPost("processors")]
+        [HasPermission("Consent.Manage")] // UPDATE
         public async Task<IActionResult> AddProcessor([FromBody] CreateDataProcessorDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -163,10 +184,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { Message = "Data Processor added successfully", ProcessorId = processor.DataProcessorId });
         }
 
-        // NAYE ENDPOINTS 
-        // ==========================================
-
         [HttpPut("purposes/{id}")]
+        [HasPermission("Consent.Manage")] // UPDATE
         public async Task<IActionResult> EditPurpose(Guid id, [FromBody] CreatePurposeDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -178,17 +197,8 @@ namespace PrivacyGuard.Controllers
             return Ok(new { Message = "Purpose updated successfully (new version created)", PurposeId = updatedPurpose.ConsentPurposeId });
         }
 
-        [HttpGet("purposes/{id}/history")]
-        public async Task<IActionResult> GetPurposeHistory(Guid id)
-        {
-            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
-
-            var history = await _consentService.GetPurposeHistoryAsync(id, Guid.Parse(orgIdClaim));
-            return Ok(history);
-        }
-
         [HttpPut("categories/{id}")]
+        [HasPermission("Consent.Manage")] // UPDATE
         public async Task<IActionResult> EditCategory(Guid id, [FromBody] CreateDataCategoryDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -201,6 +211,7 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPut("processors/{id}")]
+        [HasPermission("Consent.Manage")] // UPDATE
         public async Task<IActionResult> EditProcessor(Guid id, [FromBody] CreateDataProcessorDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -211,5 +222,6 @@ namespace PrivacyGuard.Controllers
 
             return Ok(processor);
         }
+    
     }
 }

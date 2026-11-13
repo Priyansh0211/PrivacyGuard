@@ -80,6 +80,14 @@ namespace PrivacyGuard.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SequenceNumber")
+                        .IsUnique()
+                        .HasFilter("[OrganizationId] IS NULL");
+
+                    b.HasIndex("OrganizationId", "SequenceNumber")
+                        .IsUnique()
+                        .HasFilter("[OrganizationId] IS NOT NULL");
+
                     b.ToTable("AuditLogs");
                 });
 
@@ -720,12 +728,18 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Mobile")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PreferredLocale")
                         .IsRequired()
@@ -740,10 +754,15 @@ namespace PrivacyGuard.Migrations
                     b.Property<bool>("RequiresGuardianConsent")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("DataPrincipalId");
+
+                    b.HasIndex("RoleId");
 
                     b.ToTable("DataPrincipals");
                 });
@@ -1030,6 +1049,8 @@ namespace PrivacyGuard.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NoticeTemplateId");
 
                     b.ToTable("Notices");
                 });
@@ -1671,6 +1692,16 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.DataPrincipal", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.GeneratedReport", b =>
                 {
                     b.HasOne("PrivacyGuard.Models.ReportJob", "ReportJob")
@@ -1717,6 +1748,16 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Grievance");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.NoticeTemplate", "NoticeTemplate")
+                        .WithMany()
+                        .HasForeignKey("NoticeTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("NoticeTemplate");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.NoticeTranslation", b =>
