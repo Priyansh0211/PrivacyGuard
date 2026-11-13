@@ -83,6 +83,40 @@ namespace PrivacyGuard.Controllers
             return Ok(viewData);
         }
         // ==========================================
+        // ENDPOINT: Edit / Update Data Principal
+        // ==========================================
+        [HttpPut("{id}")]
+        [HasPermission("DataPrincipal.Manage")]
+        public async Task<IActionResult> UpdateDataPrincipal(Guid id, [FromBody] DataPrincipalDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var success = await _dataPrincipalService.UpdateDataPrincipalAsync(id, request, Guid.Parse(orgIdClaim));
+
+            if (!success) return NotFound(new { Message = "Data Principal not found." });
+
+            return Ok(new { Message = "Data Principal updated successfully." });
+        }
+
+        // ==========================================
+        // ENDPOINT: Delete / Anonymize (Right to Erasure)
+        // ==========================================
+        [HttpDelete("{id}")]
+        [HasPermission("DataPrincipal.Manage")]
+        public async Task<IActionResult> DeleteDataPrincipal(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            // DPDP Act: Hard delete ki jagah Anonymize/Scramble kar rahe hain
+            var success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim));
+
+            if (!success) return NotFound(new { Message = "Data Principal not found." });
+
+            return Ok(new { Message = "Data Principal has been successfully anonymized as per Right to Erasure." });
+        }
+        // ==========================================
         // 1. GET: DATA PRINCIPAL COUNT (Dashboard Widget Ke Liye)
         // ==========================================
         [HttpGet("count")]

@@ -12,8 +12,8 @@ using PrivacyGuard.Data;
 namespace PrivacyGuard.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261112165204_InitialSetup")]
-    partial class InitialSetup
+    [Migration("20261113071442_initialcreate")]
+    partial class initialcreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -737,6 +737,9 @@ namespace PrivacyGuard.Migrations
                     b.Property<string>("Mobile")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
+
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");

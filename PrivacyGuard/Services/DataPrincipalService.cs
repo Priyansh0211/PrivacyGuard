@@ -185,6 +185,26 @@ namespace PrivacyGuard.Services
             await _repository.SaveChangesAsync();
             return true;
         }
+        // ==========================================
+        // EDIT / UPDATE DATA PRINCIPAL (Right to Correction)
+        // ==========================================
+        public async Task<bool> UpdateDataPrincipalAsync(Guid id, DataPrincipalDto dto, Guid organizationId)
+        {
+            var dp = await _repository.Get360ViewEntityAsync(id, organizationId);
+            if (dp == null) return false;
+
+            // Naya data update karo
+            dp.FullName = dto.FullName ?? dp.FullName;
+            dp.Email = dto.Email ?? dp.Email;
+            dp.Mobile = dto.Mobile ?? dp.Mobile;
+            dp.ConsumerNo = dto.ConsumerNo ?? dp.ConsumerNo;
+            dp.Class = string.IsNullOrEmpty(dto.Class) ? dp.Class : dto.Class;
+            dp.PreferredLocale = string.IsNullOrEmpty(dto.PreferredLocale) ? dp.PreferredLocale : dto.PreferredLocale;
+            dp.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.SaveChangesAsync();
+            return true;
+        }
 
         // ==========================================
         // BULK IMPORT PROCESSOR (For CSV Uploads)
