@@ -1723,7 +1723,7 @@ namespace PrivacyGuard.Migrations
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PrivacyGuard.Models.User", "DataPrincipal")
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "DataPrincipal")
                         .WithMany()
                         .HasForeignKey("DataPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict)
