@@ -3,6 +3,7 @@ using PrivacyGuard.Data;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
+using PrivacyGuard.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,82 @@ namespace PrivacyGuard.Repositories
             await _dbContext.Campaigns.AddAsync(campaign);
             await _dbContext.SaveChangesAsync();
             return campaign;
+        }
+
+        public async Task<CampaignAuditReportDto> GetCampaignAuditReportAsync(Guid campaignId, Guid organizationId)
+        {
+            var campaign = await _dbContext.Campaigns
+                .Include(c => c.DataInventory)
+                .FirstOrDefaultAsync(c => c.CampaignId == campaignId && c.OrganizationId == organizationId);
+
+            if (campaign == null) throw new Exception("Campaign not found.");
+
+            var responses = await _dbContext.CampaignResponses
+                .Include(r => r.User)
+                .Include(r => r.DataPrincipal)
+                .Where(r => r.CampaignId == campaignId)
+                .OrderByDescending(r => r.RespondedAt ?? r.CreatedAt)
+                .ToListAsync();
+
+            var accepted = responses.Count(r => r.ResponseStatus == "Accepted");
+            var rejected = responses.Count(r => r.ResponseStatus == "Rejected");
+            var completed = responses.Count(r => r.ResponseStatus == "Completed");
+            var total = responses.Count;
+            var checks = new List<string>();
+
+            var hasValidDates = campaign.EndDate > campaign.StartDate;
+            checks.Add(hasValidDates ? "Campaign dates are valid" : "Campaign end date must be after start date");
+
+            var hasPurposeLink = !string.Equals(campaign.CampaignType, "Consent", StringComparison.OrdinalIgnoreCase) || campaign.DataInventoryId.HasValue;
+            checks.Add(hasPurposeLink ? "Purpose/data inventory requirement is satisfied" : "Consent campaign has no linked data inventory");
+
+            var hasDescription = !string.IsNullOrWhiteSpace(campaign.Description);
+            checks.Add(hasDescription ? "Campaign description is available" : "Campaign description is missing");
+
+            var hasValidStatus = campaign.Status is "Draft" or "Active" or "Completed" or "Cancelled";
+            checks.Add(hasValidStatus ? "Campaign status is recognized" : "Campaign has an unrecognized status");
+
+            var isCompliant = hasValidDates && hasPurposeLink && hasDescription && hasValidStatus;
+
+            return new CampaignAuditReportDto
+            {
+                CampaignId = campaign.CampaignId,
+                Title = campaign.Title,
+                Description = campaign.Description ?? string.Empty,
+                CampaignType = campaign.CampaignType,
+                TargetAudience = campaign.TargetAudience.ToString(),
+                TargetRole = campaign.TargetRole,
+                CampaignStatus = campaign.Status,
+                LinkedDataInventory = campaign.DataInventory?.Name ?? "Not linked",
+                StartDate = campaign.StartDate,
+                EndDate = campaign.EndDate,
+                CreatedAt = campaign.CreatedAt,
+                UpdatedAt = campaign.UpdatedAt,
+                TotalResponses = total,
+                AcceptedCount = accepted,
+                RejectedCount = rejected,
+                CompletedCount = completed,
+                AcceptanceRate = ToPercentage(accepted, total),
+                RejectionRate = ToPercentage(rejected, total),
+                CompletionRate = ToPercentage(completed, total),
+                AuditResult = isCompliant ? "Compliant" : "Attention Required",
+                AuditRemarks = isCompliant ? "No campaign configuration gaps were found." : "Review the failed compliance checks before relying on this campaign audit.",
+                ComplianceChecks = checks,
+                Responses = responses.Select(response => new CampaignResponseAuditDto
+                {
+                    ResponseReference = response.ResponseId.ToString("N")[..8].ToUpperInvariant(),
+                    ActorType = response.UserId.HasValue ? "Internal User" : "Data Principal",
+                    MaskedEmail = PiiMaskingHelper.MaskEmail(response.User?.Email ?? response.DataPrincipal?.Email),
+                    ResponseStatus = response.ResponseStatus,
+                    CreatedAt = response.CreatedAt,
+                    RespondedAt = response.RespondedAt
+                }).ToList()
+            };
+        }
+
+        private static decimal ToPercentage(int value, int total)
+        {
+            return total == 0 ? 0 : Math.Round(value * 100m / total, 2);
         }
 
         public async Task<Campaign?> GetCampaignByIdAsync(Guid campaignId, Guid organizationId)

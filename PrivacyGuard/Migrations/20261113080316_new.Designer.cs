@@ -12,8 +12,8 @@ using PrivacyGuard.Data;
 namespace PrivacyGuard.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261113071442_initialcreate")]
-    partial class initialcreate
+    [Migration("20261113080316_new")]
+    partial class @new
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1726,7 +1726,7 @@ namespace PrivacyGuard.Migrations
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PrivacyGuard.Models.User", "DataPrincipal")
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "DataPrincipal")
                         .WithMany()
                         .HasForeignKey("DataPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict)

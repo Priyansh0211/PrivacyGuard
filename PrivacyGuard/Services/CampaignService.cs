@@ -65,6 +65,7 @@ namespace PrivacyGuard.Services
 
         public async Task<IEnumerable<Campaign>> GetAllCampaignsAsync(Guid organizationId) => await _campaignRepository.GetAllCampaignsByOrgAsync(organizationId);
         public async Task<CampaignStatsDto> GetCampaignStatsAsync(Guid campaignId, Guid organizationId) => await _campaignRepository.GetCampaignStatsAsync(campaignId, organizationId);
+        public async Task<CampaignAuditReportDto> GetCampaignAuditReportAsync(Guid campaignId, Guid organizationId) => await _campaignRepository.GetCampaignAuditReportAsync(campaignId, organizationId);
         public async Task<List<AudienceMemberDto>> GetAudienceListAsync(Guid orgId, string type) => await _campaignRepository.GetAudienceListAsync(orgId, type);
 
         public async Task<bool> AssignAudienceAsync(LinkAudienceRequestDto request)
