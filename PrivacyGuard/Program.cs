@@ -156,6 +156,7 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
 // Services
 builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+builder.Services.AddScoped<PdfReportRenderer>();
 //builder.Services.AddScoped<IReportDataService, ReportDataService>();
 builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
 builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();

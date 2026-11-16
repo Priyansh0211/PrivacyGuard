@@ -21,7 +21,7 @@ namespace PrivacyGuard.Services
             _env = env;
         }
 
-        public async Task<Guid> CreateReportJobAsync(Guid organizationId, string reportType)
+        public async Task<Guid> CreateReportJobAsync(Guid organizationId, string reportType, string format = "PDF")
         {
         
             var job = new ReportJob
@@ -29,6 +29,7 @@ namespace PrivacyGuard.Services
                 JobId = Guid.NewGuid(),
                 OrganizationId = organizationId,
                 ReportType = reportType, // Jaise "GrievanceReport"
+                ReportFormat = string.Equals(format, "PDF", StringComparison.OrdinalIgnoreCase) ? "PDF" : "CSV",
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
             };
