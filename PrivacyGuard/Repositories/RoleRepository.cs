@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PrivacyGuard.Data;
+using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
 using static PrivacyGuard.DTOs.RolePermissionDto;
@@ -14,6 +15,25 @@ namespace PrivacyGuard.Repositories
         public RoleRepository(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        public async Task<List<PrivacyGuard.DTOs.RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId)
+        {
+            return await _context.Roles
+                .Where(r => r.OrganizationId == organizationId)
+                .OrderBy(r => r.Name)
+                .Select(r => new RoleSummaryDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    Description = r.Description,
+                    PermissionCount = _context.RolePermissions
+                        .Count(rp => rp.RoleId == r.Id),
+                    UserCount =
+                        _context.Users.Count(u => u.RoleId == r.Id) +
+                        _context.DataPrincipals.Count(dp => dp.RoleId == r.Id)
+                })
+                .ToListAsync();
         }
 
         public async Task<List<Permission>> GetAllPermissionsAsync()
@@ -96,11 +116,14 @@ namespace PrivacyGuard.Repositories
             var permissionCheckboxes = allPermissions.Select(p => new PermissionCheckboxDto
             {
                 Id = p.Id,
+                PermissionId = p.Id,
                 ModuleName = p.ModuleName,
                 ActionName = p.ActionName,
+                SystemName = p.SystemName,
                 StstemName = p.SystemName,
                 
-                IsAssigned = assignedPermissionIds.Contains(p.Id)
+                IsAssigned = assignedPermissionIds.Contains(p.Id),
+                IsSelected = assignedPermissionIds.Contains(p.Id)
             }).ToList();
 
             // 5. Final response bana kar bhej do

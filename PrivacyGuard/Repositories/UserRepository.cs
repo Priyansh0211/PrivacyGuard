@@ -35,6 +35,13 @@ namespace PrivacyGuard.Repositories
                  .ToListAsync();
         }
 
+        public async Task<List<DataPrincipal>> GetDataPrincipalsByOrganizationIdAsync(Guid organizationId)
+        {
+            return await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId)
+                .ToListAsync();
+        }
+
         public async Task<User?> GetUserByIdAndOrgAsync(Guid userId, Guid organizationId)
         {
             return await _context.Users

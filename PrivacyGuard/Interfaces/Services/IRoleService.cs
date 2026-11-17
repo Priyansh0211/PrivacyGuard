@@ -1,9 +1,11 @@
 ﻿using static PrivacyGuard.DTOs.RolePermissionDto;
+using PrivacyGuard.DTOs;
 
 namespace PrivacyGuard.Interfaces.Services
 {
     public interface IRoleService
     {
+        Task<List<RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId);
         Task<List<ModulePermissionDto>> GetGroupedPermissionsAsync();
 
         Task<(bool IsSuccess, string ErrorMessage)> CreateCustomRoleAsync(CreateRoleDto request, Guid organizationId);
