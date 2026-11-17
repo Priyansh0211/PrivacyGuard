@@ -21,6 +21,17 @@ namespace PrivacyGuard.Controllers
             _roleService = roleService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetRoles()
+        {
+            var organizationIdValue = User.FindFirstValue("OrganizationId");
+            if (!Guid.TryParse(organizationIdValue, out var organizationId))
+                return Unauthorized(new { message = "Organization context missing in token." });
+
+            var result = await _roleService.GetRoleSummariesAsync(organizationId);
+            return Ok(result);
+        }
+
         [HttpGet("permissions")]
         public async Task<IActionResult> GetAllPermissions()
         {

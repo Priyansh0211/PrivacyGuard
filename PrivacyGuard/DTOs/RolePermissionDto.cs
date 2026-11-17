@@ -37,11 +37,18 @@ namespace PrivacyGuard.DTOs
         public class PermissionCheckboxDto
         {
             public int Id { get; set; }
+            public int PermissionId { get; set; }
             public string ModuleName { get; set; } = string.Empty;
             public string ActionName { get; set; } = string.Empty;
 
+            public string SystemName { get; set; } = string.Empty;
+
+            // Kept for compatibility with older clients.
             public string StstemName { get; set; } = string.Empty;
             public bool IsAssigned { get; set; } // True = Ticked, False = Unticked
+
+            // Alias used by clients that call the checkbox state IsSelected.
+            public bool IsSelected { get; set; }
         }
 
         // Poore Edit page ka data jo frontend ko jayega

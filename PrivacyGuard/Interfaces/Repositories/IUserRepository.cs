@@ -8,6 +8,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<User> CreateUserAsync(User user);
 
         Task<List<User>> GetUsersByOrganizationIdAsync(Guid organizationId);
+        Task<List<DataPrincipal>> GetDataPrincipalsByOrganizationIdAsync(Guid organizationId);
 
         Task<User?> GetUserByIdAndOrgAsync(Guid userId, Guid organizationId);
         Task UpdateUserAsync(User user);

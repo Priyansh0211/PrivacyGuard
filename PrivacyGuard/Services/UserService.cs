@@ -51,9 +51,12 @@ namespace PrivacyGuard.Services
         public async Task<List<UserResponseDto>> GetOrganizationEmployeesAsync(Guid organizationId)
         {
             var users = await _userRepository.GetUsersByOrganizationIdAsync(organizationId);
+            var dataPrincipals = await _userRepository.GetDataPrincipalsByOrganizationIdAsync(organizationId);
+
             var userList = users.Select(u => new UserResponseDto
             {
                 UserId = u.UserId,
+                ReferenceId = u.ReferenceId,
                 FullName = u.FullName,
                 Email = u.Email,
                 PhoneNumber = u.PhoneNumber,
@@ -64,6 +67,18 @@ namespace PrivacyGuard.Services
                 IsActive = u.IsActive,
                 CreatedAt = u.CreatedAt
             }).ToList();
+
+            userList.AddRange(dataPrincipals.Select(dp => new UserResponseDto
+            {
+                UserId = dp.DataPrincipalId,
+                ReferenceId = dp.ReferenceId,
+                FullName = dp.FullName ?? dp.DisplayName ?? dp.ReferenceId,
+                Email = dp.Email ?? string.Empty,
+                PhoneNumber = dp.Mobile ?? string.Empty,
+                Role = "DataPrincipal",
+                IsActive = dp.IsActive,
+                CreatedAt = dp.CreatedAt
+            }));
 
             return userList;
         }

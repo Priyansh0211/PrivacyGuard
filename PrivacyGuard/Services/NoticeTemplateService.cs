@@ -47,9 +47,7 @@ namespace PrivacyGuard.Services
                 Code = t.Code,
                 Name = t.Name,
                 Description = t.Description,
-                Purposes = string.IsNullOrEmpty(t.PurposesJson)
-                            ? new List<string>()
-                            : JsonSerializer.Deserialize<List<string>>(t.PurposesJson) ?? new List<string>(),
+                Purposes = DeserializePurposes(t.PurposesJson),
                 Layout = t.Layout, // 🚨 Layout map
                 CreatedAt = t.CreatedAt
             }).ToList();
@@ -66,12 +64,47 @@ namespace PrivacyGuard.Services
                 Code = t.Code,
                 Name = t.Name,
                 Description = t.Description,
-                Purposes = string.IsNullOrEmpty(t.PurposesJson)
-                            ? new List<string>()
-                            : JsonSerializer.Deserialize<List<string>>(t.PurposesJson) ?? new List<string>(),
+                Purposes = DeserializePurposes(t.PurposesJson),
                 Layout = t.Layout, // 🚨 Layout map
                 CreatedAt = t.CreatedAt
             };
+        }
+
+        private static List<string> DeserializePurposes(string? purposesJson)
+        {
+            if (string.IsNullOrWhiteSpace(purposesJson))
+                return new List<string>();
+
+            using var document = JsonDocument.Parse(purposesJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+                throw new JsonException("PurposesJson must contain a JSON array.");
+
+            var purposes = new List<string>();
+            foreach (var item in document.RootElement.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var value = item.GetString();
+                    if (value != null)
+                        purposes.Add(value);
+                    continue;
+                }
+
+                if (item.ValueKind == JsonValueKind.Object &&
+                    (item.TryGetProperty("code", out var code) ||
+                     item.TryGetProperty("Code", out code)) &&
+                    code.ValueKind == JsonValueKind.String)
+                {
+                    var value = code.GetString();
+                    if (value != null)
+                        purposes.Add(value);
+                    continue;
+                }
+
+                throw new JsonException("Each purpose must be a string or an object containing a string 'code'.");
+            }
+
+            return purposes;
         }
 
         public async Task<bool> UpdateTemplateAsync(Guid id, Guid orgId, UpdateTemplateDto dto)
