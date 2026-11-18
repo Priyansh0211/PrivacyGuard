@@ -97,6 +97,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IComplianceChecklistService, ComplianceChecklistService>();
 
 builder.Services.AddScoped<IBreachRepository, BreachRepository>();
 builder.Services.AddScoped<IBreachService, BreachService>();
