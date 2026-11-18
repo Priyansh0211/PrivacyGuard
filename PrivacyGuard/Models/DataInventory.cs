@@ -36,6 +36,18 @@ namespace PrivacyGuard.Models
         public int? RetentionPeriodDays { get; set; }
 
         [Required]
+        [MaxLength(100)]
+        public string LawfulBasis { get; set; } = "Consent";
+
+        // e.g., "Customer", "Employee", or "Minor" (Important for Section 9 tracking)
+        [Required]
+        [MaxLength(100)]
+        public string DataPrincipalCategory { get; set; } = "Customer";
+
+        // e.g., "AWS, Razorpay, Marketing Agency" (Section 8)
+        [MaxLength(500)]
+        public string? SharedWithProcessors { get; set; }
+        [Required]
         [MaxLength(30)]
         public string Status { get; set; } = "Active";
 
