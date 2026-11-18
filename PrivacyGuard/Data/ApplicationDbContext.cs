@@ -61,6 +61,7 @@ namespace PrivacyGuard.Data
 
         public DbSet<ReportJob> ReportJobs { get; set; }
         public DbSet<GeneratedReport> GeneratedReports { get; set; }
+        public DbSet<RuleAndAct> RulesAndActs { get; set; }
 
         // ==========================================
         // 2. MODEL CREATING & MAPPINGS
@@ -69,8 +70,9 @@ namespace PrivacyGuard.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<RuleAndAct>()
+        .HasIndex(r => r.OrganizationId);
 
-          
 
             // DataInventory mapping
             modelBuilder.Entity<DataInventory>()
