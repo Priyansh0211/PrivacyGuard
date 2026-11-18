@@ -9,39 +9,25 @@ namespace PrivacyGuard.Services
     {
         private readonly IDataInventoryRepository _repository;
 
-        public DataInventoryService(
-            IDataInventoryRepository repository)
+        public DataInventoryService(IDataInventoryRepository repository)
         {
             _repository = repository;
         }
 
-        public async Task<DataInventoryResponseDto?> GetByIdAsync(
-            Guid id,
-            Guid organizationId)
+        public async Task<DataInventoryResponseDto?> GetByIdAsync(Guid id, Guid organizationId)
         {
-            var inventory = await _repository.GetByIdAsync(
-                id, organizationId);
-
-            if (inventory == null)
-                return null;
-
+            var inventory = await _repository.GetByIdAsync(id, organizationId);
+            if (inventory == null) return null;
             return MapToResponseDto(inventory);
         }
 
-        public async Task<List<DataInventoryResponseDto>> GetAllAsync(
-            Guid organizationId)
+        public async Task<List<DataInventoryResponseDto>> GetAllAsync(Guid organizationId)
         {
-            var inventories = await _repository.GetAllAsync(
-                organizationId);
-
-            return inventories
-                .Select(MapToResponseDto)
-                .ToList();
+            var inventories = await _repository.GetAllAsync(organizationId);
+            return inventories.Select(MapToResponseDto).ToList();
         }
 
-        public async Task<DataInventoryResponseDto> CreateAsync(
-            CreateDataInventoryDto dto,
-            Guid organizationId)
+        public async Task<DataInventoryResponseDto> CreateAsync(CreateDataInventoryDto dto, Guid organizationId)
         {
             var inventory = new DataInventory
             {
@@ -52,26 +38,25 @@ namespace PrivacyGuard.Services
                 DataSource = dto.DataSource?.Trim(),
                 StorageLocation = dto.StorageLocation?.Trim(),
                 RetentionPeriodDays = dto.RetentionPeriodDays,
+
+                // DPDP Extra Mapping
+                LawfulBasis = dto.LawfulBasis.Trim(),
+                DataPrincipalCategory = dto.DataPrincipalCategory.Trim(),
+                SharedWithProcessors = dto.SharedWithProcessors?.Trim(),
+
                 Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
             await _repository.AddAsync(inventory);
-
             return MapToResponseDto(inventory);
         }
 
-        public async Task<bool> UpdateAsync(
-            Guid id,
-            UpdateDataInventoryDto dto,
-            Guid organizationId)
+        public async Task<bool> UpdateAsync(Guid id, UpdateDataInventoryDto dto, Guid organizationId)
         {
-            var inventory = await _repository.GetByIdAsync(
-                id, organizationId);
-
-            if (inventory == null)
-                return false;
+            var inventory = await _repository.GetByIdAsync(id, organizationId);
+            if (inventory == null) return false;
 
             inventory.Name = dto.Name.Trim();
             inventory.DataCategory = dto.DataCategory.Trim();
@@ -79,30 +64,27 @@ namespace PrivacyGuard.Services
             inventory.DataSource = dto.DataSource?.Trim();
             inventory.StorageLocation = dto.StorageLocation?.Trim();
             inventory.RetentionPeriodDays = dto.RetentionPeriodDays;
+
+            // DPDP Extra Mapping
+            inventory.LawfulBasis = dto.LawfulBasis.Trim();
+            inventory.DataPrincipalCategory = dto.DataPrincipalCategory.Trim();
+            inventory.SharedWithProcessors = dto.SharedWithProcessors?.Trim();
+
             inventory.UpdatedAt = DateTime.UtcNow;
 
             await _repository.UpdateAsync(inventory);
-
             return true;
         }
 
-        public async Task<bool> DeleteAsync(
-            Guid id,
-            Guid organizationId)
+        public async Task<bool> DeleteAsync(Guid id, Guid organizationId)
         {
-            var inventory = await _repository.GetByIdAsync(
-                id, organizationId);
-
-            if (inventory == null)
-                return false;
-
+            var inventory = await _repository.GetByIdAsync(id, organizationId);
+            if (inventory == null) return false;
             await _repository.DeleteAsync(inventory);
-
             return true;
         }
 
-        private static DataInventoryResponseDto MapToResponseDto(
-            DataInventory inventory)
+        private static DataInventoryResponseDto MapToResponseDto(DataInventory inventory)
         {
             return new DataInventoryResponseDto
             {
@@ -113,6 +95,12 @@ namespace PrivacyGuard.Services
                 DataSource = inventory.DataSource,
                 StorageLocation = inventory.StorageLocation,
                 RetentionPeriodDays = inventory.RetentionPeriodDays,
+
+                // DPDP Extra Mapping
+                LawfulBasis = inventory.LawfulBasis,
+                DataPrincipalCategory = inventory.DataPrincipalCategory,
+                SharedWithProcessors = inventory.SharedWithProcessors,
+
                 Status = inventory.Status,
                 CreatedAt = inventory.CreatedAt,
                 UpdatedAt = inventory.UpdatedAt
