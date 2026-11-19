@@ -987,6 +987,8 @@ namespace PrivacyGuard.Migrations
 
             modelBuilder.Entity("PrivacyGuard.Models.GrievanceMessage", b =>
                 {
+                    b.Property<Guid?>("SenderDataPrincipalId")
+                        .HasColumnType("uniqueidentifier");
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
@@ -1004,16 +1006,20 @@ namespace PrivacyGuard.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("SenderId")
+                    b.Property<Guid?>("SenderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("GrievanceId");
 
+                    b.HasIndex("SenderDataPrincipalId");
+
                     b.HasIndex("SenderId");
 
-                    b.ToTable("GrievanceMessages");
+                    b.ToTable("GrievanceMessages", t => t.HasCheckConstraint(
+                        "CK_GrievanceMessages_ExactlyOneSender",
+                        "([SenderId] IS NOT NULL AND [SenderDataPrincipalId] IS NULL) OR ([SenderId] IS NULL AND [SenderDataPrincipalId] IS NOT NULL)"));
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
@@ -1800,12 +1806,18 @@ namespace PrivacyGuard.Migrations
                     b.HasOne("PrivacyGuard.Models.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "SenderDataPrincipal")
+                        .WithMany()
+                        .HasForeignKey("SenderDataPrincipalId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Grievance");
 
                     b.Navigation("Sender");
+
+                    b.Navigation("SenderDataPrincipal");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
