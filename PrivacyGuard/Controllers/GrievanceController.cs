@@ -124,8 +124,12 @@ namespace PrivacyGuard.Controllers
             var claims = GetUserClaims();
             if (!claims.isValid) return Unauthorized();
 
-            bool isAdmin = IsAdminUser();
-            var success = await _grievanceService.AddReplyAsync(id, claims.userId, claims.orgId, dto, isAdmin);
+            var userType = User.FindFirstValue("UserType");
+            if (userType is not ("InternalUser" or "DataPrincipal")) return Unauthorized();
+
+            bool isAdmin = userType == "InternalUser" && IsAdminUser();
+            var isDataPrincipal = userType == "DataPrincipal";
+            var success = await _grievanceService.AddReplyAsync(id, claims.userId, isDataPrincipal, claims.orgId, dto, isAdmin);
 
             if (!success) return NotFound(new { message = "Grievance not found." });
             return Ok(new { message = dto.IsInternal && isAdmin ? "Internal note added." : "Reply sent successfully." });
