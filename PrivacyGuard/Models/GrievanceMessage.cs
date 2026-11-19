@@ -15,9 +15,13 @@ namespace PrivacyGuard.Models
         public Grievance? Grievance { get; set; }
 
        
-        public Guid SenderId { get; set; }
-        [ForeignKey("SenderId")]
+        public Guid? SenderId { get; set; }
+        [ForeignKey(nameof(SenderId))]
         public User? Sender { get; set; }
+
+        public Guid? SenderDataPrincipalId { get; set; }
+        [ForeignKey(nameof(SenderDataPrincipalId))]
+        public DataPrincipal? SenderDataPrincipal { get; set; }
 
         [Required]
         public string MessageText { get; set; } = string.Empty;

@@ -13,7 +13,7 @@ namespace PrivacyGuard.Interfaces.Services
         Task<GrievanceDetailDto?> GetGrievanceDetailsAsync(Guid id, Guid orgId, bool isAdmin);
         Task<bool> AssignTicketAsync(Guid id, Guid orgId, Guid adminId);
         Task<bool> ResolveGrievanceAsync(Guid id, Guid orgId, Guid adminId);
-        Task<bool> AddReplyAsync(Guid grievanceId, Guid userId, Guid orgId, AddGrievanceMessageDto dto, bool isAdmin);
+        Task<bool> AddReplyAsync(Guid grievanceId, Guid senderId, bool isDataPrincipal, Guid orgId, AddGrievanceMessageDto dto, bool isAdmin);
     }
 
 }
