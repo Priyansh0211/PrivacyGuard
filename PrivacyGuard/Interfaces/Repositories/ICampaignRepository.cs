@@ -18,6 +18,7 @@ namespace PrivacyGuard.Interfaces.Repositories
         Task<CampaignResponse> SaveResponseAsync(CampaignResponse response, bool isInternalUser);
 
         Task<CampaignStatsDto> GetCampaignStatsAsync(Guid campaignId, Guid organizationId);
+        Task<CampaignAuditReportDto> GetCampaignAuditReportAsync(Guid campaignId, Guid organizationId);
 
         // 💡 Audience Mapping
         Task<List<AudienceMemberDto>> GetAudienceListAsync(Guid orgId, string type);

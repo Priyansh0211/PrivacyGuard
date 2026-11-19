@@ -12,8 +12,8 @@ using PrivacyGuard.Data;
 namespace PrivacyGuard.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261112094034_updated")]
-    partial class updated
+    [Migration("20261118104948_AddDpdpInventoryFields")]
+    partial class AddDpdpInventoryFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -659,9 +659,19 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("DataPrincipalCategory")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("DataSource")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("LawfulBasis")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -678,6 +688,10 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<int?>("RetentionPeriodDays")
                         .HasColumnType("int");
+
+                    b.Property<string>("SharedWithProcessors")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -738,6 +752,9 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
 
@@ -757,10 +774,15 @@ namespace PrivacyGuard.Migrations
                     b.Property<bool>("RequiresGuardianConsent")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("DataPrincipalId");
+
+                    b.HasIndex("RoleId");
 
                     b.ToTable("DataPrincipals");
                 });
@@ -1047,6 +1069,8 @@ namespace PrivacyGuard.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("NoticeTemplateId");
 
                     b.ToTable("Notices");
                 });
@@ -1688,6 +1712,16 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.DataPrincipal", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.GeneratedReport", b =>
                 {
                     b.HasOne("PrivacyGuard.Models.ReportJob", "ReportJob")
@@ -1706,7 +1740,7 @@ namespace PrivacyGuard.Migrations
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PrivacyGuard.Models.User", "DataPrincipal")
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "DataPrincipal")
                         .WithMany()
                         .HasForeignKey("DataPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -1734,6 +1768,16 @@ namespace PrivacyGuard.Migrations
                     b.Navigation("Grievance");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>
+                {
+                    b.HasOne("PrivacyGuard.Models.NoticeTemplate", "NoticeTemplate")
+                        .WithMany()
+                        .HasForeignKey("NoticeTemplateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("NoticeTemplate");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.NoticeTranslation", b =>

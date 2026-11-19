@@ -24,5 +24,16 @@ namespace PrivacyGuard.DTOs
 
         [Range(1, 36500)]
         public int? RetentionPeriodDays { get; set; }
+
+        [Required]
+        [MaxLength(100)]
+        public string LawfulBasis { get; set; } = "Consent";
+
+        [Required]
+        [MaxLength(100)]
+        public string DataPrincipalCategory { get; set; } = "Customer";
+
+        [MaxLength(500)]
+        public string? SharedWithProcessors { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using PrivacyGuard.Repositories;
+using PrivacyGuard.DTOs;
 using static PrivacyGuard.DTOs.RolePermissionDto;
 
 namespace PrivacyGuard.Services
@@ -15,6 +16,11 @@ namespace PrivacyGuard.Services
         public RoleService(IRoleRepository roleRepository)
         {
             _roleRepository = roleRepository;
+        }
+
+        public async Task<List<RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId)
+        {
+            return await _roleRepository.GetRoleSummariesAsync(organizationId);
         }
 
         public async Task<List<ModulePermissionDto>> GetGroupedPermissionsAsync()

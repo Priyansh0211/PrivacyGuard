@@ -19,8 +19,8 @@ namespace PrivacyGuard.Models
 
         // Jis user (Data Principal) ne shikayat ki
         public Guid DataPrincipalId { get; set; }
-        [ForeignKey("DataPrincipalId")]
-        public User? DataPrincipal { get; set; }
+        [ForeignKey(nameof(DataPrincipalId))]
+        public DataPrincipal? DataPrincipal { get; set; }
 
         [Required, MaxLength(255)]
         public string Subject { get; set; } = string.Empty;

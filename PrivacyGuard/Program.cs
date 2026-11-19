@@ -97,6 +97,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IComplianceChecklistService, ComplianceChecklistService>();
 
 builder.Services.AddScoped<IBreachRepository, BreachRepository>();
 builder.Services.AddScoped<IBreachService, BreachService>();
@@ -156,10 +157,14 @@ builder.Services.AddScoped<IReportRepository, ReportRepository>();
 
 // Services
 builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+builder.Services.AddScoped<PdfReportRenderer>();
 //builder.Services.AddScoped<IReportDataService, ReportDataService>();
 builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
 builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
 builder.Services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
+
+builder.Services.AddScoped<IRuleAndActRepository, RuleAndActRepository>();
+builder.Services.AddScoped<IRuleAndActService, RuleAndActService>();
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
@@ -200,4 +205,4 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-app.Run();
+

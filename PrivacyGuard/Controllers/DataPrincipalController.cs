@@ -5,6 +5,7 @@ using PrivacyGuard.Filters; // FIX: Permission filter ke liye namespace zaroori 
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace PrivacyGuard.Controllers
@@ -65,7 +66,6 @@ namespace PrivacyGuard.Controllers
             });
         }
 
-        // ==========================================
         // ENDPOINT: 360-Degree View Dashboard
         // ==========================================
         [HttpGet("{id}/360-view")]
@@ -81,6 +81,92 @@ namespace PrivacyGuard.Controllers
                 return NotFound(new { Message = "Data Principal not found." });
 
             return Ok(viewData);
+        }
+        // ==========================================
+        // ENDPOINT: Edit / Update Data Principal
+        // ==========================================
+        [HttpPut("{id}")]
+        [HasPermission("DataPrincipal.Manage")]
+        public async Task<IActionResult> UpdateDataPrincipal(Guid id, [FromBody] DataPrincipalDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            var success = await _dataPrincipalService.UpdateDataPrincipalAsync(id, request, Guid.Parse(orgIdClaim));
+
+            if (!success) return NotFound(new { Message = "Data Principal not found." });
+
+            return Ok(new { Message = "Data Principal updated successfully." });
+        }
+
+        // ==========================================
+        // ENDPOINT: Delete / Anonymize (Right to Erasure)
+        // ==========================================
+        [HttpDelete("{id}")]
+        [HasPermission("DataPrincipal.Manage")]
+        public async Task<IActionResult> DeleteDataPrincipal(Guid id)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
+
+            // DPDP Act: Hard delete ki jagah Anonymize/Scramble kar rahe hain
+            var success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim));
+
+            if (!success) return NotFound(new { Message = "Data Principal not found." });
+
+            return Ok(new { Message = "Data Principal has been successfully anonymized as per Right to Erasure." });
+        }
+        // ==========================================
+        // 1. GET: DATA PRINCIPAL COUNT (Dashboard Widget Ke Liye)
+        // ==========================================
+        [HttpGet("count")]
+        [HasPermission("DataPrincipal.View")]
+        public async Task<IActionResult> GetTotalCount([FromQuery] Guid? orgUnitId)
+        {
+            var orgIdStr = User.FindFirstValue("OrganizationId");
+            if (string.IsNullOrEmpty(orgIdStr))
+                return Unauthorized(new { message = "Organization ID missing in token." });
+
+            var organizationId = Guid.Parse(orgIdStr);
+
+            // Agar login karne wala employee kisi specific Circle/OrgUnit se juda hai, 
+            // toh token se uska OrgUnitId uthao taaki use sirf apne circle ka count dikhe.
+            var tokenOrgUnitIdStr = User.FindFirstValue("OrgUnitId");
+            Guid? finalOrgUnitId = orgUnitId ?? (string.IsNullOrEmpty(tokenOrgUnitIdStr) ? null : Guid.Parse(tokenOrgUnitIdStr));
+
+            var count = await _dataPrincipalService.GetTotalPrincipalsCountAsync(organizationId, finalOrgUnitId);
+
+            return Ok(new { totalCount = count });
+        }
+
+        // ==========================================
+        // 2. POST: BULK IMPORT (CSV ya JSON Array data ke liye)
+        // ==========================================
+        [HttpPost("bulk-import")]
+        [HasPermission("DataPrincipal.Manage")]
+        public async Task<IActionResult> BulkImport([FromBody] List<DataPrincipalDto> request)
+        {
+            var orgIdStr = User.FindFirstValue("OrganizationId");
+            if (string.IsNullOrEmpty(orgIdStr))
+                return Unauthorized(new { message = "Organization ID missing in token." });
+
+            var organizationId = Guid.Parse(orgIdStr);
+
+            // Bulk upload karne wale staff ka circle ID (agar ho toh)
+            var orgUnitIdStr = User.FindFirstValue("OrgUnitId");
+            Guid? orgUnitId = string.IsNullOrEmpty(orgUnitIdStr) ? null : Guid.Parse(orgUnitIdStr);
+
+            if (request == null || request.Count == 0)
+                return BadRequest(new { message = "No data provided for import. List is empty." });
+
+            var result = await _dataPrincipalService.BulkImportPrincipalsAsync(request, organizationId, orgUnitId);
+
+            return Ok(new
+            {
+                success = true,
+                importedCount = result.SuccessCount,
+                message = result.Message
+            });
         }
     }
 }

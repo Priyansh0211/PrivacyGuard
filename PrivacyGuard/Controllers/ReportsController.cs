@@ -29,7 +29,7 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-campaign-report/{campaignId}")]
         [HasPermission("Audit.Manage")] // UPDATE: Manage permission to generate reports
-        public async Task<IActionResult> GenerateCampaignReport(Guid campaignId)
+        public async Task<IActionResult> GenerateCampaignReport(Guid campaignId, [FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -40,13 +40,20 @@ namespace PrivacyGuard.Controllers
             var orgId = Guid.Parse(orgIdStr);
             var userId = Guid.Parse(userIdStr);
 
-            var job = await _reportGenerator.InitializeReportJobAsync(orgId, userId, "CampaignAudit");
-            var reportData = await _campaignService.GetCampaignStatsAsync(campaignId, orgId);
-            var dataList = new List<CampaignStatsDto> { reportData };
-
-            bool success = await _reportGenerator.GenerateAndSaveCsvEvidenceAsync(
-                job.JobId, orgId, dataList, "CampaignAudit"
-            );
+            var job = await _reportGenerator.InitializeReportJobAsync(orgId, userId, "CampaignAudit", format);
+            bool success;
+            if (string.Equals(format, "PDF", StringComparison.OrdinalIgnoreCase))
+            {
+                var auditReport = await _campaignService.GetCampaignAuditReportAsync(campaignId, orgId);
+                success = await _reportGenerator.GenerateAndSaveEvidenceAsync(
+                    job.JobId, orgId, new[] { auditReport }, "CampaignAudit", format, "Campaign Audit Report");
+            }
+            else
+            {
+                var reportData = await _campaignService.GetCampaignStatsAsync(campaignId, orgId);
+                success = await _reportGenerator.GenerateAndSaveEvidenceAsync(
+                    job.JobId, orgId, new[] { reportData }, "CampaignAudit", format, "Campaign Audit Report");
+            }
 
             if (!success)
                 return StatusCode(500, new { message = "Report generation failed. Check job logs." });
@@ -82,12 +89,15 @@ namespace PrivacyGuard.Controllers
                 return BadRequest(new { message = result.ErrorMessage });
             }
 
-            return File(result.FileBytes!, "text/csv", result.FileName!);
+            var contentType = string.Equals(Path.GetExtension(result.FileName), ".pdf", StringComparison.OrdinalIgnoreCase)
+                ? "application/pdf"
+                : "text/csv";
+            return File(result.FileBytes!, contentType, result.FileName!);
         }
 
         [HttpPost("generate-grievance-report")]
         [HasPermission("Audit.Manage")]
-        public async Task<IActionResult> GenerateGrievanceReport()
+        public async Task<IActionResult> GenerateGrievanceReport([FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
@@ -95,8 +105,8 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceReport");
-            var success = await _reportGenerator.GenerateGrievanceReportAsync(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceReport", format);
+            var success = await _reportGenerator.GenerateGrievanceReportAsync(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = "Failed to generate Grievance Report." });
@@ -106,7 +116,7 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-grievance-audit")]
         [HasPermission("Audit.Manage")]
-        public async Task<IActionResult> GenerateGrievanceAuditReport()
+        public async Task<IActionResult> GenerateGrievanceAuditReport([FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
@@ -114,8 +124,8 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceAuditReport");
-            var success = await _reportGenerator.GenerateGrievanceAuditReportAsync(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "GrievanceAuditReport", format);
+            var success = await _reportGenerator.GenerateGrievanceAuditReportAsync(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = "Failed to generate Grievance Audit Report." });
@@ -125,7 +135,7 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-consent-audit")]
         [HasPermission("Audit.Manage")]
-        public async Task<IActionResult> GenerateConsentAuditReport()
+        public async Task<IActionResult> GenerateConsentAuditReport([FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
@@ -133,8 +143,8 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "ConsentAuditReport");
-            var success = await _reportGenerator.GenerateConsentAuditReportAsync(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "ConsentAuditReport", format);
+            var success = await _reportGenerator.GenerateConsentAuditReportAsync(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = "Failed to generate Consent Audit Report." });
@@ -144,7 +154,7 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-data-breach")]
         [HasPermission("Audit.Manage")]
-        public async Task<IActionResult> GenerateDataBreachReport()
+        public async Task<IActionResult> GenerateDataBreachReport([FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
@@ -152,8 +162,8 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "DataBreachReport");
-            var success = await _reportGenerator.GenerateDataBreachReportAsync(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "DataBreachReport", format);
+            var success = await _reportGenerator.GenerateDataBreachReportAsync(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = "Failed to generate Data Breach Report." });
@@ -163,7 +173,7 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-dpia")]
         [HasPermission("Audit.Manage")]
-        public async Task<IActionResult> GenerateDpiaReport()
+        public async Task<IActionResult> GenerateDpiaReport([FromQuery] string format = "PDF")
         {
             var orgIdStr = User.FindFirstValue("OrganizationId");
             if (string.IsNullOrEmpty(orgIdStr))
@@ -171,8 +181,8 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "DpiaReport");
-            var success = await _reportGenerator.GenerateDpiaReportAsync(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, "DpiaReport", format);
+            var success = await _reportGenerator.GenerateDpiaReportAsync(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = "Failed to generate DPIA Report." });
@@ -182,50 +192,51 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("generate-dsar-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateDsarReport() => GenerateOrganizationReportAsync(
-            "DsarReport", "DSAR", _reportGenerator.GenerateDsarReportAsync);
+        public Task<IActionResult> GenerateDsarReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "DsarReport", "DSAR", format, _reportGenerator.GenerateDsarReportAsync);
 
         [HttpPost("generate-data-inventory-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateDataInventoryReport() => GenerateOrganizationReportAsync(
-            "DataInventoryReport", "data inventory", _reportGenerator.GenerateDataInventoryReportAsync);
+        public Task<IActionResult> GenerateDataInventoryReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "DataInventoryReport", "data inventory", format, _reportGenerator.GenerateDataInventoryReportAsync);
 
         [HttpPost("generate-data-processing-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateDataProcessingReport() => GenerateOrganizationReportAsync(
-            "DataProcessingReport", "data processing", _reportGenerator.GenerateDataProcessingReportAsync);
+        public Task<IActionResult> GenerateDataProcessingReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "DataProcessingReport", "data processing", format, _reportGenerator.GenerateDataProcessingReportAsync);
 
         [HttpPost("generate-data-retention-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateDataRetentionReport() => GenerateOrganizationReportAsync(
-            "DataRetentionReport", "data retention", _reportGenerator.GenerateDataRetentionReportAsync);
+        public Task<IActionResult> GenerateDataRetentionReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "DataRetentionReport", "data retention", format, _reportGenerator.GenerateDataRetentionReportAsync);
 
         [HttpPost("generate-data-sharing-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateDataSharingReport() => GenerateOrganizationReportAsync(
-            "DataSharingReport", "data sharing", _reportGenerator.GenerateDataSharingReportAsync);
+        public Task<IActionResult> GenerateDataSharingReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "DataSharingReport", "data sharing", format, _reportGenerator.GenerateDataSharingReportAsync);
 
         [HttpPost("generate-security-audit-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateSecurityAuditReport() => GenerateOrganizationReportAsync(
-            "SecurityAuditReport", "security audit", _reportGenerator.GenerateSecurityAuditReportAsync);
+        public Task<IActionResult> GenerateSecurityAuditReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "SecurityAuditReport", "security audit", format, _reportGenerator.GenerateSecurityAuditReportAsync);
 
         [HttpPost("generate-compliance-gap-report")]
         [HasPermission("Audit.Manage")]
-        public Task<IActionResult> GenerateComplianceGapReport() => GenerateOrganizationReportAsync(
-            "ComplianceGapReport", "compliance gap", _reportGenerator.GenerateComplianceGapReportAsync);
+        public Task<IActionResult> GenerateComplianceGapReport([FromQuery] string format = "PDF") => GenerateOrganizationReportAsync(
+            "ComplianceGapReport", "compliance gap", format, _reportGenerator.GenerateComplianceGapReportAsync);
 
         private async Task<IActionResult> GenerateOrganizationReportAsync(
             string reportType,
             string reportName,
-            Func<Guid, Guid, Task<bool>> generateReport)
+            string format,
+            Func<Guid, Guid, string, Task<bool>> generateReport)
         {
             var organizationIdClaim = User.FindFirstValue("OrganizationId");
             if (!Guid.TryParse(organizationIdClaim, out var organizationId))
                 return Unauthorized(new { message = "Invalid token or Organization ID missing." });
 
-            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, reportType);
-            var success = await generateReport(jobId, organizationId);
+            var jobId = await _reportManagementService.CreateReportJobAsync(organizationId, reportType, format);
+            var success = await generateReport(jobId, organizationId, format);
 
             if (!success)
                 return BadRequest(new { message = $"Failed to generate {reportName} report." });

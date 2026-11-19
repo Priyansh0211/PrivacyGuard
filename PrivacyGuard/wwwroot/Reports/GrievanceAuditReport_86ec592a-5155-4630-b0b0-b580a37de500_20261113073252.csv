@@ -1,0 +1,4 @@
+ReferenceId,Subject,Category,Severity,Status,DataPrincipalEmail,AssignedAdminEmail,CreatedAt,UpdatedAt
+GRV-20261113-6874,Again check Grivance,Data Breach,Medium,Resolved,v***@gmail.com,anjali@mahavitaran.in,11/13/2026 7:08:57 AM,11/13/2026 7:09:48 AM
+GRV-20261026-1234,My medical data was shared without consent,Data Leak,High,Resolved,v***@gmail.com,anjali@mahavitaran.in,11/11/2026 2:29:08 PM,11/12/2026 8:05:30 AM
+GRV-20261112-3385,mere data syd thora sa leak hua hai,Data Breach,Medium,Escalated to Breach,v***@gmail.com,anjali@mahavitaran.in,11/12/2026 7:56:25 AM,11/12/2026 8:04:46 AM

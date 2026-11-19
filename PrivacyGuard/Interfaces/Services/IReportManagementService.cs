@@ -8,7 +8,7 @@ namespace PrivacyGuard.Interfaces.Services
 {
     public interface IReportManagementService
     {
-        Task<Guid> CreateReportJobAsync(Guid organizationId, string reportType);
+        Task<Guid> CreateReportJobAsync(Guid organizationId, string reportType, string format = "PDF");
         Task<IEnumerable<ReportJob>> GetReportHistoryAsync(Guid organizationId);
 
         Task<ReportDownloadResultDto> GetReportForDownloadAsync(Guid jobId, Guid organizationId);

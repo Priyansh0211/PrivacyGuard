@@ -226,7 +226,6 @@ public async Task<bool> PublishNoticeAsync(Guid id, Guid orgId)
 
             var result = new List<PublicNoticeListDto>();
 
-            // 3. Mapping: Bhasha ke hisaab se translation lagao
             foreach (var notice in latestNotices)
             {
                 var translation = notice.Translations.FirstOrDefault(t => t.LanguageCode == languageCode)

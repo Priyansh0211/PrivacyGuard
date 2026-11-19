@@ -1,10 +1,12 @@
 ﻿using PrivacyGuard.Models;
+using PrivacyGuard.DTOs;
 using static PrivacyGuard.DTOs.RolePermissionDto;
 
 namespace PrivacyGuard.Interfaces.Repositories
 {
     public interface IRoleRepository
     {
+        Task<List<PrivacyGuard.DTOs.RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId);
         Task<List<Permission>> GetAllPermissionsAsync();
 
         Task<bool> CreateRoleWithPermissionsAsync(Role role, List<RolePermission> rolePermissions);

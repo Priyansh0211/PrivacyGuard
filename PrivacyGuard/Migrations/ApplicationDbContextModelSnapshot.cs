@@ -656,9 +656,19 @@ namespace PrivacyGuard.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("DataPrincipalCategory")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("DataSource")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("LawfulBasis")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -675,6 +685,10 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<int?>("RetentionPeriodDays")
                         .HasColumnType("int");
+
+                    b.Property<string>("SharedWithProcessors")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -734,6 +748,9 @@ namespace PrivacyGuard.Migrations
                     b.Property<string>("Mobile")
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
+
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
@@ -1457,6 +1474,47 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("RolePermissions");
                 });
 
+            modelBuilder.Entity("PrivacyGuard.Models.RuleAndAct", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DocumentUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("RulesAndActs");
+                });
+
             modelBuilder.Entity("PrivacyGuard.Models.User", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -1720,7 +1778,7 @@ namespace PrivacyGuard.Migrations
                         .HasForeignKey("AssignedToId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PrivacyGuard.Models.User", "DataPrincipal")
+                    b.HasOne("PrivacyGuard.Models.DataPrincipal", "DataPrincipal")
                         .WithMany()
                         .HasForeignKey("DataPrincipalId")
                         .OnDelete(DeleteBehavior.Restrict)
