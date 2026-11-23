@@ -1006,7 +1006,7 @@ namespace PrivacyGuard.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("SenderId")
+                    b.Property<Guid>("SenderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -1020,6 +1020,13 @@ namespace PrivacyGuard.Migrations
                     b.ToTable("GrievanceMessages", t => t.HasCheckConstraint(
                         "CK_GrievanceMessages_ExactlyOneSender",
                         "([SenderId] IS NOT NULL AND [SenderDataPrincipalId] IS NULL) OR ([SenderId] IS NULL AND [SenderDataPrincipalId] IS NOT NULL)"));
+                    b.HasOne("PrivacyGuard.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Sender");
+                    b.Navigation("Grievance");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.Notice", b =>

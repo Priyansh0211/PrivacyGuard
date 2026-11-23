@@ -67,9 +67,9 @@ namespace PrivacyGuard.Services
                 {
                     MessageText = m.MessageText,
                     IsInternal = m.IsInternal,
-                    SenderType = m.SenderDataPrincipalId == grievance.DataPrincipalId || m.SenderId == grievance.DataPrincipalId
-                        ? "User"
-                        : "System",
+                    SenderType = m.SenderDataPrincipalId != null
+             ? "User"
+             : (m.SenderId != null ? "Support" : "System"),
                     CreatedAt = m.CreatedAt
                 }).OrderBy(m => m.CreatedAt).ToList()
             };
