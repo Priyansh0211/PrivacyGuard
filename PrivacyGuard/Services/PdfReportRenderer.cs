@@ -224,7 +224,7 @@ public sealed class PdfReportRenderer
             column.Item().Row(row =>
             {
                 row.ConstantItem(176).Height(46).Background(Navy).Padding(8).AlignMiddle()
-                    .Text("KAWACH").FontSize(15).Bold().FontColor(Colors.White);
+                    .Text("KAVACH").FontSize(15).Bold().FontColor(Colors.White);
 
                 row.RelativeItem().AlignRight().Column(details =>
                 {
@@ -343,7 +343,7 @@ public sealed class PdfReportRenderer
             column.Item().LineHorizontal(1).LineColor(Color.FromHex("D7E3E9"));
             column.Item().PaddingTop(6).Row(row =>
             {
-                row.RelativeItem().Text("KAWACH  •  Protecting privacy through accountable reporting").FontSize(7).FontColor(Color.FromHex("657786"));
+                row.RelativeItem().Text("KAVACH  •  Protecting privacy through accountable reporting").FontSize(7).FontColor(Color.FromHex("657786"));
                 row.AutoItem().Text(text =>
                 {
                     text.Span("Page ").FontSize(7).FontColor(Color.FromHex("657786"));
