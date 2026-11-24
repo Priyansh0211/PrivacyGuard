@@ -25,10 +25,12 @@ namespace PrivacyGuard.Interfaces.Repositories
 
         // Background worker ke liye saari active policies laane ka method
         Task<IEnumerable<RetentionPolicy>> GetAllActivePoliciesForJobAsync();
+        // Sirf ek org ki active policies
+        Task<IEnumerable<RetentionPolicy>> GetActivePoliciesByOrganizationAsync(Guid organizationId);
 
-        // Expired data ko delete/anonymize karne ka method
-        Task ProcessExpiredDataAsync(string actionType, DateTime targetExpiryDate);
-        Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
+        // Org-scoped, policy-driven erasure/anonymization returning processed count
+        Task<int> ProcessExpiredDataAsync(Guid organizationId, int retentionPeriodInDays, string actionType, string triggerEvent); Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
+        
         // Naya method Erasure Queue ke liye
         Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId);
     }

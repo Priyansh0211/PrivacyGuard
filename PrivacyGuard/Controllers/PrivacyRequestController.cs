@@ -50,7 +50,15 @@ namespace PrivacyGuard.Controllers
             if (!TryGetOrganizationId(out var orgId))
                 return Forbid();
 
-            var success = await _service.ResolveRequestAsync(id, dto, orgId);
+            bool success;
+            try
+            {
+                success = await _service.ResolveRequestAsync(id, dto, orgId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
 
             if (!success)
                 return NotFound(new { Message = "Privacy request not found." });

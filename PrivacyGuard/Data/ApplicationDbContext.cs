@@ -12,18 +12,27 @@ namespace PrivacyGuard.Data
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
 
+        private static readonly HashSet<string> SensitiveAuditProperties = new(StringComparer.OrdinalIgnoreCase)
+        {
+            nameof(DataPrincipal.FullName),
+            nameof(DataPrincipal.DisplayName),
+            nameof(DataPrincipal.Email),
+            nameof(DataPrincipal.Mobile),
+            nameof(DataPrincipal.ConsumerNo),
+            nameof(DataPrincipal.DateOfBirth),
+            nameof(DataPrincipal.PasswordHash),
+            nameof(PrincipalIdentifier.Value)
+        };
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // ==========================================
-        // 1. DB SETS (All Tables)
-        // ==========================================
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<PrivacyRequest> PrivacyRequests { get; set; }
-        public DbSet<AuditLog> AuditLogs { get; set; } // 🚨 Naya Hash Chaining Wala Audit Log
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<DataInventory> DataInventories { get; set; }
         public DbSet<DataBreachIncident> DataBreachIncidents { get; set; }
         public DbSet<CampaignResponse> CampaignResponses { get; set; }
@@ -38,50 +47,39 @@ namespace PrivacyGuard.Data
         public DbSet<BulkImportBatch> BulkImportBatches { get; set; }
         public DbSet<BulkImportRow> BulkImportRows { get; set; }
         public DbSet<DataPrincipal> DataPrincipals { get; set; }
+        public DbSet<PrincipalIdentifier> PrincipalIdentifiers { get; set; }
         public DbSet<ConsentPurpose> ConsentPurposes { get; set; }
         public DbSet<ConsentNoticeTemplate> ConsentNoticeTemplates { get; set; }
         public DbSet<ConsentRecord> ConsentRecords { get; set; }
         public DbSet<ConsentDetail> ConsentDetails { get; set; }
-
         public DbSet<DataCategory> DataCategories { get; set; }
         public DbSet<DataProcessor> DataProcessors { get; set; }
         public DbSet<ConsentPurposeDataCategory> ConsentPurposeDataCategories { get; set; }
         public DbSet<ConsentPurposeDataProcessor> ConsentPurposeDataProcessors { get; set; }
-
         public DbSet<NoticeTemplate> NoticeTemplates { get; set; }
-
         public DbSet<Notice> Notices { get; set; }
         public DbSet<NoticeTranslation> NoticeTranslations { get; set; }
-
         public DbSet<CampaignAudienceMapping> CampaignAudienceMappings { get; set; }
         public DbSet<CampaignAudienceGroup> CampaignAudienceGroups { get; set; }
         public DbSet<CampaignAudienceGroupMember> CampaignAudienceGroupMembers { get; set; }
         public DbSet<RetentionPolicy> RetentionPolicies { get; set; }
-
-
         public DbSet<ReportJob> ReportJobs { get; set; }
         public DbSet<GeneratedReport> GeneratedReports { get; set; }
         public DbSet<RuleAndAct> RulesAndActs { get; set; }
 
-        // ==========================================
-        // 2. MODEL CREATING & MAPPINGS
-        // ==========================================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<RuleAndAct>()
-        .HasIndex(r => r.OrganizationId);
+                .HasIndex(r => r.OrganizationId);
 
-
-            // DataInventory mapping
             modelBuilder.Entity<DataInventory>()
                 .HasOne(d => d.Organization)
                 .WithMany()
                 .HasForeignKey(d => d.OrganizationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // OrgUnit ka Parent-Child (Self-referencing) mapping
             modelBuilder.Entity<OrgUnit>()
                 .HasOne<OrgUnit>()
                 .WithMany()
@@ -89,17 +87,16 @@ namespace PrivacyGuard.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Global Cascade Delete restrict logic (Hamesha last mein)
             foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
 
             modelBuilder.Entity<NoticeTranslation>()
-    .HasOne(nt => nt.Notice)
-    .WithMany(n => n.Translations)
-    .HasForeignKey(nt => nt.NoticeId)
-    .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(nt => nt.Notice)
+                .WithMany(n => n.Translations)
+                .HasForeignKey(nt => nt.NoticeId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<GrievanceMessage>()
                 .HasOne(message => message.Sender)
@@ -120,11 +117,11 @@ namespace PrivacyGuard.Data
 
 
             // Unique database index on OrganizationId + UnitCode
+
             modelBuilder.Entity<PrivacyGuard.Models.OrgUnit>()
                 .HasIndex(o => new { o.OrganizationId, o.UnitCode })
                 .IsUnique();
 
-            // Many-to-Many Keys
             modelBuilder.Entity<ConsentPurposeDataCategory>()
                 .HasKey(pc => new { pc.ConsentPurposeId, pc.DataCategoryId });
 
@@ -156,9 +153,6 @@ namespace PrivacyGuard.Data
                 .IsUnique();
         }
 
-        // ==========================================
-        // 3. AUDIT LOG & HASH CHAINING LOGIC
-        // ==========================================
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var transaction = Database.CurrentTransaction;
@@ -209,12 +203,24 @@ namespace PrivacyGuard.Data
             }
         }
 
+        private static object? SanitizeAuditValue(string entityName, string propertyName, object? value)
+        {
+            if (value == null) return null;
+
+            if ((entityName is nameof(DataPrincipal) or nameof(PrincipalIdentifier)) &&
+                SensitiveAuditProperties.Contains(propertyName))
+            {
+                return "***REDACTED***";
+            }
+
+            return value;
+        }
+
         private List<AuditEntry> OnBeforeSaveChanges(Dictionary<Guid, AuditLog> chainTails)
         {
             ChangeTracker.DetectChanges();
             var auditEntries = new List<AuditEntry>();
 
-            // Token se User aur Actor details nikalna
             var user = _httpContextAccessor.HttpContext?.User;
             var userIdString = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var orgIdString = user?.FindFirst("OrganizationId")?.Value;
@@ -222,23 +228,40 @@ namespace PrivacyGuard.Data
             var actorRole = user?.FindFirst(ClaimTypes.Role)?.Value;
             var clientIp = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
 
-            Guid? currentUserId = !string.IsNullOrEmpty(userIdString) ? Guid.Parse(userIdString) : null;
-            Guid? currentOrgId = !string.IsNullOrEmpty(orgIdString) ? Guid.Parse(orgIdString) : null;
+            Guid? currentUserId = Guid.TryParse(userIdString, out var parsedUserId) ? parsedUserId : null;
+            Guid? currentOrgId = Guid.TryParse(orgIdString, out var parsedOrgId) ? parsedOrgId : null;
+
+            bool isSystemActor = currentUserId == null && string.IsNullOrWhiteSpace(actorEmail);
+            string resolvedActorEmail = !string.IsNullOrWhiteSpace(actorEmail) ? actorEmail : "System";
+            string resolvedActorRole = !string.IsNullOrWhiteSpace(actorRole) ? actorRole : (isSystemActor ? "System" : "User");
+            string resolvedIp = !string.IsNullOrWhiteSpace(clientIp) ? clientIp : (isSystemActor ? "System" : "Unknown");
 
             foreach (var entry in ChangeTracker.Entries())
             {
-                // Audit table aur unchanged rows ko skip karo
                 if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
                     continue;
 
+                string entityName = entry.Entity.GetType().Name;
+
+                // Fallback OrganizationId from entity when running in background job without HTTP context
+                Guid? entryOrgId = currentOrgId;
+                if (entryOrgId == null && entry.Entity is DataPrincipal dpEntity)
+                {
+                    entryOrgId = dpEntity.OrganizationId;
+                }
+                else if (entryOrgId == null && entry.Entity is RetentionPolicy rpEntity)
+                {
+                    entryOrgId = rpEntity.OrganizationId;
+                }
+
                 var auditEntry = new AuditEntry(entry)
                 {
-                    TableName = entry.Metadata.GetTableName() ?? entry.Entity.GetType().Name,
+                    TableName = entry.Metadata.GetTableName() ?? entityName,
                     UserId = currentUserId,
-                    OrganizationId = currentOrgId,
-                    ActorEmail = actorEmail,
-                    ActorRole = actorRole,
-                    IpAddress = clientIp,
+                    OrganizationId = entryOrgId,
+                    ActorEmail = resolvedActorEmail,
+                    ActorRole = resolvedActorRole,
+                    IpAddress = resolvedIp,
                     ActionType = entry.State.ToString()
                 };
 
@@ -262,23 +285,22 @@ namespace PrivacyGuard.Data
                     switch (entry.State)
                     {
                         case EntityState.Added:
-                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            auditEntry.NewValues[propertyName] = SanitizeAuditValue(entityName, propertyName, property.CurrentValue);
                             break;
                         case EntityState.Deleted:
-                            auditEntry.OldValues[propertyName] = property.OriginalValue;
+                            auditEntry.OldValues[propertyName] = SanitizeAuditValue(entityName, propertyName, property.OriginalValue);
                             break;
                         case EntityState.Modified:
                             if (property.IsModified)
                             {
-                                auditEntry.OldValues[propertyName] = property.OriginalValue;
-                                auditEntry.NewValues[propertyName] = property.CurrentValue;
+                                auditEntry.OldValues[propertyName] = SanitizeAuditValue(entityName, propertyName, property.OriginalValue);
+                                auditEntry.NewValues[propertyName] = SanitizeAuditValue(entityName, propertyName, property.CurrentValue);
                             }
                             break;
                     }
                 }
             }
 
-            // Jinki IDs pehle se hain, unhe hash karke turant Audit table mein add karo
             foreach (var auditEntry in auditEntries.Where(_ => !_.TemporaryProperties.Any()))
             {
                 var auditLog = auditEntry.ToAudit();
@@ -296,9 +318,10 @@ namespace PrivacyGuard.Data
             if (auditEntries == null || auditEntries.Count == 0)
                 return;
 
-            // Nayi (Create) rows jinki ID DB ne generate ki, unko update karke hash lagana
             foreach (var auditEntry in auditEntries)
             {
+                string entityName = auditEntry.Entry.Entity.GetType().Name;
+
                 foreach (var prop in auditEntry.TemporaryProperties)
                 {
                     if (prop.Metadata.IsPrimaryKey())
@@ -307,7 +330,7 @@ namespace PrivacyGuard.Data
                     }
                     else
                     {
-                        auditEntry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                        auditEntry.NewValues[prop.Metadata.Name] = SanitizeAuditValue(entityName, prop.Metadata.Name, prop.CurrentValue);
                     }
                 }
                 var auditLog = auditEntry.ToAudit();
@@ -318,7 +341,6 @@ namespace PrivacyGuard.Data
 
         private void ApplyHashChaining(AuditLog newLog, Dictionary<Guid, AuditLog> chainTails)
         {
-            // 1. Pichla record nikalna (Taki chain jud sake)
             AuditLog? lastLog = null;
             var organizationKey = newLog.OrganizationId ?? Guid.Empty;
 
@@ -348,7 +370,6 @@ namespace PrivacyGuard.Data
             newLog.SequenceNumber = (lastLog?.SequenceNumber ?? 0) + 1;
             newLog.PreviousHash = lastLog?.EntryHash;
 
-            // 2. Naya Hash Banana: (Sequence + OrgId + Action + Entity + NewValues + PrevHash)
             var rawData = $"{newLog.SequenceNumber}{newLog.OrganizationId}{newLog.ActionType}{newLog.TableName}{newLog.PrimaryKey}{newLog.NewValues}{newLog.PreviousHash}";
 
             using (var sha256 = SHA256.Create())
