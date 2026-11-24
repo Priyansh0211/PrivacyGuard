@@ -101,6 +101,23 @@ namespace PrivacyGuard.Data
     .HasForeignKey(nt => nt.NoticeId)
     .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<GrievanceMessage>()
+                .HasOne(message => message.Sender)
+                .WithMany()
+                .HasForeignKey(message => message.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GrievanceMessage>()
+                .HasOne(message => message.SenderDataPrincipal)
+                .WithMany()
+                .HasForeignKey(message => message.SenderDataPrincipalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<GrievanceMessage>()
+                .ToTable(table => table.HasCheckConstraint(
+                    "CK_GrievanceMessages_ExactlyOneSender",
+                    "([SenderId] IS NOT NULL AND [SenderDataPrincipalId] IS NULL) OR ([SenderId] IS NULL AND [SenderDataPrincipalId] IS NOT NULL)"));
+
 
             // Unique database index on OrganizationId + UnitCode
             modelBuilder.Entity<PrivacyGuard.Models.OrgUnit>()

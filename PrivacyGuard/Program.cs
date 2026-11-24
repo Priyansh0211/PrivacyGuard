@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -168,18 +168,38 @@ builder.Services.AddScoped<IRuleAndActService, RuleAndActService>();
 
 // 5. Configure OpenAPI
 //builder.Services.AddOpenApi();
+var allowedOrigins = builder.Configuration
+    .GetSection("CorsSettings:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("KavachCors", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()   // Authorization (JWT Bearer) और Content-Type के लिए ज़रूरी
+              .AllowAnyMethod()   // GET, POST, PUT, DELETE, OPTIONS
+              .AllowCredentials(); // अगर cookies या auth credentials भेज रहे हो
+    });
+});
+
 
 var app = builder.Build();
 
 // 6. Configure HTTP Request Pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    //app.MapOpenApi();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//    //app.MapOpenApi();
+//}
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors("KavachCors");
 
 // Authentication must run before Authorization.
 app.UseAuthentication();

@@ -2,5 +2,5 @@
   <rect x="1" y="1" width="56" height="56" rx="12" fill="#123B5D"/>
   <path d="M29 10l17 6v12c0 11-7.4 18.5-17 22-9.6-3.5-17-11-17-22V16l17-6z" fill="#2DB7A3"/>
   <path d="M21 29l5 5 11-12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="68" y="27" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#123B5D">KAWACH</text>
+  <text x="68" y="27" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#123B5D">KAVACH</text>
 </svg>

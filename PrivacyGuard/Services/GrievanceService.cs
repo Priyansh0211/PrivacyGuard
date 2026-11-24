@@ -67,7 +67,9 @@ namespace PrivacyGuard.Services
                 {
                     MessageText = m.MessageText,
                     IsInternal = m.IsInternal,
-                    SenderType = m.SenderId == grievance.DataPrincipalId ? "User" : "System",
+                    SenderType = m.SenderDataPrincipalId != null
+             ? "User"
+             : (m.SenderId != null ? "Support" : "System"),
                     CreatedAt = m.CreatedAt
                 }).OrderBy(m => m.CreatedAt).ToList()
             };
@@ -100,7 +102,7 @@ namespace PrivacyGuard.Services
             return true;
         }
 
-        public async Task<bool> AddReplyAsync(Guid grievanceId, Guid userId, Guid orgId, AddGrievanceMessageDto dto, bool isAdmin)
+        public async Task<bool> AddReplyAsync(Guid grievanceId, Guid senderId, bool isDataPrincipal, Guid orgId, AddGrievanceMessageDto dto, bool isAdmin)
         {
             var grievance = await _grievanceRepo.GetGrievanceByIdAsync(grievanceId, orgId);
             if (grievance == null) return false;
@@ -108,7 +110,8 @@ namespace PrivacyGuard.Services
             var newMessage = new GrievanceMessage
             {
                 GrievanceId = grievanceId,
-                SenderId = userId,
+                SenderId = isDataPrincipal ? null : senderId,
+                SenderDataPrincipalId = isDataPrincipal ? senderId : null,
                 MessageText = dto.MessageText,
                 IsInternal = isAdmin ? dto.IsInternal : false,
                 CreatedAt = DateTime.UtcNow
