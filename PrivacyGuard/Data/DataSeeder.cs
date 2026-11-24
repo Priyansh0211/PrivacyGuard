@@ -235,7 +235,7 @@ namespace PrivacyGuard.Data
                     PolicyName = "Standard Inactive User Policy",
                     Description = "Anonymize users older than 30 days",
                     RetentionPeriodInDays = 30,
-                    TriggerEvent = "AccountCreated",
+                    TriggerEvent = "DataCreatedDate",
                     ActionType = "Anonymize",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
@@ -248,7 +248,6 @@ namespace PrivacyGuard.Data
 
                 context.SaveChanges();
             }
-
             // 9. 🟢 SEED NOTICE TEMPLATE & PUBLISHED NOTICE
             if (!context.Notices.Any())
             {

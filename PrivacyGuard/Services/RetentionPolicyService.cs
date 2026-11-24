@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Interfaces.Services;
@@ -12,10 +13,14 @@ namespace PrivacyGuard.Services
     public class RetentionPolicyService : IRetentionPolicyService
     {
         private readonly IRetentionPolicyRepository _repository;
+        private readonly ILogger<RetentionPolicyService> _logger;
 
-        public RetentionPolicyService(IRetentionPolicyRepository repository)
+        public RetentionPolicyService(
+            IRetentionPolicyRepository repository,
+            ILogger<RetentionPolicyService> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<RetentionPolicyDto?> GetPolicyByIdAsync(Guid policyId, Guid organizationId)
@@ -39,7 +44,7 @@ namespace PrivacyGuard.Services
                 PolicyName = dto.PolicyName,
                 Description = dto.Description,
                 RetentionPeriodInDays = dto.RetentionPeriodInDays,
-                TriggerEvent = dto.TriggerEvent,
+                TriggerEvent = string.IsNullOrWhiteSpace(dto.TriggerEvent) ? "DataCreatedDate" : dto.TriggerEvent,
                 ActionType = dto.ActionType,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -68,20 +73,46 @@ namespace PrivacyGuard.Services
             return await _repository.DeletePolicyAsync(policyId, organizationId);
         }
 
-        public async Task ExecuteDailyErasureJobAsync()
+        public async Task<int> ExecuteDailyErasureJobAsync()
         {
-            var activePolicies = await _repository.GetAllActivePoliciesForJobAsync();
-
-            foreach (var policy in activePolicies)
-            {
-                var targetExpiryDate = DateTime.UtcNow.AddDays(-policy.RetentionPeriodInDays);
-                await _repository.ProcessExpiredDataAsync(policy.ActionType, targetExpiryDate);
-            }
+            var activePolicies = (await _repository.GetAllActivePoliciesForJobAsync()).ToList();
+            return await RunPoliciesAsync(activePolicies);
         }
-        // ==========================================
+
+        public async Task<int> ExecuteErasureJobForOrganizationAsync(Guid organizationId)
+        {
+            var activePolicies = (await _repository.GetActivePoliciesByOrganizationAsync(organizationId)).ToList();
+            return await RunPoliciesAsync(activePolicies);
+        }
+
+        private async Task<int> RunPoliciesAsync(List<RetentionPolicy> policies)
+        {
+            int totalProcessed = 0;
+
+            foreach (var policy in policies)
+            {
+                try
+                {
+                    var processed = await _repository.ProcessExpiredDataAsync(
+                        policy.OrganizationId,
+                        policy.RetentionPeriodInDays,
+                        policy.ActionType,
+                        policy.TriggerEvent);
+
+                    totalProcessed += processed;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Error executing retention policy {PolicyId} ({PolicyName}) for Org {OrganizationId}",
+                        policy.PolicyId, policy.PolicyName, policy.OrganizationId);
+                }
+            }
+
+            return totalProcessed;
+        }
         public async Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId)
         {
-            // Repo ko bol kar dashboard ka data mangwaya hai
             return await _repository.GetDashboardMetricsAsync(organizationId);
         }
 
@@ -89,7 +120,8 @@ namespace PrivacyGuard.Services
         {
             return await _repository.GetErasureQueueAsync(organizationId);
         }
-        private RetentionPolicyDto MapToDto(RetentionPolicy policy)
+
+        private static RetentionPolicyDto MapToDto(RetentionPolicy policy)
         {
             return new RetentionPolicyDto
             {

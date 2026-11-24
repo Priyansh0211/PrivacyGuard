@@ -62,11 +62,9 @@ namespace PrivacyGuard.Services
                 // ==============================================================
                 if (parsedStatus == PrivacyRequestStatus.Fulfilled && existingRequest.RequestType == PrivacyRequestType.Erasure)
                 {
-                    // Data principal ko automatically anonymize kar do
-                    await _dataPrincipalService.AnonymizeDataPrincipalAsync(existingRequest.DataPrincipalId, organizationId);
-
-                    // NOTE: Yahan IAuditService call karke log daalna best practice hai 
-                    // e.g., _auditService.LogActionAsync(orgId, "Data Erasure", "User data anonymized due to DSAR Request.");
+                    var erased = await _dataPrincipalService.AnonymizeDataPrincipalAsync(existingRequest.DataPrincipalId, organizationId);
+                    if (!erased)
+                        throw new InvalidOperationException("Erasure not possible: record is on legal hold or not found.");
                 }
             }
 
