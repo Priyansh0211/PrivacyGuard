@@ -23,11 +23,12 @@ namespace PrivacyGuard.Interfaces.Services
         Task<bool> DeletePolicyAsync(Guid policyId, Guid organizationId);
         // Background job is method ko daily call karegi
         Task<int> ExecuteDailyErasureJobAsync();
-
         // Manual "Run now" ke liye: sirf ek organization ki policies chalegi
         Task<int> ExecuteErasureJobForOrganizationAsync(Guid organizationId);
         Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
         // Naya method Erasure Queue ke liye
         Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId);
+        Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, LegalHoldRequestDto dto);
+        Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId);
     }
 }

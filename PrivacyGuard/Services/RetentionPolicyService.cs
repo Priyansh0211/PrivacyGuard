@@ -15,12 +15,49 @@ namespace PrivacyGuard.Services
         private readonly IRetentionPolicyRepository _repository;
         private readonly ILogger<RetentionPolicyService> _logger;
 
+        private static readonly HashSet<string> AllowedTriggerEvents = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "DataCreatedDate",
+            "LastActivity"
+        };
+
+        private static readonly HashSet<string> AllowedActionTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "Anonymize",
+            "Delete"
+        };
+
         public RetentionPolicyService(
             IRetentionPolicyRepository repository,
             ILogger<RetentionPolicyService> logger)
         {
             _repository = repository;
             _logger = logger;
+        }
+
+        private static string NormalizeTriggerEvent(string? triggerEvent)
+        {
+            var trimmed = triggerEvent?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+                return "DataCreatedDate";
+
+            if (!AllowedTriggerEvents.Contains(trimmed))
+                throw new ArgumentException("Unsupported trigger event. Allowed values are 'DataCreatedDate' or 'LastActivity'.");
+
+            return string.Equals(trimmed, "LastActivity", StringComparison.OrdinalIgnoreCase)
+                ? "LastActivity"
+                : "DataCreatedDate";
+        }
+
+        private static string NormalizeActionType(string? actionType)
+        {
+            var trimmed = actionType?.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || !AllowedActionTypes.Contains(trimmed))
+                throw new ArgumentException("Unsupported action type. Allowed values are 'Anonymize' or 'Delete'.");
+
+            return string.Equals(trimmed, "Delete", StringComparison.OrdinalIgnoreCase)
+                ? "Delete"
+                : "Anonymize";
         }
 
         public async Task<RetentionPolicyDto?> GetPolicyByIdAsync(Guid policyId, Guid organizationId)
@@ -37,15 +74,18 @@ namespace PrivacyGuard.Services
 
         public async Task<RetentionPolicyDto> CreatePolicyAsync(CreateRetentionPolicyDto dto, Guid organizationId)
         {
+            var normalizedTrigger = NormalizeTriggerEvent(dto.TriggerEvent);
+            var normalizedAction = NormalizeActionType(dto.ActionType);
+
             var newPolicy = new RetentionPolicy
             {
                 PolicyId = Guid.NewGuid(),
                 OrganizationId = organizationId,
-                PolicyName = dto.PolicyName,
-                Description = dto.Description,
+                PolicyName = dto.PolicyName.Trim(),
+                Description = dto.Description?.Trim() ?? string.Empty,
                 RetentionPeriodInDays = dto.RetentionPeriodInDays,
-                TriggerEvent = string.IsNullOrWhiteSpace(dto.TriggerEvent) ? "DataCreatedDate" : dto.TriggerEvent,
-                ActionType = dto.ActionType,
+                TriggerEvent = normalizedTrigger,
+                ActionType = normalizedAction,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -59,9 +99,12 @@ namespace PrivacyGuard.Services
             var existingPolicy = await _repository.GetPolicyByIdAsync(policyId, organizationId);
             if (existingPolicy == null) return null;
 
-            existingPolicy.PolicyName = dto.PolicyName;
-            existingPolicy.Description = dto.Description;
+            var normalizedTrigger = NormalizeTriggerEvent(dto.TriggerEvent);
+
+            existingPolicy.PolicyName = dto.PolicyName.Trim();
+            existingPolicy.Description = dto.Description?.Trim() ?? string.Empty;
             existingPolicy.RetentionPeriodInDays = dto.RetentionPeriodInDays;
+            existingPolicy.TriggerEvent = normalizedTrigger;
             existingPolicy.IsActive = dto.IsActive;
 
             var updatedPolicy = await _repository.UpdatePolicyAsync(existingPolicy);
@@ -93,11 +136,14 @@ namespace PrivacyGuard.Services
             {
                 try
                 {
+                    var normalizedTrigger = NormalizeTriggerEvent(policy.TriggerEvent);
+                    var normalizedAction = NormalizeActionType(policy.ActionType);
+
                     var processed = await _repository.ProcessExpiredDataAsync(
                         policy.OrganizationId,
                         policy.RetentionPeriodInDays,
-                        policy.ActionType,
-                        policy.TriggerEvent);
+                        normalizedAction,
+                        normalizedTrigger);
 
                     totalProcessed += processed;
                 }
@@ -111,6 +157,7 @@ namespace PrivacyGuard.Services
 
             return totalProcessed;
         }
+
         public async Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId)
         {
             return await _repository.GetDashboardMetricsAsync(organizationId);
@@ -119,6 +166,20 @@ namespace PrivacyGuard.Services
         public async Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId)
         {
             return await _repository.GetErasureQueueAsync(organizationId);
+        }
+
+        public async Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, LegalHoldRequestDto dto)
+        {
+            return await _repository.SetLegalHoldAsync(
+                dataPrincipalId,
+                organizationId,
+                dto.IsOnLegalHold,
+                dto.Reason);
+        }
+
+        public async Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId)
+        {
+            return await _repository.GetErasedRecordsAsync(organizationId);
         }
 
         private static RetentionPolicyDto MapToDto(RetentionPolicy policy)

@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PrivacyGuard.Data;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Helpers;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
-using PrivacyGuard.Helpers;
 
 namespace PrivacyGuard.Repositories
 {
@@ -25,6 +25,13 @@ namespace PrivacyGuard.Repositories
         {
             _context = context;
             _logger = logger;
+        }
+
+        private static DateTime ResolveTriggerBaseDate(string? triggerEvent, DateTime createdAt, DateTime updatedAt)
+        {
+            return string.Equals(triggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase)
+                ? updatedAt
+                : createdAt;
         }
 
         public async Task<RetentionPolicy?> GetPolicyByIdAsync(Guid policyId, Guid organizationId)
@@ -72,37 +79,43 @@ namespace PrivacyGuard.Repositories
                 .Where(p => p.IsActive)
                 .ToListAsync();
         }
+
         public async Task<IEnumerable<RetentionPolicy>> GetActivePoliciesByOrganizationAsync(Guid organizationId)
         {
             return await _context.RetentionPolicies
                 .Where(p => p.IsActive && p.OrganizationId == organizationId)
                 .ToListAsync();
         }
+
         public async Task<int> ProcessExpiredDataAsync(
             Guid organizationId,
             int retentionPeriodInDays,
             string actionType,
             string triggerEvent)
         {
+            bool isLastActivity = string.Equals(triggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase);
+            bool isKnownAction =
+                string.Equals(actionType, "Anonymize", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(actionType, "Delete", StringComparison.OrdinalIgnoreCase);
+
+            if (!isKnownAction)
+            {
+                _logger.LogWarning("Unknown ActionType '{ActionType}' for Org {OrganizationId}. Skipping policy execution.", actionType, organizationId);
+                return 0;
+            }
+
             var now = DateTime.UtcNow;
             var cutoffDate = now.AddDays(-retentionPeriodInDays);
             int totalProcessed = 0;
 
             var query = _context.DataPrincipals
-                .Include(dp => dp.Identifiers)
                 .Where(dp => dp.OrganizationId == organizationId
                              && dp.AnonymizedAt == null
                              && !dp.IsOnLegalHold);
 
-            if (string.Equals(triggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(triggerEvent, "Inactivity", StringComparison.OrdinalIgnoreCase))
-            {
-                query = query.Where(dp => dp.UpdatedAt <= cutoffDate);
-            }
-            else
-            {
-                query = query.Where(dp => dp.CreatedAt <= cutoffDate);
-            }
+            query = isLastActivity
+                ? query.Where(dp => dp.UpdatedAt <= cutoffDate)
+                : query.Where(dp => dp.CreatedAt <= cutoffDate);
 
             var eligibleIds = await query
                 .Select(dp => dp.DataPrincipalId)
@@ -124,17 +137,6 @@ namespace PrivacyGuard.Repositories
                 {
                     try
                     {
-                        // "Delete" bhi ab safe anonymization karta hai (FK Restrict + compliance evidence ki wajah se)
-                        bool isKnownAction =
-                            string.Equals(actionType, "Anonymize", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(actionType, "Delete", StringComparison.OrdinalIgnoreCase);
-
-                        if (!isKnownAction)
-                        {
-                            _logger.LogWarning("Unknown ActionType '{ActionType}' for Org {OrganizationId}. Skipping.", actionType, organizationId);
-                            break;
-                        }
-
                         DataPrincipalAnonymizer.Anonymize(dp, now);
                         await _context.SaveChangesAsync();
                         totalProcessed++;
@@ -159,8 +161,6 @@ namespace PrivacyGuard.Repositories
 
             return totalProcessed;
         }
-
-        
 
         public async Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId)
         {
@@ -210,12 +210,9 @@ namespace PrivacyGuard.Repositories
 
                 foreach (var policy in activePolicies)
                 {
-                    var baseDate = (string.Equals(policy.TriggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase) ||
-                                    string.Equals(policy.TriggerEvent, "Inactivity", StringComparison.OrdinalIgnoreCase))
-                        ? dp.UpdatedAt
-                        : dp.CreatedAt;
-
+                    var baseDate = ResolveTriggerBaseDate(policy.TriggerEvent, dp.CreatedAt, dp.UpdatedAt);
                     var dueDate = baseDate.AddDays(policy.RetentionPeriodInDays);
+
                     if (dueDate < earliestDueDate)
                     {
                         earliestDueDate = dueDate;
@@ -240,6 +237,46 @@ namespace PrivacyGuard.Repositories
             }
 
             return result.OrderBy(q => q.DueDate).ToList();
+        }
+
+        public async Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, bool isOnLegalHold, string? reason)
+        {
+            var dp = await _context.DataPrincipals
+                .FirstOrDefaultAsync(x => x.DataPrincipalId == dataPrincipalId && x.OrganizationId == organizationId);
+
+            if (dp == null)
+                return false;
+
+            dp.IsOnLegalHold = isOnLegalHold;
+            dp.LegalHoldReason = isOnLegalHold ? reason?.Trim() : null;
+            dp.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId)
+        {
+            var policy = await _context.RetentionPolicies
+                .Where(p => p.OrganizationId == organizationId && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            var defaultPolicyName = policy?.PolicyName ?? "Retention Policy";
+            var defaultActionType = string.IsNullOrWhiteSpace(policy?.ActionType) ? "Anonymize" : policy!.ActionType;
+
+            return await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt != null)
+                .OrderByDescending(dp => dp.AnonymizedAt)
+                .Select(dp => new ErasedRecordDto
+                {
+                    RecordId = dp.DataPrincipalId,
+                    ReferenceId = dp.ReferenceId,
+                    ErasedAt = dp.AnonymizedAt!.Value,
+                    ActionType = defaultActionType,
+                    PolicyName = defaultPolicyName
+                })
+                .ToListAsync();
         }
     }
 }

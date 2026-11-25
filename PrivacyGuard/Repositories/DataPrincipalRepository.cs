@@ -47,7 +47,7 @@ namespace PrivacyGuard.Repositories
             Guid organizationId, string search, string classType, int page, int pageSize)
         {
             var query = _context.DataPrincipals.AsQueryable()
-                                .Where(dp => dp.OrganizationId == organizationId);
+                                .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt == null);
 
             // Filters apply karna
             if (!string.IsNullOrEmpty(classType))
@@ -81,7 +81,7 @@ namespace PrivacyGuard.Repositories
         // ==========================================
         public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null)
         {
-            var query = _context.DataPrincipals.Where(dp => dp.OrganizationId == organizationId);
+            var query = _context.DataPrincipals.Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt == null);
 
             // Agar circle filter pass hua hai, toh sirf us circle ka count nikalo
             if (orgUnitId.HasValue)

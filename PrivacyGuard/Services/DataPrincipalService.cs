@@ -171,8 +171,8 @@ namespace PrivacyGuard.Services
             // Already anonymized ho chuka hai to dobara mat karo (ReferenceId na badle)
             if (dp.AnonymizedAt != null) return true;
 
-            // Legal hold par erasure nahi hona chahiye
-            if (dp.IsOnLegalHold) return false;
+            if (dp.IsOnLegalHold)
+                throw new InvalidOperationException("Record is on legal hold and cannot be erased.");
 
             DataPrincipalAnonymizer.Anonymize(dp, DateTime.UtcNow);
 
