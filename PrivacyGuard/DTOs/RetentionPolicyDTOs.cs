@@ -57,4 +57,21 @@ namespace PrivacyGuard.DTOs
 
         public bool IsActive { get; set; }
     }
+
+    public class LegalHoldRequestDto
+    {
+        public bool IsOnLegalHold { get; set; }
+
+        [MaxLength(250, ErrorMessage = "Legal hold reason cannot exceed 250 characters.")]
+        public string? Reason { get; set; }
+    }
+
+    public class ErasedRecordDto
+    {
+        public Guid RecordId { get; set; }
+        public string ReferenceId { get; set; } = string.Empty;
+        public DateTime ErasedAt { get; set; }
+        public string ActionType { get; set; } = "Anonymize";
+        public string PolicyName { get; set; } = string.Empty;
+    }
 }

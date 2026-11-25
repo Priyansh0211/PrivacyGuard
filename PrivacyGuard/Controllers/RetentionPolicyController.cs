@@ -59,8 +59,15 @@ namespace PrivacyGuard.Controllers
             var orgId = GetOrganizationId();
             if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
 
-            var createdPolicy = await _retentionPolicyService.CreatePolicyAsync(dto, orgId);
-            return CreatedAtAction(nameof(GetPolicyById), new { id = createdPolicy.PolicyId }, createdPolicy);
+            try
+            {
+                var createdPolicy = await _retentionPolicyService.CreatePolicyAsync(dto, orgId);
+                return CreatedAtAction(nameof(GetPolicyById), new { id = createdPolicy.PolicyId }, createdPolicy);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
@@ -72,10 +79,17 @@ namespace PrivacyGuard.Controllers
             var orgId = GetOrganizationId();
             if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
 
-            var updatedPolicy = await _retentionPolicyService.UpdatePolicyAsync(id, dto, orgId);
-            if (updatedPolicy == null) return NotFound(new { Message = "Policy not found or you don't have access." });
+            try
+            {
+                var updatedPolicy = await _retentionPolicyService.UpdatePolicyAsync(id, dto, orgId);
+                if (updatedPolicy == null) return NotFound(new { Message = "Policy not found or you don't have access." });
 
-            return Ok(updatedPolicy);
+                return Ok(updatedPolicy);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -113,7 +127,38 @@ namespace PrivacyGuard.Controllers
             return Ok(queueList);
         }
 
-        // Manual trigger endpoint for Admin ("Run now")
+        [HttpGet("erased")]
+        [HasPermission("RetentionPolicy.View")]
+        public async Task<IActionResult> GetErasedRecords()
+        {
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
+
+            var erasedRecords = await _retentionPolicyService.GetErasedRecordsAsync(orgId);
+            return Ok(erasedRecords);
+        }
+
+        [HttpPatch("legal-hold/{dataPrincipalId}")]
+        [HasPermission("RetentionPolicy.Manage")]
+        public async Task<IActionResult> SetLegalHold(Guid dataPrincipalId, [FromBody] LegalHoldRequestDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var orgId = GetOrganizationId();
+            if (orgId == Guid.Empty) return Unauthorized("Organization context missing.");
+
+            var updated = await _retentionPolicyService.SetLegalHoldAsync(dataPrincipalId, orgId, dto);
+            if (!updated) return NotFound(new { Message = "DataPrincipal not found in your organization." });
+
+            return Ok(new
+            {
+                Message = dto.IsOnLegalHold ? "Legal hold applied." : "Legal hold removed.",
+                DataPrincipalId = dataPrincipalId,
+                IsOnLegalHold = dto.IsOnLegalHold,
+                Reason = dto.IsOnLegalHold ? dto.Reason?.Trim() : null
+            });
+        }
+
         [HttpPost("run")]
         [HasPermission("RetentionPolicy.Manage")]
         public async Task<IActionResult> RunRetentionJobNow()

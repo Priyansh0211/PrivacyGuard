@@ -168,6 +168,20 @@ namespace PrivacyGuard.Services
             return await _repository.GetErasureQueueAsync(organizationId);
         }
 
+        public async Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, LegalHoldRequestDto dto)
+        {
+            return await _repository.SetLegalHoldAsync(
+                dataPrincipalId,
+                organizationId,
+                dto.IsOnLegalHold,
+                dto.Reason);
+        }
+
+        public async Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId)
+        {
+            return await _repository.GetErasedRecordsAsync(organizationId);
+        }
+
         private static RetentionPolicyDto MapToDto(RetentionPolicy policy)
         {
             return new RetentionPolicyDto
