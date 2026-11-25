@@ -162,6 +162,7 @@ builder.Services.AddScoped<PdfReportRenderer>();
 builder.Services.AddScoped<IReportManagementService, ReportManagementService>();
 builder.Services.AddScoped<IRetentionPolicyRepository, RetentionPolicyRepository>();
 builder.Services.AddScoped<IRetentionPolicyService, RetentionPolicyService>();
+builder.Services.AddHostedService<RetentionBackgroundService>();
 
 builder.Services.AddScoped<IRuleAndActRepository, RuleAndActRepository>();
 builder.Services.AddScoped<IRuleAndActService, RuleAndActService>();

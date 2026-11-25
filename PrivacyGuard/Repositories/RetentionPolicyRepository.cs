@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PrivacyGuard.Data;
 using PrivacyGuard.DTOs;
+using PrivacyGuard.Helpers;
 using PrivacyGuard.Interfaces.Repositories;
 using PrivacyGuard.Models;
 
@@ -13,10 +15,23 @@ namespace PrivacyGuard.Repositories
     public class RetentionPolicyRepository : IRetentionPolicyRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<RetentionPolicyRepository> _logger;
+        private const int UpcomingWindowDays = 7;
+        private const int BatchSize = 50;
 
-        public RetentionPolicyRepository(ApplicationDbContext context)
+        public RetentionPolicyRepository(
+            ApplicationDbContext context,
+            ILogger<RetentionPolicyRepository> logger)
         {
             _context = context;
+            _logger = logger;
+        }
+
+        private static DateTime ResolveTriggerBaseDate(string? triggerEvent, DateTime createdAt, DateTime updatedAt)
+        {
+            return string.Equals(triggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase)
+                ? updatedAt
+                : createdAt;
         }
 
         public async Task<RetentionPolicy?> GetPolicyByIdAsync(Guid policyId, Guid organizationId)
@@ -61,85 +76,207 @@ namespace PrivacyGuard.Repositories
         public async Task<IEnumerable<RetentionPolicy>> GetAllActivePoliciesForJobAsync()
         {
             return await _context.RetentionPolicies
-                .Where(p => p.IsActive == true)
+                .Where(p => p.IsActive)
                 .ToListAsync();
         }
 
-        public async Task ProcessExpiredDataAsync(string actionType, DateTime targetExpiryDate)
+        public async Task<IEnumerable<RetentionPolicy>> GetActivePoliciesByOrganizationAsync(Guid organizationId)
         {
-            var expiredDataPrincipals = await _context.DataPrincipals
-                .Where(dp => dp.CreatedAt <= targetExpiryDate)
+            return await _context.RetentionPolicies
+                .Where(p => p.IsActive && p.OrganizationId == organizationId)
+                .ToListAsync();
+        }
+
+        public async Task<int> ProcessExpiredDataAsync(
+            Guid organizationId,
+            int retentionPeriodInDays,
+            string actionType,
+            string triggerEvent)
+        {
+            bool isLastActivity = string.Equals(triggerEvent, "LastActivity", StringComparison.OrdinalIgnoreCase);
+            bool isKnownAction =
+                string.Equals(actionType, "Anonymize", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(actionType, "Delete", StringComparison.OrdinalIgnoreCase);
+
+            if (!isKnownAction)
+            {
+                _logger.LogWarning("Unknown ActionType '{ActionType}' for Org {OrganizationId}. Skipping policy execution.", actionType, organizationId);
+                return 0;
+            }
+
+            var now = DateTime.UtcNow;
+            var cutoffDate = now.AddDays(-retentionPeriodInDays);
+            int totalProcessed = 0;
+
+            var query = _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId
+                             && dp.AnonymizedAt == null
+                             && !dp.IsOnLegalHold);
+
+            query = isLastActivity
+                ? query.Where(dp => dp.UpdatedAt <= cutoffDate)
+                : query.Where(dp => dp.CreatedAt <= cutoffDate);
+
+            var eligibleIds = await query
+                .Select(dp => dp.DataPrincipalId)
                 .ToListAsync();
 
-            if (expiredDataPrincipals.Any())
+            if (!eligibleIds.Any())
+                return 0;
+
+            for (int i = 0; i < eligibleIds.Count; i += BatchSize)
             {
-                foreach (var dp in expiredDataPrincipals)
+                var batchIds = eligibleIds.Skip(i).Take(BatchSize).ToList();
+
+                var batchRecords = await _context.DataPrincipals
+                    .Include(dp => dp.Identifiers)
+                    .Where(dp => batchIds.Contains(dp.DataPrincipalId))
+                    .ToListAsync();
+
+                foreach (var dp in batchRecords)
                 {
-                    if (actionType == "Anonymize")
+                    try
                     {
-                        dp.FullName = "Anonymized_User";
-                        dp.Email = "deleted@privacyguard.com";
-                        dp.Mobile = "0000000000";
-                        dp.ReferenceId = "DELETED-" + Guid.NewGuid().ToString().Substring(0, 8);
+                        DataPrincipalAnonymizer.Anonymize(dp, now);
+                        await _context.SaveChangesAsync();
+                        totalProcessed++;
                     }
-                    else if (actionType == "Delete")
+                    catch (Exception ex)
                     {
-                        _context.DataPrincipals.Remove(dp);
+                        _context.Entry(dp).State = EntityState.Detached;
+                        if (dp.Identifiers != null)
+                        {
+                            foreach (var idItem in dp.Identifiers)
+                            {
+                                _context.Entry(idItem).State = EntityState.Detached;
+                            }
+                        }
+
+                        _logger.LogError(ex,
+                            "Failed to {ActionType} DataPrincipal {DataPrincipalId} for Org {OrganizationId}. Skipping record.",
+                            actionType, dp.DataPrincipalId, organizationId);
                     }
                 }
-                await _context.SaveChangesAsync();
             }
+
+            return totalProcessed;
         }
 
-        // ==========================================
-        // YAHAN HAIN DASHBOARD WALI QUERIES
-        // ==========================================
         public async Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId)
         {
+            var queueItems = (await GetErasureQueueAsync(organizationId)).ToList();
             var activePoliciesCount = await _context.RetentionPolicies
-                .CountAsync(p => p.OrganizationId == organizationId && p.IsActive == true);
-
-            var overdueCount = await _context.DataPrincipals
-                .CountAsync(dp => dp.OrganizationId == organizationId && dp.CreatedAt < DateTime.UtcNow.AddDays(-30));
-
-            var queueCount = await _context.DataPrincipals
-                .CountAsync(dp => dp.OrganizationId == organizationId && dp.CreatedAt >= DateTime.UtcNow.AddDays(-30) && dp.CreatedAt < DateTime.UtcNow.AddDays(-23));
+                .CountAsync(p => p.OrganizationId == organizationId && p.IsActive);
 
             return new RetentionMetricsDto
             {
                 ActivePolicies = activePoliciesCount,
-                Overdue = overdueCount,
-                JobsInQueue = queueCount
+                Overdue = queueItems.Count(q => q.Status == "Overdue"),
+                JobsInQueue = queueItems.Count(q => q.Status == "Pending")
             };
         }
+
         public async Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId)
         {
-            // Abhi hum active policy nikal rahe hain (Default 30 days wali jo seeder me daali thi)
+            var activePolicies = await _context.RetentionPolicies
+                .Where(p => p.OrganizationId == organizationId && p.IsActive)
+                .OrderBy(p => p.RetentionPeriodInDays)
+                .ToListAsync();
+
+            if (!activePolicies.Any())
+                return new List<ErasureQueueDto>();
+
+            var now = DateTime.UtcNow;
+
+            var principals = await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId
+                             && dp.AnonymizedAt == null
+                             && !dp.IsOnLegalHold)
+                .Select(dp => new
+                {
+                    dp.DataPrincipalId,
+                    dp.ReferenceId,
+                    dp.CreatedAt,
+                    dp.UpdatedAt
+                })
+                .ToListAsync();
+
+            var result = new List<ErasureQueueDto>();
+
+            foreach (var dp in principals)
+            {
+                RetentionPolicy? matchedPolicy = null;
+                DateTime earliestDueDate = DateTime.MaxValue;
+
+                foreach (var policy in activePolicies)
+                {
+                    var baseDate = ResolveTriggerBaseDate(policy.TriggerEvent, dp.CreatedAt, dp.UpdatedAt);
+                    var dueDate = baseDate.AddDays(policy.RetentionPeriodInDays);
+
+                    if (dueDate < earliestDueDate)
+                    {
+                        earliestDueDate = dueDate;
+                        matchedPolicy = policy;
+                    }
+                }
+
+                if (matchedPolicy == null) continue;
+
+                if (earliestDueDate <= now.AddDays(UpcomingWindowDays))
+                {
+                    result.Add(new ErasureQueueDto
+                    {
+                        RecordId = dp.DataPrincipalId,
+                        ReferenceId = dp.ReferenceId,
+                        PolicyName = matchedPolicy.PolicyName,
+                        ActionType = matchedPolicy.ActionType,
+                        DueDate = earliestDueDate,
+                        Status = earliestDueDate < now ? "Overdue" : "Pending"
+                    });
+                }
+            }
+
+            return result.OrderBy(q => q.DueDate).ToList();
+        }
+
+        public async Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, bool isOnLegalHold, string? reason)
+        {
+            var dp = await _context.DataPrincipals
+                .FirstOrDefaultAsync(x => x.DataPrincipalId == dataPrincipalId && x.OrganizationId == organizationId);
+
+            if (dp == null)
+                return false;
+
+            dp.IsOnLegalHold = isOnLegalHold;
+            dp.LegalHoldReason = isOnLegalHold ? reason?.Trim() : null;
+            dp.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId)
+        {
             var policy = await _context.RetentionPolicies
-                .FirstOrDefaultAsync(p => p.OrganizationId == organizationId && p.IsActive == true);
+                .Where(p => p.OrganizationId == organizationId && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
 
-            if (policy == null) return new List<ErasureQueueDto>();
+            var defaultPolicyName = policy?.PolicyName ?? "Retention Policy";
+            var defaultActionType = string.IsNullOrWhiteSpace(policy?.ActionType) ? "Anonymize" : policy!.ActionType;
 
-            // Wo records nikal rahe hain jo 23 se 35 din purane hain (Overdue aur Queue wale)
-            var targetDate = DateTime.UtcNow.AddDays(-23);
-
-            var queueRecords = await _context.DataPrincipals
-                .Where(dp => dp.OrganizationId == organizationId && dp.CreatedAt <= targetDate)
-                .Select(dp => new ErasureQueueDto
+            return await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt != null)
+                .OrderByDescending(dp => dp.AnonymizedAt)
+                .Select(dp => new ErasedRecordDto
                 {
                     RecordId = dp.DataPrincipalId,
                     ReferenceId = dp.ReferenceId,
-                    PolicyName = policy.PolicyName,
-                    ActionType = policy.ActionType,
-                    // Calculate due date (CreatedAt + RetentionDays)
-                    DueDate = dp.CreatedAt.AddDays(policy.RetentionPeriodInDays),
-                    // Agar due date nikal chuki hai toh "Overdue", nahi toh "Pending"
-                    Status = dp.CreatedAt.AddDays(policy.RetentionPeriodInDays) < DateTime.UtcNow ? "Overdue" : "Pending"
+                    ErasedAt = dp.AnonymizedAt!.Value,
+                    ActionType = defaultActionType,
+                    PolicyName = defaultPolicyName
                 })
-                .OrderBy(q => q.DueDate)
                 .ToListAsync();
-
-            return queueRecords;
         }
     }
 }

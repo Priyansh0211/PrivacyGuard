@@ -715,6 +715,9 @@ namespace PrivacyGuard.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AnonymizedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Class")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -744,6 +747,13 @@ namespace PrivacyGuard.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsOnLegalHold")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LegalHoldReason")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
                     b.Property<string>("Mobile")
                         .HasMaxLength(15)
@@ -1289,7 +1299,7 @@ namespace PrivacyGuard.Migrations
 
                     b.HasIndex("DataPrincipalId");
 
-                    b.ToTable("PrincipalIdentifier");
+                    b.ToTable("PrincipalIdentifiers");
                 });
 
             modelBuilder.Entity("PrivacyGuard.Models.PrivacyRequest", b =>

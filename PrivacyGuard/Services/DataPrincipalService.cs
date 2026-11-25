@@ -168,20 +168,14 @@ namespace PrivacyGuard.Services
             var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
             if (dp == null) return false;
 
-            // DPDP Act Compliance: PII data ko scramble/anonymize kar do
-            dp.FullName = "Anonymized User";
-            dp.Email = "erased@anonymized.local";
-            dp.Mobile = "0000000000";
-            dp.ConsumerNo = "ERASED";
-            //dp.Status = "Erased"; // Status change kar diya
+            // Already anonymized ho chuka hai to dobara mat karo (ReferenceId na badle)
+            if (dp.AnonymizedAt != null) return true;
 
-            // Identifiers ko bhi scramble kar do
-            foreach (var identifier in dp.Identifiers)
-            {
-                identifier.Value = "ERASED";
-            }
+            if (dp.IsOnLegalHold)
+                throw new InvalidOperationException("Record is on legal hold and cannot be erased.");
 
-            // DB mein save
+            DataPrincipalAnonymizer.Anonymize(dp, DateTime.UtcNow);
+
             await _repository.SaveChangesAsync();
             return true;
         }

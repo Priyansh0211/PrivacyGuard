@@ -110,7 +110,15 @@ namespace PrivacyGuard.Controllers
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
             // DPDP Act: Hard delete ki jagah Anonymize/Scramble kar rahe hain
-            var success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim));
+            bool success;
+            try
+            {
+                success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { Message = ex.Message });
+            }
 
             if (!success) return NotFound(new { Message = "Data Principal not found." });
 
