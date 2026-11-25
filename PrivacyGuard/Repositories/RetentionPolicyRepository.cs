@@ -238,5 +238,45 @@ namespace PrivacyGuard.Repositories
 
             return result.OrderBy(q => q.DueDate).ToList();
         }
+
+        public async Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, bool isOnLegalHold, string? reason)
+        {
+            var dp = await _context.DataPrincipals
+                .FirstOrDefaultAsync(x => x.DataPrincipalId == dataPrincipalId && x.OrganizationId == organizationId);
+
+            if (dp == null)
+                return false;
+
+            dp.IsOnLegalHold = isOnLegalHold;
+            dp.LegalHoldReason = isOnLegalHold ? reason?.Trim() : null;
+            dp.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId)
+        {
+            var policy = await _context.RetentionPolicies
+                .Where(p => p.OrganizationId == organizationId && p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            var defaultPolicyName = policy?.PolicyName ?? "Retention Policy";
+            var defaultActionType = string.IsNullOrWhiteSpace(policy?.ActionType) ? "Anonymize" : policy!.ActionType;
+
+            return await _context.DataPrincipals
+                .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt != null)
+                .OrderByDescending(dp => dp.AnonymizedAt)
+                .Select(dp => new ErasedRecordDto
+                {
+                    RecordId = dp.DataPrincipalId,
+                    ReferenceId = dp.ReferenceId,
+                    ErasedAt = dp.AnonymizedAt!.Value,
+                    ActionType = defaultActionType,
+                    PolicyName = defaultPolicyName
+                })
+                .ToListAsync();
+        }
     }
 }
