@@ -28,8 +28,6 @@ namespace PrivacyGuard.Models
         [MaxLength(100)]
         public string? Email { get; set; }
 
-        // Credentials used by the shared login endpoint.
-        // Existing records must be assigned a password before they can log in.
         public string? PasswordHash { get; set; }
         public bool IsActive { get; set; } = true;
 
@@ -53,20 +51,24 @@ namespace PrivacyGuard.Models
 
         public bool RequiresGuardianConsent { get; set; } = false;
 
+        // ==========================================
+        // RETENTION, ERASURE & LEGAL HOLD (DPDP Sec 8(7))
+        // ==========================================
+        public DateTime? AnonymizedAt { get; set; }
+
+        public bool IsOnLegalHold { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? LegalHoldReason { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // ==========================================
-        // 360-DEGREE VIEW CONNECTIONS (Navigation Properties)
+        // 360-DEGREE VIEW CONNECTIONS
         // ==========================================
-
-        // 1. Identifiers list (Email, Mobile mappings)
         public ICollection<PrincipalIdentifier> Identifiers { get; set; } = new List<PrincipalIdentifier>();
-
-        // 2. User ki saari Rights/Privacy Requests
         public ICollection<PrivacyRequest> PrivacyRequests { get; set; } = new List<PrivacyRequest>();
-
-        // 3. User ke saare Consents (Jo record table tumne pehle banai thi)
         public ICollection<ConsentRecord> ConsentRecords { get; set; } = new List<ConsentRecord>();
     }
 }
