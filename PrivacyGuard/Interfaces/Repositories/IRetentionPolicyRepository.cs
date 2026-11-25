@@ -30,8 +30,12 @@ namespace PrivacyGuard.Interfaces.Repositories
 
         // Org-scoped, policy-driven erasure/anonymization returning processed count
         Task<int> ProcessExpiredDataAsync(Guid organizationId, int retentionPeriodInDays, string actionType, string triggerEvent); Task<RetentionMetricsDto> GetDashboardMetricsAsync(Guid organizationId);
-        
+
         // Naya method Erasure Queue ke liye
         Task<IEnumerable<ErasureQueueDto>> GetErasureQueueAsync(Guid organizationId);
+
+        Task<bool> SetLegalHoldAsync(Guid dataPrincipalId, Guid organizationId, bool isOnLegalHold, string? reason);
+
+        Task<IEnumerable<ErasedRecordDto>> GetErasedRecordsAsync(Guid organizationId);
     }
 }
