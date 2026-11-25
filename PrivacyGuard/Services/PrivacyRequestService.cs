@@ -64,7 +64,7 @@ namespace PrivacyGuard.Services
                 {
                     var erased = await _dataPrincipalService.AnonymizeDataPrincipalAsync(existingRequest.DataPrincipalId, organizationId);
                     if (!erased)
-                        throw new InvalidOperationException("Erasure not possible: record is on legal hold or not found.");
+                        throw new InvalidOperationException("Erasure not possible: data principal not found.");
                 }
             }
 
