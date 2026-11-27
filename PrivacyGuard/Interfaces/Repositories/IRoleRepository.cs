@@ -8,17 +8,14 @@ namespace PrivacyGuard.Interfaces.Repositories
     {
         Task<List<PrivacyGuard.DTOs.RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId);
         Task<List<Permission>> GetAllPermissionsAsync();
-
-        Task<bool> CreateRoleWithPermissionsAsync(Role role, List<RolePermission> rolePermissions);
-
-        
+        Task<bool> CreateRoleWithPermissionsAsync(Role role, List<RolePermission> rolePermissions); 
         Task<List<Permission>> GetUserPermissionDetailsAsync(Guid userId);
-
         Task<List<string>> GetUserPermissionsAsync(Guid userId);
-
         Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId);
-
         Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, string name, string description, List<int> permissionIds);
+        Task<Role?> GetRoleAsync(Guid roleId, Guid organizationId);
+        Task<bool> RoleNameExistsAsync(Guid organizationId, string name, Guid? excludeRoleId = null);
+        Task<bool> UserBelongsToOrganizationAsync(Guid userId, Guid organizationId);
     }
 
 }

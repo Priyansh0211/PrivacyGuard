@@ -68,10 +68,7 @@ namespace PrivacyGuard.Repositories
                 await transaction.RollbackAsync();
                 return false;
             }
-        }
-
-      
-
+        }   
         
         public async Task<List<Permission>> GetUserPermissionDetailsAsync(Guid userId)
         {
@@ -81,8 +78,6 @@ namespace PrivacyGuard.Repositories
                           join p in _context.Permissions on rp.PermissionId equals p.Id
                           select p).Distinct().ToListAsync();
         }
-
-
         public async Task<List<string>> GetUserPermissionsAsync(Guid userId)
         {
 
@@ -187,6 +182,24 @@ namespace PrivacyGuard.Repositories
                 await transaction.RollbackAsync(); // Kuch bhi fail hua toh undo ho jayega
                 throw;
             }
+        }
+        public async Task<Role?> GetRoleAsync(Guid roleId, Guid organizationId)
+        {
+            return await _context.Roles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.OrganizationId == organizationId);
+        }
+
+        public async Task<bool> RoleNameExistsAsync(Guid organizationId, string name, Guid? excludeRoleId = null)
+        {
+            var query = _context.Roles.Where(r => r.OrganizationId == organizationId && r.Name == name);
+            if (excludeRoleId.HasValue) query = query.Where(r => r.Id != excludeRoleId.Value);
+            return await query.AnyAsync();
+        }
+
+        public async Task<bool> UserBelongsToOrganizationAsync(Guid userId, Guid organizationId)
+        {
+            return await _context.Users.AnyAsync(u => u.UserId == userId && u.OrganizationId == organizationId);
         }
     }
 }

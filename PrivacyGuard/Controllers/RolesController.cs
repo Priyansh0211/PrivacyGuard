@@ -38,22 +38,24 @@ namespace PrivacyGuard.Controllers
             var result = await _roleService.GetGroupedPermissionsAsync();
             return Ok(result);
         }
-    
 
-    [HttpPost("create")]
+        [HttpPost("create")]
+        [HasPermission("Roles.Manage")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleDto request)
         {
-           
-            var orgIdString = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdString))
+            if (!Guid.TryParse(User.FindFirst("OrganizationId")?.Value, out var organizationId))
             {
                 return Unauthorized(new { message = "Organization context missing in token." });
             }
 
-            var organizationId = Guid.Parse(orgIdString);
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var callerUserId))
+            {
+                return Unauthorized(new { message = "User context missing." });
+            }
 
-           
-            var result = await _roleService.CreateCustomRoleAsync(request, organizationId);
+            var callerRole = User.FindFirstValue(ClaimTypes.Role);
+
+            var result = await _roleService.CreateCustomRoleAsync(request, organizationId, callerUserId, callerRole);
 
             if (!result.IsSuccess)
             {
@@ -63,33 +65,34 @@ namespace PrivacyGuard.Controllers
             return Ok(new { message = "Custom Role created successfully!" });
         }
 
-
-        
-
-[HttpGet("user-permissions/grouped/{userId}")]
-    [Authorize]
-    public async Task<IActionResult> GetUserGroupedPermissions(Guid userId)
-    {
-        var result = await _roleService.GetUserGroupedPermissionsAsync(userId);
-        return Ok(result);
-    }
-
-    
-    [HttpGet("my-permissions/grouped")]
-    [Authorize]
-    public async Task<IActionResult> GetMyGroupedPermissions()
-    {
-        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdString))
+        [HttpGet("user-permissions/grouped/{userId}")]
+        [HasPermission("Users.View")]
+        public async Task<IActionResult> GetUserGroupedPermissions(Guid userId)
         {
-            return Unauthorized(new { message = "User context missing." });
+            if (!Guid.TryParse(User.FindFirstValue("OrganizationId"), out var organizationId))
+                return Unauthorized(new { message = "Organization context missing in token." });
+
+            var result = await _roleService.GetUserGroupedPermissionsForOrgAsync(userId, organizationId);
+            if (result == null)
+                return NotFound(new { message = "User not found." });
+
+            return Ok(result);
         }
 
-        var userId = Guid.Parse(userIdString);
-        var result = await _roleService.GetUserGroupedPermissionsAsync(userId);
-        return Ok(result);
-    }
+        [HttpGet("my-permissions/grouped")]
+        [Authorize]
+        public async Task<IActionResult> GetMyGroupedPermissions()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                return Unauthorized(new { message = "User context missing." });
+            }
 
+            var userId = Guid.Parse(userIdString);
+            var result = await _roleService.GetUserGroupedPermissionsAsync(userId);
+            return Ok(result);
+        }
 
         [HttpGet("{id}/edit")]
         [HasPermission("Roles.Manage")] // Sirf Role Manage karne wale dekh sakte hain
@@ -117,24 +120,34 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpPut("{id}/edit")]
-        [HasPermission("Roles.Manage")] // 🚨 Sirf permission wale log hi hit kar payenge
+        [HasPermission("Roles.Manage")]
         public async Task<IActionResult> EditRole(Guid id, [FromBody] UpdateRoleDto dto)
         {
             try
             {
                 var orgIdStr = User.FindFirstValue("OrganizationId");
-                if (string.IsNullOrEmpty(orgIdStr))
+                if (!Guid.TryParse(orgIdStr, out var organizationId))
                 {
                     return Unauthorized(new { message = "Organization ID missing in token." });
                 }
 
-                var organizationId = Guid.Parse(orgIdStr);
-
-                var isSuccess = await _roleService.UpdateRoleAndPermissionsAsync(id, organizationId, dto);
-
-                if (!isSuccess)
+                if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var callerUserId))
                 {
-                    return NotFound(new { message = "Role not found or unauthorized access." });
+                    return Unauthorized(new { message = "User context missing." });
+                }
+
+                var callerRole = User.FindFirstValue(ClaimTypes.Role);
+
+                var result = await _roleService.UpdateRoleAndPermissionsAsync(id, organizationId, dto, callerUserId, callerRole);
+
+                if (result.NotFound)
+                {
+                    return NotFound(new { message = result.ErrorMessage });
+                }
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.ErrorMessage });
                 }
 
                 return Ok(new { message = "Role and permissions updated successfully." });

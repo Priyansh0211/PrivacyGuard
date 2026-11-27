@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
-using PrivacyGuard.Filters; // DHYAN RAHE: Ye namespace add karna zaroori hai
+using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces.Services;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace PrivacyGuard.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Pura controller secure kar diya
+    [Authorize]
     public class StaffController : ControllerBase
     {
         private readonly IStaffService _staffService;
@@ -20,8 +21,15 @@ namespace PrivacyGuard.Controllers
             _staffService = staffService;
         }
 
+        private void GetCallerContext(out Guid callerUserId, out string? callerRole, out Guid callerUnitId)
+        {
+            Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out callerUserId);
+            callerRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            Guid.TryParse(User.FindFirst("OrgUnitId")?.Value, out callerUnitId);
+        }
+
         [HttpPost("create")]
-        [HasPermission("Users.Create")] // FIX: Ab sirf wo user jiske paas Create permission hai, wahi staff bana payega
+        [HasPermission("Users.Create")]
         public async Task<IActionResult> CreateStaff([FromBody] CreateStaffDto dto)
         {
             var orgIdClaim = User.FindFirst("OrganizationId");
@@ -30,7 +38,9 @@ namespace PrivacyGuard.Controllers
                 return Forbid();
             }
 
-            var result = await _staffService.CreateStaffAsync(dto, organizationId);
+            GetCallerContext(out var callerUserId, out var callerRole, out var callerUnitId);
+
+            var result = await _staffService.CreateStaffAsync(dto, organizationId, callerUserId, callerRole, callerUnitId);
 
             if (!result.IsSuccess)
             {
@@ -41,15 +51,15 @@ namespace PrivacyGuard.Controllers
         }
 
         [HttpGet]
-        [HasPermission("Users.View")] // FIX: Staff list dekhne ke liye View permission
+        [HasPermission("Users.View")]
         public async Task<IActionResult> GetStaffList()
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
-            if (string.IsNullOrEmpty(orgIdClaim)) return Forbid();
+            if (!Guid.TryParse(orgIdClaim, out var organizationId)) return Forbid();
 
-            var organizationId = Guid.Parse(orgIdClaim);
+            GetCallerContext(out _, out var callerRole, out var callerUnitId);
 
-            var staffList = await _staffService.GetStaffListAsync(organizationId);
+            var staffList = await _staffService.GetStaffListAsync(organizationId, callerRole, callerUnitId);
 
             return Ok(staffList);
         }

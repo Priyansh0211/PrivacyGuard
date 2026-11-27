@@ -292,6 +292,25 @@ namespace PrivacyGuard.Data
 
                 context.SaveChanges();
             }
+
+        }
+        // Purane plain text passwords ko ek baar me hash karta hai (hashed ho chuke ko chhoda jata hai)
+        public static void HashLegacyPasswords(ApplicationDbContext context)
+        {
+            var legacyUsers = context.Users
+                .Where(u => u.PasswordHash != null && u.PasswordHash != "" && !u.PasswordHash.StartsWith("PBKDF2$"))
+                .ToList();
+            foreach (var u in legacyUsers)
+                u.PasswordHash = PrivacyGuard.Helpers.PasswordHelper.Hash(u.PasswordHash);
+
+            var legacyPrincipals = context.DataPrincipals
+                .Where(dp => dp.PasswordHash != null && dp.PasswordHash != "" && !dp.PasswordHash.StartsWith("PBKDF2$"))
+                .ToList();
+            foreach (var dp in legacyPrincipals)
+                dp.PasswordHash = PrivacyGuard.Helpers.PasswordHelper.Hash(dp.PasswordHash!);
+
+            if (legacyUsers.Count + legacyPrincipals.Count > 0)
+                context.SaveChanges();
         }
     }
 }
