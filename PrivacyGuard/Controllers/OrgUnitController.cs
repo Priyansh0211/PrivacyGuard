@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System;
 using System.Threading.Tasks;
 using PrivacyGuard.Filters;
+using PrivacyGuard.Helpers;
 
 namespace PrivacyGuard.Controllers
 {
@@ -36,18 +37,36 @@ namespace PrivacyGuard.Controllers
             return hasOrgId;
         }
 
+        // Service ke exceptions ko sahi HTTP status me convert karta hai
+        private IActionResult MapOrgUnitException(InvalidOperationException ex)
+        {
+            return ex switch
+            {
+                OrgUnitForbiddenException => StatusCode(403, new { Message = ex.Message }), // 403
+                OrgUnitConflictException => Conflict(new { Message = ex.Message }),          // 409
+                _ => BadRequest(new { Message = ex.Message })                                // 400
+            };
+        }
+
         [HttpPost]
         [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Create([FromBody] CreateOrgUnitDto dto)
         {
-            if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
-            var result = await _service.CreateOrgUnitAsync(dto, orgId);
-            return Ok(result);
+            if (!TryGetClaimData(out var orgId, out var callerUnitId, out var callerRole)) return Forbid();
+
+            try
+            {
+                var result = await _service.CreateOrgUnitAsync(dto, orgId, callerRole, callerUnitId);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MapOrgUnitException(ex);
+            }
         }
 
         [HttpGet("hierarchy")]
         [HasPermission("OrgUnit.View")]
-
         public async Task<IActionResult> GetHierarchy()
         {
             if (!TryGetClaimData(out var orgId, out var orgUnitId, out var role)) return Forbid();
@@ -60,43 +79,72 @@ namespace PrivacyGuard.Controllers
         [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Deactivate(Guid id)
         {
-            if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
-            var success = await _service.DeactivateOrgUnitAsync(id, orgId);
-            if (!success) return NotFound();
-            return Ok(new { Message = "Deactivated successfully." });
+            if (!TryGetClaimData(out var orgId, out var callerUnitId, out var callerRole)) return Forbid();
+
+            try
+            {
+                var success = await _service.DeactivateOrgUnitAsync(id, orgId, callerRole, callerUnitId);
+                if (!success) return NotFound(new { Message = "Org unit not found." });
+                return Ok(new { Message = "Deactivated successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MapOrgUnitException(ex);
+            }
         }
 
-        // NAYA: Activate endpoint
         [HttpPut("{id:guid}/activate")]
         [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Activate(Guid id)
         {
-            if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
-            var success = await _service.ActivateOrgUnitAsync(id, orgId);
-            if (!success) return NotFound();
-            return Ok(new { Message = "Activated successfully." });
+            if (!TryGetClaimData(out var orgId, out var callerUnitId, out var callerRole)) return Forbid();
+
+            try
+            {
+                var success = await _service.ActivateOrgUnitAsync(id, orgId, callerRole, callerUnitId);
+                if (!success) return NotFound(new { Message = "Org unit not found." });
+                return Ok(new { Message = "Activated successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MapOrgUnitException(ex);
+            }
         }
 
-        // NAYA: Edit endpoint
         [HttpPut("{id:guid}")]
         [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOrgUnitDto dto)
         {
-            if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
-            var result = await _service.UpdateOrgUnitAsync(id, orgId, dto);
-            if (result == null) return NotFound();
-            return Ok(result);
+            if (!TryGetClaimData(out var orgId, out var callerUnitId, out var callerRole)) return Forbid();
+
+            try
+            {
+                var result = await _service.UpdateOrgUnitAsync(id, orgId, dto, callerRole, callerUnitId);
+                if (result == null) return NotFound(new { Message = "Org unit not found." });
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MapOrgUnitException(ex);
+            }
         }
 
-        // NAYA: Delete endpoint
         [HttpDelete("{id:guid}")]
         [HasPermission("OrgUnit.Manage")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            if (!TryGetClaimData(out var orgId, out _, out _)) return Forbid();
-            var success = await _service.DeleteOrgUnitAsync(id, orgId);
-            if (!success) return NotFound();
-            return Ok(new { Message = "Deleted successfully." });
+            if (!TryGetClaimData(out var orgId, out var callerUnitId, out var callerRole)) return Forbid();
+
+            try
+            {
+                var success = await _service.DeleteOrgUnitAsync(id, orgId, callerRole, callerUnitId);
+                if (!success) return NotFound(new { Message = "Org unit not found." });
+                return Ok(new { Message = "Deleted successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MapOrgUnitException(ex);
+            }
         }
     }
 }

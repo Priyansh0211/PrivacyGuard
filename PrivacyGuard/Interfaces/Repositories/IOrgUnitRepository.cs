@@ -16,8 +16,13 @@ namespace PrivacyGuard.Interfaces.Repositories
 
         // Advanced Validations & Counts
         Task<bool> IsUnitCodeUniqueAsync(string unitCode, Guid organizationId, Guid? excludeId = null);
-        Task<int> GetPrincipalsCountAsync(Guid orgUnitId);
+        //Task<int> GetPrincipalsCountAsync(Guid orgUnitId);
+        Task<Dictionary<Guid, int>> GetStaffCountsByOrgUnitAsync(Guid organizationId);
+        Task<Dictionary<Guid, int>> GetDataPrincipalCountsByOrgUnitAsync(Guid organizationId);
         Task<bool> HasChildrenAsync(Guid orgUnitId);
         Task<bool> HasAssignedUsersAsync(Guid orgUnitId);
+        Task<bool> HasAssignedDataPrincipalsAsync(Guid orgUnitId);
+        Task<bool> HasActiveStaffAsync(Guid orgUnitId);
+        Task<bool> HasActiveChildrenAsync(Guid orgUnitId);
     }
 }

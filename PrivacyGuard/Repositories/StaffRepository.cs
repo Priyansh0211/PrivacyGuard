@@ -31,10 +31,27 @@ namespace PrivacyGuard.Repositories
         }
         public async Task<List<User>> GetStaffByOrganizationIdAsync(Guid organizationId)
         {
-            return await _context.Users // (Agar DbSet ka naam alag hai toh update kar lena)
-                .Include(u => u.OrgUnit) // Yeh SQL JOIN ka kaam karega Branch Name laane ke liye
-                .Where(u => u.OrganizationId == organizationId)
+            return await _context.Users
+                .AsNoTracking()
+                .Include(u => u.OrgUnit)   // Branch name ke liye
+                .Include(u => u.UserRole)  // Role name ke liye (pehle missing tha)
+                .Where(u => u.OrganizationId == organizationId
+                            && (u.UserRole == null || u.UserRole.Name != "DataPrincipal"))
+                .OrderBy(u => u.FullName)
                 .ToListAsync();
+        }
+        public async Task<Role?> GetRoleInOrganizationAsync(Guid roleId, Guid organizationId)
+        {
+            return await _context.Roles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.OrganizationId == organizationId);
+        }
+
+        public async Task<OrgUnit?> GetActiveOrgUnitInOrganizationAsync(Guid orgUnitId, Guid organizationId)
+        {
+            return await _context.OrgUnits
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == orgUnitId && o.OrganizationId == organizationId && o.IsActive);
         }
     }
 }

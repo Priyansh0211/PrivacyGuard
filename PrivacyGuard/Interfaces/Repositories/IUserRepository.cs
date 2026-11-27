@@ -12,5 +12,7 @@ namespace PrivacyGuard.Interfaces.Repositories
 
         Task<User?> GetUserByIdAndOrgAsync(Guid userId, Guid organizationId);
         Task UpdateUserAsync(User user);
+        Task<Role?> GetRoleInOrganizationAsync(Guid roleId, Guid organizationId);
+        Task<OrgUnit?> GetActiveOrgUnitInOrganizationAsync(Guid orgUnitId, Guid organizationId);
     }
 }

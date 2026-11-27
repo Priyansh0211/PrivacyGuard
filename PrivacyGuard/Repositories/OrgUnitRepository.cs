@@ -53,12 +53,37 @@ namespace PrivacyGuard.Repositories
         }
 
         // Users/Principals count dynamically nikalne ke liye
-        public async Task<int> GetPrincipalsCountAsync(Guid orgUnitId)
+        //public async Task<int> GetPrincipalsCountAsync(Guid orgUnitId)
+        //{
+        //    // As per PDF: group Users by OrgUnitId and calculate the count
+        //    return await _context.Users.CountAsync(u => u.OrgUnitId == orgUnitId);
+        //}
+        // Har unit ka DIRECT active staff count (ek hi query me)
+        public async Task<Dictionary<Guid, int>> GetStaffCountsByOrgUnitAsync(Guid organizationId)
         {
-            // As per PDF: group Users by OrgUnitId and calculate the count
-            return await _context.Users.CountAsync(u => u.OrgUnitId == orgUnitId);
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.OrganizationId == organizationId
+                            && u.OrgUnitId != null
+                            && u.IsActive
+                            && (u.UserRole == null || u.UserRole.Name != "DataPrincipal"))
+                .GroupBy(u => u.OrgUnitId)
+                .Select(g => new { UnitId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.UnitId!.Value, x => x.Count);
         }
 
+        // Har unit ka DIRECT data principal count (anonymized wale nahi ginte)
+        public async Task<Dictionary<Guid, int>> GetDataPrincipalCountsByOrgUnitAsync(Guid organizationId)
+        {
+            return await _context.DataPrincipals
+                .AsNoTracking()
+                .Where(dp => dp.OrganizationId == organizationId
+                             && dp.OrgUnitId != null
+                             && dp.AnonymizedAt == null)
+                .GroupBy(dp => dp.OrgUnitId)
+                .Select(g => new { UnitId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.UnitId!.Value, x => x.Count);
+        }
         public async Task<bool> IsUnitCodeUniqueAsync(string unitCode, Guid organizationId, Guid? excludeId = null)
         {
             var query = _context.OrgUnits.Where(o => o.OrganizationId == organizationId && o.UnitCode == unitCode);
@@ -71,10 +96,28 @@ namespace PrivacyGuard.Repositories
         {
             return await _context.OrgUnits.AnyAsync(o => o.ParentId == orgUnitId);
         }
-
         public async Task<bool> HasAssignedUsersAsync(Guid orgUnitId)
         {
             return await _context.Users.AnyAsync(u => u.OrgUnitId == orgUnitId);
+        }
+        // Anonymized data principals ko nahi ginte (unka data hi erase ho chuka hai)
+        public async Task<bool> HasAssignedDataPrincipalsAsync(Guid orgUnitId)
+        {
+            return await _context.DataPrincipals
+                .AnyAsync(dp => dp.OrgUnitId == orgUnitId && dp.AnonymizedAt == null);
+        }
+
+        public async Task<bool> HasActiveStaffAsync(Guid orgUnitId)
+        {
+            return await _context.Users
+                .AnyAsync(u => u.OrgUnitId == orgUnitId
+                               && u.IsActive
+                               && (u.UserRole == null || u.UserRole.Name != "DataPrincipal"));
+        }
+
+        public async Task<bool> HasActiveChildrenAsync(Guid orgUnitId)
+        {
+            return await _context.OrgUnits.AnyAsync(o => o.ParentId == orgUnitId && o.IsActive);
         }
     }
 }
