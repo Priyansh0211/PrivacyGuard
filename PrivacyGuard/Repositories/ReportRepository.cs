@@ -265,6 +265,7 @@ namespace PrivacyGuard.Repositories
                     SequenceNumber = a.SequenceNumber,
                     ActorEmail = a.ActorEmail,
                     ActorRole = a.ActorRole,
+                    IpAddress = a.IpAddress,
                     TableName = a.TableName,
                     ActionType = a.ActionType,
                     Outcome = a.Outcome,

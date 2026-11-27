@@ -12,10 +12,12 @@ namespace PrivacyGuard.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ITenantService _tenantService;
+        private readonly IAuditService _auditService;
 
-        public AuthController(ITenantService tenantService)
+        public AuthController(ITenantService tenantService, IAuditService auditService)
         {
             _tenantService = tenantService;
+            _auditService = auditService;
         }
 
         [HttpPost("register-tenant")]
@@ -40,9 +42,7 @@ namespace PrivacyGuard.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto request)
         {
-            var loginIp = HttpContext.Connection.RemoteIpAddress?
-                .MapToIPv4()
-                .ToString();
+            var loginIp = GetClientIpAddress();
 
             var result = await _tenantService.LoginAsync(request, loginIp);
 
@@ -57,12 +57,25 @@ namespace PrivacyGuard.Controllers
 
         [HttpPost("logout")]
         [Authorize] 
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            // Future update: Agar tumhe user ke logout hone ka time database (AuditLog) mein save karna ho, 
-            // toh wo service call yahan aayegi.
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId) ||
+                !Guid.TryParse(User.FindFirstValue("OrganizationId"), out var organizationId))
+            {
+                return Unauthorized(new { Error = "Invalid token or user data." });
+            }
 
-            // Abhi ke liye hum bas frontend ko HTTP 200 OK bhej rahe hain
+            var actorEmail = User.FindFirstValue(ClaimTypes.Email) ?? userId.ToString();
+            var actorRole = User.FindFirstValue(ClaimTypes.Role) ?? "Unknown";
+
+            await _auditService.RecordAuthenticationEventAsync(
+                userId,
+                organizationId,
+                actorEmail,
+                actorRole,
+                GetClientIpAddress(),
+                "Logout");
+
             return Ok(new
             {
                 IsSuccess = true,
@@ -83,6 +96,17 @@ namespace PrivacyGuard.Controllers
             var roles = await _tenantService.GetRolesForDropdownAsync(Guid.Parse(orgIdStr));
 
             return Ok(roles);
+        }
+
+        private string? GetClientIpAddress()
+        {
+            var remoteIpAddress = HttpContext.Connection.RemoteIpAddress;
+            if (remoteIpAddress?.IsIPv4MappedToIPv6 == true)
+            {
+                remoteIpAddress = remoteIpAddress.MapToIPv4();
+            }
+
+            return remoteIpAddress?.ToString();
         }
     }
 }
