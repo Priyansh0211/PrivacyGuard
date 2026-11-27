@@ -108,5 +108,34 @@ namespace PrivacyGuard.Controllers
 
             return BadRequest(new { Error = result.ErrorMessage });
         }
+        // Staff ko unit me assign / unit se unassign karna
+        [HttpPut("{userId:guid}/org-unit")]
+        [HasPermission("Users.Edit")]
+        public async Task<IActionResult> AssignOrgUnit(Guid userId, [FromBody] AssignOrgUnitDto request)
+        {
+            var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
+            if (string.IsNullOrEmpty(orgIdClaim) || !Guid.TryParse(orgIdClaim, out Guid organizationId))
+            {
+                return Unauthorized(new { Error = "Invalid token or organization data." });
+            }
+
+            GetCallerContext(out var callerUserId, out var callerRole, out var callerUnitId);
+
+            var result = await _userService.AssignOrgUnitAsync(userId, request.OrgUnitId, organizationId, callerUserId, callerRole, callerUnitId);
+
+            if (result.NotFound)
+                return NotFound(new { Error = result.ErrorMessage });
+
+            if (!result.IsSuccess)
+                return BadRequest(new { Error = result.ErrorMessage });
+
+            bool removed = !request.OrgUnitId.HasValue || request.OrgUnitId.Value == Guid.Empty;
+            return Ok(new
+            {
+                Message = removed
+                    ? "Org unit removed. The user must log in again for this to take effect."
+                    : "Org unit assigned. The user must log in again for this to take effect."
+            });
+        }
     }
 }
