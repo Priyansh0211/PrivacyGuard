@@ -280,5 +280,55 @@ namespace PrivacyGuard.Services
 
             return (true, string.Empty);
         }
+        public async Task<(bool IsSuccess, bool NotFound, string ErrorMessage)> AssignOrgUnitAsync(
+            Guid userId, Guid? orgUnitId, Guid organizationId, Guid callerUserId, string? callerRole, Guid callerUnitId)
+        {
+            var user = await _userRepository.GetUserByIdAndOrgAsync(userId, organizationId);
+            if (user == null)
+                return (false, true, "User not found.");
+
+            bool callerIsSuper = RoleGuard.IsSuperRole(callerRole);
+            var allowedUnits = await _scope.GetAllowedUnitIdsAsync(organizationId, callerRole, callerUnitId);
+
+            // Branch scoping: target user caller ki branch me hona chahiye
+            if (allowedUnits != null && (!user.OrgUnitId.HasValue || !allowedUnits.Contains(user.OrgUnitId.Value)))
+                return (false, false, "You can manage users only within your own branch.");
+
+            // Admin level user ko sirf SuperAdmin/SystemAdmin modify kar sakta hai
+            if (RoleGuard.IsPrivilegedRole(user.UserRole?.Name) && !callerIsSuper)
+                return (false, false, "You are not allowed to modify an admin account.");
+
+            // Jis user ke paas tumse zyada access hai usse modify nahi kar sakte
+            if (user.RoleId.HasValue && !await _scope.CanAssignRoleAsync(callerUserId, callerRole, user.RoleId.Value))
+                return (false, false, "You cannot modify a user who has more access than you.");
+
+            Guid? newUnitId;
+            if (!orgUnitId.HasValue || orgUnitId.Value == Guid.Empty)
+            {
+                // Unit se hatana: scoped caller user ko apni branch se bahar nahi nikal sakta
+                if (allowedUnits != null)
+                    return (false, false, "You cannot remove a user from your branch.");
+
+                newUnitId = null;
+            }
+            else
+            {
+                if (allowedUnits != null && !allowedUnits.Contains(orgUnitId.Value))
+                    return (false, false, "You can move users only within your own branch.");
+
+                var unit = await _userRepository.GetActiveOrgUnitInOrganizationAsync(orgUnitId.Value, organizationId);
+                if (unit == null)
+                    return (false, false, "Selected org unit is invalid or inactive.");
+
+                newUnitId = unit.Id;
+            }
+
+            user.OrgUnitId = newUnitId;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _userRepository.UpdateUserAsync(user);
+
+            return (true, false, string.Empty);
+        }
     }
 }
