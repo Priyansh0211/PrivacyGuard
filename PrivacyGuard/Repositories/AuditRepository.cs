@@ -21,5 +21,10 @@ namespace PrivacyGuard.Repositories
                 .OrderByDescending(log => log.SequenceNumber)
                 .ToListAsync();
         }
+
+        public Task RecordAuthenticationEventAsync(Guid userId, Guid organizationId, string actorEmail, string actorRole, string? ipAddress, string action)
+        {
+            return _context.RecordAuthenticationEventAsync(userId, organizationId, actorEmail, actorRole, ipAddress, action);
+        }
     }
 }

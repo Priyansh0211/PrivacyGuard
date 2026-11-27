@@ -61,6 +61,7 @@ namespace PrivacyGuard.DTOs
         public long SequenceNumber { get; set; }
         public string? ActorEmail { get; set; }
         public string? ActorRole { get; set; }
+        public string? IpAddress { get; set; }
         public string TableName { get; set; } = string.Empty;
         public string ActionType { get; set; } = string.Empty;
         public string Outcome { get; set; } = string.Empty;

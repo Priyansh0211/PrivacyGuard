@@ -79,13 +79,11 @@ namespace PrivacyGuard.Repositories
         }
         public async Task UpdateUserAsync(User user)
         {
-            _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
 
         public async Task UpdateDataPrincipalAsync(DataPrincipal dataPrincipal)
         {
-            _context.DataPrincipals.Update(dataPrincipal);
             await _context.SaveChangesAsync();
         }
         public async Task<List<string>> GetPermissionsByRoleIdAsync(Guid? roleId)
@@ -101,7 +99,7 @@ namespace PrivacyGuard.Repositories
                 .Select(rp => rp.Permission!.SystemName)
                 .ToListAsync();
         }
-
+        
         public async Task<List<RoleDropdownDto>> GetRolesForDropdownAsync(Guid organizationId)
         {
             return await _context.Roles
