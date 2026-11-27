@@ -44,11 +44,16 @@ namespace PrivacyGuard.Repositories
                                         && dp.OrganizationId == organizationId);
         }
         public async Task<(List<DataPrincipal> Principals, int TotalCount)> GetPaginatedDataPrincipalsAsync(
-            Guid organizationId, string search, string classType, int page, int pageSize)
+        Guid organizationId, string search, string classType, int page, int pageSize, HashSet<Guid>? allowedUnitIds = null)
         {
             var query = _context.DataPrincipals.AsQueryable()
                                 .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt == null);
 
+            if (allowedUnitIds != null)
+            {
+                var allowed = allowedUnitIds.ToList();
+                query = query.Where(dp => dp.OrgUnitId.HasValue && allowed.Contains(dp.OrgUnitId.Value));
+            }
             // Filters apply karna
             if (!string.IsNullOrEmpty(classType))
             {
@@ -79,18 +84,31 @@ namespace PrivacyGuard.Repositories
         // ==========================================
         // FAST DASHBOARD COUNT (Optimized for Millions of rows)
         // ==========================================
-        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null)
+        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null, HashSet<Guid>? allowedUnitIds = null)
         {
             var query = _context.DataPrincipals.Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt == null);
 
-            // Agar circle filter pass hua hai, toh sirf us circle ka count nikalo
+            // Branch scoping
+            if (allowedUnitIds != null)
+            {
+                var allowed = allowedUnitIds.ToList();
+                query = query.Where(dp => dp.OrgUnitId.HasValue && allowed.Contains(dp.OrgUnitId.Value));
+            }
+
+            // Specific unit ka filter (optional)
             if (orgUnitId.HasValue)
             {
                 query = query.Where(dp => dp.OrgUnitId == orgUnitId.Value);
             }
 
-            // CountAsync DB engine level par chalta hai, memory mein data nahi laata (Ultra fast)
             return await query.CountAsync();
+        }
+        public async Task<Guid?> GetDataPrincipalRoleIdAsync(Guid organizationId)
+        {
+            return await _context.Roles
+                .Where(r => r.OrganizationId == organizationId && r.Name == "DataPrincipal")
+                .Select(r => (Guid?)r.Id)
+                .FirstOrDefaultAsync();
         }
 
         // ==========================================

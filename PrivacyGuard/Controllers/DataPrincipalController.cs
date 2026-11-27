@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
-using PrivacyGuard.Filters; // FIX: Permission filter ke liye namespace zaroori hai
+using PrivacyGuard.Filters;
+using PrivacyGuard.Helpers;
 using PrivacyGuard.Interfaces.Services;
 using PrivacyGuard.Models;
 using System;
@@ -22,10 +23,19 @@ namespace PrivacyGuard.Controllers
             _dataPrincipalService = dataPrincipalService;
         }
 
+        private void GetCallerContext(out string? callerRole, out Guid callerUnitId)
+        {
+            callerRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            Guid.TryParse(User.FindFirst("OrgUnitId")?.Value, out callerUnitId);
+        }
+
+        // Non-admin user jiske paas koi unit nahi hai, wo kuch create nahi kar sakta
+        private static bool IsUnitlessScopedCaller(string? role, Guid unitId) =>
+            RoleGuard.IsBranchScoped(role, unitId) && unitId == Guid.Empty;
+
         // ENDPOINT: Paginated List for Dashboard Grid
-         
         [HttpGet]
-        [HasPermission("DataPrincipal.View")] // UPDATE: View permission add kar di
+        [HasPermission("DataPrincipal.View")]
         public async Task<IActionResult> GetDataPrincipals(
             [FromQuery] string search = "",
             [FromQuery] string classType = "",
@@ -35,17 +45,17 @@ namespace PrivacyGuard.Controllers
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
+            GetCallerContext(out var callerRole, out var callerUnitId);
+
             var result = await _dataPrincipalService.GetDataPrincipalsListAsync(
-                Guid.Parse(orgIdClaim), search, classType, page, pageSize);
+                Guid.Parse(orgIdClaim), search, classType, page, pageSize, callerRole, callerUnitId);
 
             return Ok(result);
         }
 
-        // ==========================================
         // ENDPOINT: Add Single Data Principal
-        // ==========================================
         [HttpPost("add")]
-        [HasPermission("DataPrincipal.Manage")] // UPDATE: Create/Manage ke liye strict permission
+        [HasPermission("DataPrincipal.Manage")]
         public async Task<IActionResult> AddDataPrincipal([FromBody] DataPrincipalDto request)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
@@ -56,7 +66,14 @@ namespace PrivacyGuard.Controllers
                 return BadRequest("At least Mobile or Email is required.");
             }
 
-            var dataPrincipal = await _dataPrincipalService.CreateSingleDataPrincipalAsync(request, Guid.Parse(orgIdClaim));
+            GetCallerContext(out var callerRole, out var callerUnitId);
+            if (IsUnitlessScopedCaller(callerRole, callerUnitId))
+                return StatusCode(403, new { Message = "You are not assigned to any branch." });
+
+            // Principal caller ki branch me banega (org-wide admin ki unit na ho to unit null)
+            Guid? orgUnitId = callerUnitId == Guid.Empty ? null : callerUnitId;
+
+            var dataPrincipal = await _dataPrincipalService.CreateSingleDataPrincipalAsync(request, Guid.Parse(orgIdClaim), orgUnitId);
 
             return Ok(new
             {
@@ -67,24 +84,24 @@ namespace PrivacyGuard.Controllers
         }
 
         // ENDPOINT: 360-Degree View Dashboard
-        // ==========================================
         [HttpGet("{id}/360-view")]
-        [HasPermission("DataPrincipal.View")] // UPDATE: View permission add kar di
+        [HasPermission("DataPrincipal.View")]
         public async Task<IActionResult> Get360View(Guid id)
         {
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var viewData = await _dataPrincipalService.Get360ViewAsync(id, Guid.Parse(orgIdClaim));
+            GetCallerContext(out var callerRole, out var callerUnitId);
+
+            var viewData = await _dataPrincipalService.Get360ViewAsync(id, Guid.Parse(orgIdClaim), callerRole, callerUnitId);
 
             if (viewData == null)
                 return NotFound(new { Message = "Data Principal not found." });
 
             return Ok(viewData);
         }
-        // ==========================================
+
         // ENDPOINT: Edit / Update Data Principal
-        // ==========================================
         [HttpPut("{id}")]
         [HasPermission("DataPrincipal.Manage")]
         public async Task<IActionResult> UpdateDataPrincipal(Guid id, [FromBody] DataPrincipalDto request)
@@ -92,16 +109,16 @@ namespace PrivacyGuard.Controllers
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
-            var success = await _dataPrincipalService.UpdateDataPrincipalAsync(id, request, Guid.Parse(orgIdClaim));
+            GetCallerContext(out var callerRole, out var callerUnitId);
+
+            var success = await _dataPrincipalService.UpdateDataPrincipalAsync(id, request, Guid.Parse(orgIdClaim), callerRole, callerUnitId);
 
             if (!success) return NotFound(new { Message = "Data Principal not found." });
 
             return Ok(new { Message = "Data Principal updated successfully." });
         }
 
-        // ==========================================
         // ENDPOINT: Delete / Anonymize (Right to Erasure)
-        // ==========================================
         [HttpDelete("{id}")]
         [HasPermission("DataPrincipal.Manage")]
         public async Task<IActionResult> DeleteDataPrincipal(Guid id)
@@ -109,11 +126,13 @@ namespace PrivacyGuard.Controllers
             var orgIdClaim = User.FindFirst("OrganizationId")?.Value;
             if (string.IsNullOrEmpty(orgIdClaim)) return Unauthorized();
 
+            GetCallerContext(out var callerRole, out var callerUnitId);
+
             // DPDP Act: Hard delete ki jagah Anonymize/Scramble kar rahe hain
             bool success;
             try
             {
-                success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim));
+                success = await _dataPrincipalService.AnonymizeDataPrincipalAsync(id, Guid.Parse(orgIdClaim), callerRole, callerUnitId);
             }
             catch (InvalidOperationException ex)
             {
@@ -124,9 +143,8 @@ namespace PrivacyGuard.Controllers
 
             return Ok(new { Message = "Data Principal has been successfully anonymized as per Right to Erasure." });
         }
-        // ==========================================
+
         // 1. GET: DATA PRINCIPAL COUNT (Dashboard Widget Ke Liye)
-        // ==========================================
         [HttpGet("count")]
         [HasPermission("DataPrincipal.View")]
         public async Task<IActionResult> GetTotalCount([FromQuery] Guid? orgUnitId)
@@ -137,19 +155,21 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            // Agar login karne wala employee kisi specific Circle/OrgUnit se juda hai, 
-            // toh token se uska OrgUnitId uthao taaki use sirf apne circle ka count dikhe.
-            var tokenOrgUnitIdStr = User.FindFirstValue("OrgUnitId");
-            Guid? finalOrgUnitId = orgUnitId ?? (string.IsNullOrEmpty(tokenOrgUnitIdStr) ? null : Guid.Parse(tokenOrgUnitIdStr));
+            GetCallerContext(out var callerRole, out var callerUnitId);
 
-            var count = await _dataPrincipalService.GetTotalPrincipalsCountAsync(organizationId, finalOrgUnitId);
-
-            return Ok(new { totalCount = count });
+            try
+            {
+                // Scoped user ko apni branch (subtree) ka count milta hai, doosri branch par 403
+                var count = await _dataPrincipalService.GetTotalPrincipalsCountAsync(organizationId, orgUnitId, callerRole, callerUnitId);
+                return Ok(new { totalCount = count });
+            }
+            catch (OrgUnitForbiddenException ex)
+            {
+                return StatusCode(403, new { message = ex.Message });
+            }
         }
 
-        // ==========================================
         // 2. POST: BULK IMPORT (CSV ya JSON Array data ke liye)
-        // ==========================================
         [HttpPost("bulk-import")]
         [HasPermission("DataPrincipal.Manage")]
         public async Task<IActionResult> BulkImport([FromBody] List<DataPrincipalDto> request)
@@ -160,9 +180,11 @@ namespace PrivacyGuard.Controllers
 
             var organizationId = Guid.Parse(orgIdStr);
 
-            // Bulk upload karne wale staff ka circle ID (agar ho toh)
-            var orgUnitIdStr = User.FindFirstValue("OrgUnitId");
-            Guid? orgUnitId = string.IsNullOrEmpty(orgUnitIdStr) ? null : Guid.Parse(orgUnitIdStr);
+            GetCallerContext(out var callerRole, out var callerUnitId);
+            if (IsUnitlessScopedCaller(callerRole, callerUnitId))
+                return StatusCode(403, new { message = "You are not assigned to any branch." });
+
+            Guid? orgUnitId = callerUnitId == Guid.Empty ? null : callerUnitId;
 
             if (request == null || request.Count == 0)
                 return BadRequest(new { message = "No data provided for import. List is empty." });

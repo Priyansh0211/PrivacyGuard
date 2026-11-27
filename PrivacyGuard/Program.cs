@@ -127,6 +127,7 @@ builder.Services.AddScoped<IUserDashboardService, UserDashboardService>();
 
 builder.Services.AddScoped<IOrgUnitRepository, OrgUnitRepository>();
 builder.Services.AddScoped<IOrgUnitService, OrgUnitService>();
+builder.Services.AddScoped<IAccessScopeService, AccessScopeService>();
 
 builder.Services.AddScoped<IDpiaRepository, DpiaRepository>();
 builder.Services.AddScoped<IDpiaService, DpiaService>();
@@ -218,6 +219,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<PrivacyGuard.Data.ApplicationDbContext>();
         PrivacyGuard.Data.DataSeeder.Initialize(context);
+        PrivacyGuard.Data.DataSeeder.HashLegacyPasswords(context);
     }
     catch (Exception ex)
     {
