@@ -13,21 +13,26 @@ namespace PrivacyGuard.Services
     public class DataPrincipalService : IDataPrincipalService
     {
         private readonly IDataPrincipalRepository _repository;
-
-        public DataPrincipalService(IDataPrincipalRepository repository)
+        private readonly IAccessScopeService _scope;
+        public DataPrincipalService(IDataPrincipalRepository repository, IAccessScopeService scope)
         {
             _repository = repository;
+            _scope = scope;
         }
 
         // ==========================================
         // 1. ADD DATA PRINCIPAL (Fixed Identifiers & Reference ID)
         // ==========================================
-        public async Task<DataPrincipal> CreateSingleDataPrincipalAsync(DataPrincipalDto dto, Guid organizationId)
+        public async Task<DataPrincipal> CreateSingleDataPrincipalAsync(DataPrincipalDto dto, Guid organizationId, Guid? orgUnitId = null)
         {
             bool requiresGuardian = !string.IsNullOrEmpty(dto.Class) &&
                 (dto.Class.ToLower() == "child" || dto.Class.ToLower() == "person_with_disability");
 
             var dpId = Guid.NewGuid();
+
+            // SECURITY: client ka dto.RoleId kabhi use nahi karna (warna principal admin role le sakta hai).
+            // Hamesha org ka "DataPrincipal" role (ya null).
+            var principalRoleId = await _repository.GetDataPrincipalRoleIdAsync(organizationId);
 
             // FIX: Unique Reference ID to prevent Random() collisions
             string uniqueRef = $"PSD-{DateTime.UtcNow:yyMM}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpper()}";
@@ -36,11 +41,12 @@ namespace PrivacyGuard.Services
             {
                 DataPrincipalId = dpId,
                 OrganizationId = organizationId,
-                RoleId = dto.RoleId,
+                OrgUnitId = orgUnitId,          // NAYA: caller ki branch
+                RoleId = principalRoleId,
                 ReferenceId = uniqueRef,
                 Mobile = dto.Mobile,
                 Email = dto.Email,
-                PasswordHash = dto.Password,
+                PasswordHash = string.IsNullOrEmpty(dto.Password) ? null : PasswordHelper.Hash(dto.Password),
                 ConsumerNo = dto.ConsumerNo,
                 FullName = dto.FullName,
                 DateOfBirth = string.IsNullOrEmpty(dto.DateOfBirth) ? null : DateTime.Parse(dto.DateOfBirth),
@@ -73,10 +79,12 @@ namespace PrivacyGuard.Services
         // 2. NAYA METHOD: Get Paginated & Masked List
         // ==========================================
         public async Task<DataPrincipalListResponseDto> GetDataPrincipalsListAsync(
-            Guid organizationId, string search, string classType, int page, int pageSize)
+        Guid organizationId, string search, string classType, int page, int pageSize, string? callerRole, Guid callerUnitId)
         {
-            var (principals, totalCount) = await _repository.GetPaginatedDataPrincipalsAsync(organizationId, search, classType, page, pageSize);
+            var allowedUnits = await _scope.GetAllowedUnitIdsAsync(organizationId, callerRole, callerUnitId);
 
+            var (principals, totalCount) = await _repository.GetPaginatedDataPrincipalsAsync(
+                organizationId, search, classType, page, pageSize, allowedUnits);
             var listDto = new DataPrincipalListResponseDto
             {
                 TotalCount = totalCount,
@@ -103,11 +111,11 @@ namespace PrivacyGuard.Services
         // ==========================================
         // 3. FETCH 360-VIEW DATA (Fixed Active Consents)
         // ==========================================
-        public async Task<DataPrincipal360Dto?> Get360ViewAsync(Guid dataPrincipalId, Guid organizationId)
+        public async Task<DataPrincipal360Dto?> Get360ViewAsync(Guid dataPrincipalId, Guid organizationId, string? callerRole, Guid callerUnitId)
         {
             var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
 
-            if (dp == null) return null;
+            if (dp == null || !await IsInScopeAsync(dp, organizationId, callerRole, callerUnitId)) return null;
 
             var dto = new DataPrincipal360Dto
             {
@@ -163,11 +171,26 @@ namespace PrivacyGuard.Services
         // ==========================================
         // DSAR: Right to Erasure (Soft Delete / Anonymize)
         // ==========================================
+        // DSAR flow (PrivacyRequestService): branch check nahi
         public async Task<bool> AnonymizeDataPrincipalAsync(Guid dataPrincipalId, Guid organizationId)
         {
             var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
             if (dp == null) return false;
 
+            return await AnonymizeEntityAsync(dp);
+        }
+
+        // Data Principal page: branch scoped (bahar ka record "not found" jaisa)
+        public async Task<bool> AnonymizeDataPrincipalAsync(Guid dataPrincipalId, Guid organizationId, string? callerRole, Guid callerUnitId)
+        {
+            var dp = await _repository.Get360ViewEntityAsync(dataPrincipalId, organizationId);
+            if (dp == null || !await IsInScopeAsync(dp, organizationId, callerRole, callerUnitId)) return false;
+
+            return await AnonymizeEntityAsync(dp);
+        }
+
+        private async Task<bool> AnonymizeEntityAsync(DataPrincipal dp)
+        {
             // Already anonymized ho chuka hai to dobara mat karo (ReferenceId na badle)
             if (dp.AnonymizedAt != null) return true;
 
@@ -182,10 +205,10 @@ namespace PrivacyGuard.Services
         // ==========================================
         // EDIT / UPDATE DATA PRINCIPAL (Right to Correction)
         // ==========================================
-        public async Task<bool> UpdateDataPrincipalAsync(Guid id, DataPrincipalDto dto, Guid organizationId)
+        public async Task<bool> UpdateDataPrincipalAsync(Guid id, DataPrincipalDto dto, Guid organizationId, string? callerRole, Guid callerUnitId)
         {
             var dp = await _repository.Get360ViewEntityAsync(id, organizationId);
-            if (dp == null) return false;
+            if (dp == null || !await IsInScopeAsync(dp, organizationId, callerRole, callerUnitId)) return false;
 
             // Naya data update karo
             dp.FullName = dto.FullName ?? dp.FullName;
@@ -249,9 +272,15 @@ namespace PrivacyGuard.Services
         // ==========================================
         // NAYA METHOD: Get Total Principals Count
         // ==========================================
-        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId = null)
+        public async Task<int> GetTotalPrincipalsCountAsync(Guid organizationId, Guid? orgUnitId, string? callerRole, Guid callerUnitId)
         {
-            return await _repository.GetTotalPrincipalsCountAsync(organizationId, orgUnitId);
+            var allowedUnits = await _scope.GetAllowedUnitIdsAsync(organizationId, callerRole, callerUnitId);
+
+            // Scoped caller doosri branch ka count nahi dekh sakta
+            if (allowedUnits != null && orgUnitId.HasValue && !allowedUnits.Contains(orgUnitId.Value))
+                throw new OrgUnitForbiddenException("You can view counts only within your own branch.");
+
+            return await _repository.GetTotalPrincipalsCountAsync(organizationId, orgUnitId, allowedUnits);
         }
 
         // ==========================================
@@ -266,6 +295,11 @@ namespace PrivacyGuard.Services
                 "consumer no" => PiiMaskingHelper.MaskConsumerNo(value),
                 _ => value
             };
+        }
+        private async Task<bool> IsInScopeAsync(DataPrincipal dp, Guid organizationId, string? callerRole, Guid callerUnitId)
+        {
+            var allowed = await _scope.GetAllowedUnitIdsAsync(organizationId, callerRole, callerUnitId);
+            return allowed == null || (dp.OrgUnitId.HasValue && allowed.Contains(dp.OrgUnitId.Value));
         }
     }
 }

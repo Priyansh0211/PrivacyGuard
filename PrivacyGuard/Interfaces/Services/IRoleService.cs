@@ -7,16 +7,11 @@ namespace PrivacyGuard.Interfaces.Services
     {
         Task<List<RoleSummaryDto>> GetRoleSummariesAsync(Guid organizationId);
         Task<List<ModulePermissionDto>> GetGroupedPermissionsAsync();
-
-        Task<(bool IsSuccess, string ErrorMessage)> CreateCustomRoleAsync(CreateRoleDto request, Guid organizationId);
-
+        Task<(bool IsSuccess, string ErrorMessage)> CreateCustomRoleAsync(CreateRoleDto request, Guid organizationId, Guid callerUserId, string? callerRole);
         Task<List<ModulePermissionDto>> GetUserGroupedPermissionsAsync(Guid userId);
-
         Task<List<string>> GetUserPermissionsAsync(Guid userId);
-
         Task<RolePermissionResponseDto?> GetRoleForEditAsync(Guid roleId, Guid organizationId);
-
-        Task<bool> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, UpdateRoleDto dto);
-
+        Task<(bool IsSuccess, bool NotFound, string ErrorMessage)> UpdateRoleAndPermissionsAsync(Guid roleId, Guid organizationId, UpdateRoleDto dto, Guid callerUserId, string? callerRole);
+        Task<List<ModulePermissionDto>?> GetUserGroupedPermissionsForOrgAsync(Guid userId, Guid organizationId);
     }
 }

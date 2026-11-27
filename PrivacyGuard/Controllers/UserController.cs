@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PrivacyGuard.DTOs;
 using PrivacyGuard.Filters;
 using PrivacyGuard.Interfaces;
+using System.Security.Claims;
 
 namespace PrivacyGuard.Controllers
 {
@@ -18,6 +19,12 @@ namespace PrivacyGuard.Controllers
         {
             _userService = userService;
         }
+        private void GetCallerContext(out Guid callerUserId, out string? callerRole, out Guid callerUnitId)
+        {
+            Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out callerUserId);
+            callerRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            Guid.TryParse(User.FindFirst("OrgUnitId")?.Value, out callerUnitId);
+        }
 
         [HttpPost("add-employee")]
         [HasPermission("Users.Create")]
@@ -31,9 +38,8 @@ namespace PrivacyGuard.Controllers
                 return Unauthorized(new { Error = "Invalid token or organization data." });
             }
 
-            // Service ko data aur secure OrganizationId pass karna
-            var result = await _userService.AddEmployeeAsync(request, organizationId);
-
+            GetCallerContext(out var callerUserId, out var callerRole, out var callerUnitId);
+            var result = await _userService.AddEmployeeAsync(request, organizationId, callerUserId, callerRole, callerUnitId);
             if (result.IsSuccess)
             {
                 return Ok(new { Message = "New employee added successfully!" });
@@ -54,9 +60,8 @@ namespace PrivacyGuard.Controllers
                 return Unauthorized(new { Error = "Invalid token or organization data." });
             }
 
-            
-            var team = await _userService.GetOrganizationEmployeesAsync(organizationId);
-
+            GetCallerContext(out _, out var callerRole, out var callerUnitId);
+            var team = await _userService.GetOrganizationEmployeesAsync(organizationId, callerRole, callerUnitId);
             return Ok(team);
         }
 
@@ -71,8 +76,8 @@ namespace PrivacyGuard.Controllers
                 return Unauthorized(new { Error = "Invalid token or organization data." });
             }
 
-            var result = await _userService.ToggleUserStatusAsync(userId, organizationId);
-
+            GetCallerContext(out var callerUserId, out var callerRole, out var callerUnitId);
+            var result = await _userService.ToggleUserStatusAsync(userId, organizationId, callerUserId, callerRole, callerUnitId);
             if (result.IsSuccess)
             {
                 return Ok(new { Message = "User status updated successfully." });
@@ -94,9 +99,8 @@ namespace PrivacyGuard.Controllers
                 return Unauthorized(new { Error = "Invalid token or organization data." });
             }
 
-            // Service call karna
-            var result = await _userService.UpdateEmployeeAsync(userId, request, organizationId);
-
+            GetCallerContext(out var callerUserId, out var callerRole, out var callerUnitId);
+            var result = await _userService.UpdateEmployeeAsync(userId, request, organizationId, callerUserId, callerRole, callerUnitId);
             if (result.IsSuccess)
             {
                 return Ok(new { Message = "User details updated successfully!" });
@@ -104,8 +108,5 @@ namespace PrivacyGuard.Controllers
 
             return BadRequest(new { Error = result.ErrorMessage });
         }
-
-
-
     }
 }

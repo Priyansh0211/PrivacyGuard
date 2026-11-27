@@ -26,33 +26,46 @@ namespace PrivacyGuard.Repositories
             await _context.SaveChangesAsync();
             return user;
         }
-
         public async Task<List<User>> GetUsersByOrganizationIdAsync(Guid organizationId)
         {
             return await _context.Users
-                 .Include(u => u.UserRole) // Role data sath laayega
-                 .Where(u => u.OrganizationId == organizationId && u.UserRole != null && u.UserRole.Name != "DataPrincipal") // Sirf internal staff ko filter karega
+                 .AsNoTracking()
+                 .Include(u => u.UserRole)
+                 .Include(u => u.OrgUnit)
+                 // Role-less staff bhi dikhne chahiye; sirf legacy DataPrincipal-role wale hide
+                 .Where(u => u.OrganizationId == organizationId
+                             && (u.UserRole == null || u.UserRole.Name != "DataPrincipal"))
                  .ToListAsync();
         }
-
         public async Task<List<DataPrincipal>> GetDataPrincipalsByOrganizationIdAsync(Guid organizationId)
         {
             return await _context.DataPrincipals
-                .Where(dp => dp.OrganizationId == organizationId)
+                .AsNoTracking()
+                .Where(dp => dp.OrganizationId == organizationId && dp.AnonymizedAt == null)
                 .ToListAsync();
         }
-
         public async Task<User?> GetUserByIdAndOrgAsync(Guid userId, Guid organizationId)
         {
             return await _context.Users
                 .Include(u => u.UserRole)
                 .FirstOrDefaultAsync(u => u.UserId == userId && u.OrganizationId == organizationId);
         }
-
+        public async Task<Role?> GetRoleInOrganizationAsync(Guid roleId, Guid organizationId)
+        {
+            return await _context.Roles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == roleId && r.OrganizationId == organizationId);
+        }
         public async Task UpdateUserAsync(User user)
         {
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+        }
+        public async Task<OrgUnit?> GetActiveOrgUnitInOrganizationAsync(Guid orgUnitId, Guid organizationId)
+        {
+            return await _context.OrgUnits
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == orgUnitId && o.OrganizationId == organizationId && o.IsActive);
         }
     }
 }

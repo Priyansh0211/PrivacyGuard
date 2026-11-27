@@ -53,10 +53,9 @@ namespace PrivacyGuard.Services
                 ReferenceId = PrivacyHelper.GenerateUserReferenceId(),
                 Email = request.AdminEmail,
                 PhoneNumber = request.AdminPhoneNumber,
-                PasswordHash = request.AdminPassword, 
+                PasswordHash = PasswordHelper.Hash(request.AdminPassword),
 
 
-                
                 RoleId = dpoRole.Id,
                 UserRole = dpoRole,
 
@@ -95,9 +94,21 @@ namespace PrivacyGuard.Services
             var isLegacyDataPrincipalUser =
                 user?.UserRole?.Name.Equals("DataPrincipal", StringComparison.OrdinalIgnoreCase) == true;
 
-            if (user != null && !isLegacyDataPrincipalUser && user.PasswordHash == request.Password)
+            bool userPasswordOk = false;
+            bool userNeedsRehash = false;
+            if (user != null && !isLegacyDataPrincipalUser)
+            {
+                userPasswordOk = PasswordHelper.Verify(user.PasswordHash, request.Password, out userNeedsRehash);
+            }
+
+            if (user != null && userPasswordOk)
             {
                 if (!user.IsActive) return (false, string.Empty, "Account is disabled");
+
+                // Purana plain text / kam iterations wala hash ho to ab upgrade kar do
+                // (neeche internalUser.LastLoginDate ke saath UpdateUserAsync isse save kar dega)
+                if (userNeedsRehash)
+                    user.PasswordHash = PasswordHelper.Hash(request.Password);
 
                 internalUser = user;
                 organizationId = user.OrganizationId;
@@ -109,14 +120,30 @@ namespace PrivacyGuard.Services
             {
                 dataPrincipal = await _tenantRepository.GetDataPrincipalByEmailAsync(request.Email);
 
-                if (dataPrincipal == null || dataPrincipal.PasswordHash != request.Password)
+                bool dpPasswordOk = false;
+                bool dpNeedsRehash = false;
+                if (dataPrincipal != null)
+                {
+                    dpPasswordOk = PasswordHelper.Verify(dataPrincipal.PasswordHash, request.Password, out dpNeedsRehash);
+                }
+
+                if (dataPrincipal == null || !dpPasswordOk)
                     return (false, string.Empty, "Invalid email or password");
+
+                if (dpNeedsRehash)
+                {
+                    dataPrincipal.PasswordHash = PasswordHelper.Hash(request.Password);
+                    await _tenantRepository.UpdateDataPrincipalAsync(dataPrincipal);
+                }
 
                 organizationId = dataPrincipal.OrganizationId;
                 email = dataPrincipal.Email!;
                 roleName = dataPrincipal.Role?.Name ?? "DataPrincipal";
                 userType = "DataPrincipal";
             }
+            // Organization disable ho to koi bhi login nahi kar sakta (staff ya data principal)
+            if (!await _tenantRepository.IsOrganizationActiveAsync(organizationId))
+                return (false, string.Empty, "Organization account is disabled");
 
             var identityId = internalUser?.UserId ?? dataPrincipal!.DataPrincipalId;
             var claims = new List<Claim>

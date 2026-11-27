@@ -11,5 +11,7 @@
         public string Role { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public Guid? OrgUnitId { get; set; }
+        public string? OrgUnitName { get; set; }
     }
 }   
