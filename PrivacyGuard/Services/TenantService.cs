@@ -14,11 +14,13 @@ namespace PrivacyGuard.Services
     {
         private readonly ITenantRepository _tenantRepository;
         private readonly IConfiguration _configuration;
+        private readonly IAuditService _auditService;
 
-        public TenantService(ITenantRepository tenantRepository, IConfiguration configuration)
+        public TenantService(ITenantRepository tenantRepository, IConfiguration configuration, IAuditService auditService)
         {
             _tenantRepository = tenantRepository;
             _configuration = configuration;
+            _auditService = auditService;
         }
 
         public async Task<(bool IsSuccess, Guid? OrganizationId, Guid? AdminId, string ErrorMessage)> RegisterTenantAsync(RegisterTenantDto request)
@@ -204,6 +206,14 @@ namespace PrivacyGuard.Services
                 internalUser.LastLoginIP = loginIp;
                 await _tenantRepository.UpdateUserAsync(internalUser);
             }
+
+            await _auditService.RecordAuthenticationEventAsync(
+                identityId,
+                organizationId,
+                email,
+                roleName,
+                loginIp,
+                "Login");
 
             return (true, tokenString, string.Empty);
         }
