@@ -5,6 +5,7 @@ using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace PrivacyGuard.Data
 {
@@ -27,6 +28,81 @@ namespace PrivacyGuard.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
         {
             _httpContextAccessor = httpContextAccessor;
+        }
+
+        public async Task RecordAuthenticationEventAsync(
+            Guid userId,
+            Guid organizationId,
+            string actorEmail,
+            string actorRole,
+            string? ipAddress,
+            string action,
+            CancellationToken cancellationToken = default)
+        {
+            if (action is not ("Login" or "Logout"))
+            {
+                throw new ArgumentException("Authentication audit action must be Login or Logout.", nameof(action));
+            }
+
+            var transaction = Database.CurrentTransaction;
+            var ownsTransaction = transaction == null;
+
+            if (ownsTransaction)
+            {
+                transaction = await Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            }
+
+            try
+            {
+                var timestamp = DateTime.UtcNow;
+                var auditLog = new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    OrganizationId = organizationId,
+                    ActorEmail = actorEmail,
+                    ActorRole = actorRole,
+                    IpAddress = ipAddress ?? "Unknown",
+                    TableName = "Authentication",
+                    ActionType = $"authentication.{action.ToLowerInvariant()}",
+                    PrimaryKey = JsonSerializer.Serialize(new { UserId = userId }),
+                    NewValues = JsonSerializer.Serialize(new
+                    {
+                        UserId = userId,
+                        ActorEmail = actorEmail,
+                        ActorRole = actorRole,
+                        IpAddress = ipAddress ?? "Unknown",
+                        Timestamp = timestamp
+                    }),
+                    Outcome = "Success",
+                    Timestamp = timestamp
+                };
+
+                ApplyHashChaining(auditLog, new Dictionary<Guid, AuditLog>());
+                AuditLogs.Add(auditLog);
+                await base.SaveChangesAsync(cancellationToken);
+
+                if (ownsTransaction)
+                {
+                    await transaction!.CommitAsync(cancellationToken);
+                }
+            }
+            catch
+            {
+                if (ownsTransaction)
+                {
+                    await transaction!.RollbackAsync(cancellationToken);
+                }
+
+                throw;
+            }
+            finally
+            {
+                if (ownsTransaction)
+                {
+                    await transaction!.DisposeAsync();
+                }
+            }
         }
 
         public DbSet<Organization> Organizations { get; set; }
@@ -207,7 +283,7 @@ namespace PrivacyGuard.Data
         {
             if (value == null) return null;
 
-            if ((entityName is nameof(DataPrincipal) or nameof(PrincipalIdentifier)) &&
+            if ((entityName is nameof(User) or nameof(DataPrincipal) or nameof(PrincipalIdentifier)) &&
                 SensitiveAuditProperties.Contains(propertyName))
             {
                 return "***REDACTED***";
@@ -241,6 +317,14 @@ namespace PrivacyGuard.Data
                 if (entry.Entity is AuditLog || entry.State == EntityState.Detached || entry.State == EntityState.Unchanged)
                     continue;
 
+                if (entry.Entity is User &&
+                    entry.State == EntityState.Modified &&
+                    entry.Properties.Where(property => property.IsModified)
+                        .All(property => property.Metadata.Name is nameof(User.LastLoginDate) or nameof(User.LastLoginIP)))
+                {
+                    continue;
+                }
+
                 string entityName = entry.Entity.GetType().Name;
 
                 // Fallback OrganizationId from entity when running in background job without HTTP context
@@ -248,6 +332,10 @@ namespace PrivacyGuard.Data
                 if (entryOrgId == null && entry.Entity is DataPrincipal dpEntity)
                 {
                     entryOrgId = dpEntity.OrganizationId;
+                }
+                else if (entryOrgId == null && entry.Entity is User userEntity)
+                {
+                    entryOrgId = userEntity.OrganizationId;
                 }
                 else if (entryOrgId == null && entry.Entity is RetentionPolicy rpEntity)
                 {

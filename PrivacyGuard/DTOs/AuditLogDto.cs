@@ -7,6 +7,7 @@
         public string Action { get; set; } = string.Empty;
         public string Entity { get; set; } = string.Empty;
         public string Actor { get; set; } = string.Empty;
+        public string? IpAddress { get; set; }
         public string Outcome { get; set; } = string.Empty;
         public string EntryHash { get; set; } = string.Empty;
     }
