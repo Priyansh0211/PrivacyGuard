@@ -73,12 +73,21 @@ namespace PrivacyGuard.Repositories
                 .FirstOrDefaultAsync(dp => dp.Email == email && dp.IsActive);
         }
 
+        public async Task<bool> IsOrganizationActiveAsync(Guid organizationId)
+        {
+            return await _context.Organizations.AnyAsync(o => o.OrganizationId == organizationId && o.IsActive);
+        }
         public async Task UpdateUserAsync(User user)
         {
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
 
+        public async Task UpdateDataPrincipalAsync(DataPrincipal dataPrincipal)
+        {
+            _context.DataPrincipals.Update(dataPrincipal);
+            await _context.SaveChangesAsync();
+        }
         public async Task<List<string>> GetPermissionsByRoleIdAsync(Guid? roleId)
         {
             if (roleId == null || roleId == Guid.Empty)
